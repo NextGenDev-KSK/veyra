@@ -17,6 +17,13 @@ add_library(veyra_nlohmann_json INTERFACE)
 add_library(veyra::json ALIAS veyra_nlohmann_json)
 target_include_directories(veyra_nlohmann_json INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}")
 
+# --- Catch2 v2 (vendored single header, BSL-1.0, test-only) ----------------
+# Consumers #include <catch2/catch.hpp>. Header-only; needed only when
+# VEYRA_BUILD_TESTS is on, but wiring the target unconditionally is harmless.
+add_library(veyra_catch2 INTERFACE)
+add_library(veyra::catch2 ALIAS veyra_catch2)
+target_include_directories(veyra_catch2 INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}")
+
 # --- Submodule-backed dependencies (later phases) --------------------------
 if(NOT VEYRA_FETCH_DEPS)
     message(STATUS "third_party: submodule dependencies disabled (stub build)")

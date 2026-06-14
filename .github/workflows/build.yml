@@ -32,10 +32,13 @@ jobs:
         uses: lukka/get-cmake@latest
 
       - name: Configure
-        run: cmake --preset windows-release
+        run: cmake --preset windows-release -DVEYRA_BUILD_TESTS=ON
 
       - name: Build
         run: cmake --build --preset windows-release
+
+      - name: Test (DSP)
+        run: ctest --test-dir build/windows-release --output-on-failure
 
       - name: Verify all four binaries exist
         shell: pwsh
