@@ -1,15 +1,18 @@
-# veyra-ui — the main user-facing JUCE application. Produces veyra.exe.
+# veyra-ui — the main user-facing application. Produces veyra.exe.
 #
-# Phase 0: a GUI-subsystem (WIN32) executable whose WinMain returns 0 — no
-# JUCE yet, so the CI build is fast. The manifest (asInvoker + per-monitor-v2
-# DPI awareness) is embedded now so HiDPI behaviour is correct the moment real
-# UI lands in Phase 4.
+# Phase 1: a minimal native Win32 shell that displays the live service
+# connection status via the background ServiceClient (named-pipe IPC). No JUCE
+# yet — that replaces this shell in Phase 4. The manifest (asInvoker +
+# per-monitor-v2 DPI awareness) is already embedded for correct HiDPI behaviour.
 
 add_executable(veyra WIN32
     Source/Main.cpp
+    Source/ServiceClient.cpp
     veyra.rc)
 
-target_link_libraries(veyra PRIVATE veyra::common veyra::dsp)
+target_include_directories(veyra PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source")
+
+target_link_libraries(veyra PRIVATE veyra::common veyra::dsp user32 gdi32)
 
 # Ensure the resource compiler can locate veyra.exe.manifest referenced from
 # veyra.rc (CMake forwards include dirs to rc.exe as /I).

@@ -10,8 +10,16 @@
 #  has not been initialised.
 # ============================================================================
 
+# --- nlohmann/json (vendored single header, MIT, always available) ---------
+# Used by veyra-common for config (de)serialisation. Header-only, so it needs
+# no submodule and is wired unconditionally. Consumers #include <nlohmann/json.hpp>.
+add_library(veyra_nlohmann_json INTERFACE)
+add_library(veyra::json ALIAS veyra_nlohmann_json)
+target_include_directories(veyra_nlohmann_json INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}")
+
+# --- Submodule-backed dependencies (later phases) --------------------------
 if(NOT VEYRA_FETCH_DEPS)
-    message(STATUS "third_party: dependencies disabled (Phase 0 stub build)")
+    message(STATUS "third_party: submodule dependencies disabled (stub build)")
     return()
 endif()
 
