@@ -10,3 +10,13 @@ add_executable(veyra WIN32
     veyra.rc)
 
 target_link_libraries(veyra PRIVATE veyra::common veyra::dsp)
+
+# Ensure the resource compiler can locate veyra.exe.manifest referenced from
+# veyra.rc (CMake forwards include dirs to rc.exe as /I).
+target_include_directories(veyra PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+
+# We embed our own RT_MANIFEST via veyra.rc, so suppress the linker's default
+# manifest to avoid an mt.exe duplicate-manifest conflict.
+if(MSVC)
+    target_link_options(veyra PRIVATE "/MANIFEST:NO")
+endif()
