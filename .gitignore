@@ -1,0 +1,37 @@
+# Build output
+/build/
+/out/
+*.obj
+*.pdb
+*.ilk
+*.exp
+
+# CMake user/local
+CMakeUserPresets.json
+CMakeCache.txt
+CMakeFiles/
+
+# IDE / editor
+.vs/
+.vscode/
+*.user
+*.suo
+.idea/
+
+# OS cruft
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Third-party submodule working trees (populated in later phases).
+# Keep the placeholders and per-dir CMake glue, ignore everything else.
+/third_party/JUCE/*
+/third_party/rnnoise/*
+/third_party/spdlog/*
+/third_party/flatbuffers/*
+/third_party/kissfft/*
+!/third_party/**/.gitkeep
+
+# Runtime / user data produced by the app (never committed)
+/**/crashes/
+/**/logs/

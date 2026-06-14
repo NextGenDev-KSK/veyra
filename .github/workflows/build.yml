@@ -1,0 +1,64 @@
+name: build
+
+# Phase 0 acceptance gate: prove the four no-op binaries build on a clean
+# Windows runner (VS 2022 + Windows SDK) and upload them as artifacts.
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows x64 Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        # No submodule recursion in Phase 0 — stubs link no third-party deps.
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Set up CMake + Ninja
+        uses: lukka/get-cmake@latest
+
+      - name: Configure
+        run: cmake --preset windows-release
+
+      - name: Build
+        run: cmake --build --preset windows-release
+
+      - name: Verify all four binaries exist
+        shell: pwsh
+        run: |
+          $bin = "build/windows-release/bin"
+          $expected = @("veyra.exe", "veyra-service.exe", "veyra-apo.dll", "veyra-overlay.exe")
+          $missing = @()
+          foreach ($f in $expected) {
+            if (-not (Test-Path (Join-Path $bin $f))) { $missing += $f }
+          }
+          if ($missing.Count -gt 0) {
+            Write-Error "Missing expected artifacts: $($missing -join ', ')"
+            exit 1
+          }
+          Write-Host "All four Phase 0 binaries present."
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: veyra-windows-x64
+          path: |
+            build/windows-release/bin/veyra.exe
+            build/windows-release/bin/veyra-service.exe
+            build/windows-release/bin/veyra-apo.dll
+            build/windows-release/bin/veyra-overlay.exe
+          if-no-files-found: error

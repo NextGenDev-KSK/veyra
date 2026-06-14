@@ -1,0 +1,46 @@
+# ============================================================================
+#  third_party — bundled dependency wiring
+#
+#  Phase 0: this is a no-op. The stub binaries depend on nothing here, so we
+#  do not require any submodule to be checked out to configure or build.
+#
+#  When VEYRA_FETCH_DEPS=ON (later phases), each dependency is brought in via
+#  add_subdirectory on its submodule path. The guards below let a phase enable
+#  exactly the deps it needs and fail with a clear message if the submodule
+#  has not been initialised.
+# ============================================================================
+
+if(NOT VEYRA_FETCH_DEPS)
+    message(STATUS "third_party: dependencies disabled (Phase 0 stub build)")
+    return()
+endif()
+
+function(veyra_require_submodule name path)
+    if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${path}/CMakeLists.txt")
+        message(FATAL_ERROR
+            "Submodule '${name}' not found at third_party/${path}.\n"
+            "Run: git submodule update --init --recursive third_party/${path}")
+    endif()
+endfunction()
+
+# --- Logging (Phase 3+) ---
+# veyra_require_submodule(spdlog spdlog)
+# add_subdirectory(spdlog EXCLUDE_FROM_ALL)
+
+# --- FFT (optional; JUCE FFT is the default) ---
+# veyra_require_submodule(kissfft kissfft)
+# add_subdirectory(kissfft EXCLUDE_FROM_ALL)
+
+# --- IPC schema codegen (IPC backbone) ---
+# veyra_require_submodule(flatbuffers flatbuffers)
+# add_subdirectory(flatbuffers EXCLUDE_FROM_ALL)
+
+# --- UI framework (Phase 4) ---
+# veyra_require_submodule(JUCE JUCE)
+# add_subdirectory(JUCE EXCLUDE_FROM_ALL)
+
+# --- Mic noise suppression (Phase 6) ---
+# veyra_require_submodule(rnnoise rnnoise)
+# add_subdirectory(rnnoise EXCLUDE_FROM_ALL)
+
+message(STATUS "third_party: dependency wiring active (uncomment blocks as phases land)")

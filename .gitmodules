@@ -1,0 +1,17 @@
+# Third-party dependencies are declared here for forward reference but are NOT
+# added as live submodules during Phase 0 — the no-op stub targets link none of
+# them, keeping the CI build fast. Each later phase adds the submodule it needs:
+#
+#   Phase 3 (DSP):     spdlog, kissfft
+#   Phase 4 (UI):      JUCE
+#   Phase 6 (Voice):   rnnoise
+#   IPC backbone:      flatbuffers
+#
+# To populate one, run e.g.:
+#   git submodule add https://github.com/juce-framework/JUCE.git           third_party/JUCE
+#   git submodule add https://github.com/xiph/rnnoise.git                  third_party/rnnoise
+#   git submodule add https://github.com/gabime/spdlog.git                 third_party/spdlog
+#   git submodule add https://github.com/google/flatbuffers.git            third_party/flatbuffers
+#   git submodule add https://github.com/mborgerding/kissfft.git           third_party/kissfft
+#
+# and pin a tag, then add the matching entry below.

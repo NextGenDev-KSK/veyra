@@ -1,0 +1,59 @@
+# ============================================================================
+#  Veyra Sounds — top-level build
+#
+#  Phase 0 goal: every target compiles to a no-op binary so the repository
+#  layout and toolchain are proven end-to-end on CI before any real DSP,
+#  COM/APO, IPC, or JUCE code lands. Heavy third-party dependencies are
+#  declared (see third_party/) but intentionally NOT linked yet; they switch
+#  on in later phases via -DVEYRA_FETCH_DEPS=ON.
+# ============================================================================
+cmake_minimum_required(VERSION 3.25)
+
+# Single source of truth for the product version. Propagated to C++ via
+# modules/veyra-common/include/veyra/version.h.in and to installers later.
+set(VEYRA_VERSION 0.0.0 CACHE STRING "Veyra Sounds product version")
+
+project(Veyra
+    VERSION ${VEYRA_VERSION}
+    DESCRIPTION "Veyra Sounds — free, open-source system-wide audio enhancer for Windows"
+    HOMEPAGE_URL "https://github.com/veyra-sounds/veyra"
+    LANGUAGES CXX)
+
+# ---- Global language settings ----------------------------------------------
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Keep all build artifacts in one predictable place so CI and the installer
+# scripts can find the four binaries without guessing per-target output dirs.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+
+# ---- Options ---------------------------------------------------------------
+# OFF in Phase 0: the no-op stubs must not pull JUCE / RNNoise / etc. so the
+# CI build stays fast and green. Each phase that needs a dependency flips this
+# on and wires the matching submodule in third_party/CMakeLists.txt.
+option(VEYRA_FETCH_DEPS "Configure bundled third-party dependencies" OFF)
+option(VEYRA_BUILD_TESTS "Build the test suite" OFF)
+
+if(NOT WIN32)
+    message(WARNING "Veyra Sounds targets Windows 10/11 x64. Non-Windows configure is unsupported.")
+endif()
+
+# ---- Subprojects -----------------------------------------------------------
+add_subdirectory(third_party)
+add_subdirectory(modules/veyra-common)
+add_subdirectory(modules/veyra-dsp)
+
+add_subdirectory(apps/veyra-apo)
+add_subdirectory(apps/veyra-service)
+add_subdirectory(apps/veyra-ui)
+add_subdirectory(apps/veyra-overlay)
+
+if(VEYRA_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
+message(STATUS "Veyra Sounds ${VEYRA_VERSION} configured (FETCH_DEPS=${VEYRA_FETCH_DEPS}, TESTS=${VEYRA_BUILD_TESTS})")

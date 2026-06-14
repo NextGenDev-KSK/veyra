@@ -1,0 +1,14 @@
+#pragma once
+
+// Generated from version.h.in by CMake — do not edit the generated copy.
+// The values come from the top-level VEYRA_VERSION variable.
+
+namespace veyra {
+
+inline constexpr int kVersionMajor = @PROJECT_VERSION_MAJOR@;
+inline constexpr int kVersionMinor = @PROJECT_VERSION_MINOR@;
+inline constexpr int kVersionPatch = @PROJECT_VERSION_PATCH@;
+
+inline constexpr const char* kVersionString = "@VEYRA_VERSION@";
+
+} // namespace veyra
