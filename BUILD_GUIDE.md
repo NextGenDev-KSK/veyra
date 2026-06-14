@@ -62,6 +62,39 @@ With test-signing on, a self-signed test certificate can install the driver
 package for local APO testing. Turn it off (`bcdedit /set testsigning off`)
 when done.
 
+### Veyra APO developer registration (Phase 2)
+
+The Veyra APO (`veyra-apo.dll`) implements the APO COM interfaces directly
+against the base Windows SDK — no WDK needed to build. Registering it for real
+runtime testing on your own machine:
+
+1. **Build** the binaries (`cmake --build --preset windows-release`).
+2. **Enable test-signing** and reboot (so an unsigned/test-signed DLL can load
+   into `audiodg.exe`):
+   ```powershell
+   bcdedit /set testsigning on   # then REBOOT
+   ```
+3. **Register the COM server** from an elevated prompt:
+   ```powershell
+   cd installer\driver
+   .\register-apo.ps1 -DllPath ..\..\build\windows-release\bin\veyra-apo.dll
+   ```
+4. **Associate the APO with an output endpoint.** This is the device-specific
+   step: either install the (adapted, signed) `veyra_apo.inf` as an extension
+   driver for your audio device, or set the endpoint's FX PropertyStore keys
+   (`PKEY_FX_PostMixEffectClsid`) to `{7E9C2B14-3F6A-4D8E-9B21-5C0A1F2E3D44}`.
+   Then disable/enable the device so `audiodg.exe` reloads the APO chain.
+5. **Start the service** (`veyra-service.exe --console` or installed) so the
+   shared parameter block exists; the APO reads it live.
+
+> The shared parameter block is `Local\VeyraAPOParameters_v1` (a sequence-locked
+> `VeyraSharedParameters`). The service is the single writer; the APO reads it
+> wait-free on the audio thread.
+
+> ⚠️ CI verifies the APO **compiles and links** only. Registration, endpoint
+> association, and audio passthrough are inherently runtime/admin/test-signing
+> steps that must be done on a real Windows machine.
+
 > The portable build works **without** the driver by falling back to WASAPI
 > loopback (user-mode, no admin, but higher latency ~15 ms). The APO path is
 > what delivers the <5 ms target.

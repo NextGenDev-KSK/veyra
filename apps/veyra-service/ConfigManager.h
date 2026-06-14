@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <functional>
 #include <mutex>
 #include <string>
 
@@ -24,11 +25,18 @@ public:
     std::string getJson();                  // snapshot as JSON
     bool        setJson(const std::string&); // parse, store, persist
 
+    // Invoked (with the current Config) after the config is loaded or changed.
+    // Used by the service to republish DSP parameters to the APO.
+    void setOnChanged(std::function<void(const Config&)> cb) { onChanged_ = std::move(cb); }
+
 private:
-    std::filesystem::path file_;
-    Logger*               log_;
-    std::mutex            mutex_;
-    Config                config_;
+    void notifyChanged(); // call onChanged_ with a snapshot (no lock held)
+
+    std::filesystem::path             file_;
+    Logger*                           log_;
+    std::mutex                        mutex_;
+    Config                            config_;
+    std::function<void(const Config&)> onChanged_;
 };
 
 } // namespace veyra::service

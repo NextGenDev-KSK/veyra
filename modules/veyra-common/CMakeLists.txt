@@ -13,7 +13,8 @@ add_library(veyra-common STATIC
     src/Config.cpp
     src/ipc/PipeIo.cpp
     src/ipc/PipeServer.cpp
-    src/ipc/PipeClient.cpp)
+    src/ipc/PipeClient.cpp
+    src/ipc/SharedMemory.cpp)
 
 add_library(veyra::common ALIAS veyra-common)
 

@@ -1,0 +1,6 @@
+; COM in-proc server exports for veyra-apo.dll
+EXPORTS
+    DllGetClassObject   PRIVATE
+    DllCanUnloadNow     PRIVATE
+    DllRegisterServer   PRIVATE
+    DllUnregisterServer PRIVATE

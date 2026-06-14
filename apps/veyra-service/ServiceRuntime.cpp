@@ -7,6 +7,7 @@ namespace veyra::service {
 
 ServiceRuntime::ServiceRuntime()
     : log_(paths::logsDir() / "veyra-service.log"),
+      publisher_(&log_),
       config_(paths::configFile(), &log_),
       control_(config_, &log_)
 {
@@ -16,7 +17,12 @@ bool ServiceRuntime::start()
 {
     log_.info(std::string("Veyra service starting, v") + kVersionString);
 
-    config_.loadOrCreateDefault();
+    // Stand up the APO shared-memory parameter block, then republish whenever
+    // the config changes so the APO always reflects current settings.
+    publisher_.start();
+    config_.setOnChanged([this](const Config& c) { publisher_.publish(c); });
+
+    config_.loadOrCreateDefault(); // triggers the first publish
 
     if (!control_.start())
     {

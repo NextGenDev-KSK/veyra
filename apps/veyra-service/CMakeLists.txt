@@ -13,6 +13,7 @@ add_executable(veyra-service
     ServiceRuntime.cpp
     ConfigManager.cpp
     ControlServer.cpp
+    ApoPublisher.cpp
     veyra-service.rc)
 
 # advapi32: Service Control Manager APIs (CreateService, SetServiceStatus, ...).

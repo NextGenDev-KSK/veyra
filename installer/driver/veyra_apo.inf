@@ -1,0 +1,59 @@
+; =============================================================================
+;  veyra_apo.inf  -- TEMPLATE (Phase 2)
+;
+;  An APO is associated with an audio endpoint through an audio device's
+;  PropertyStore (the PKEY_FX_*_EffectClsid keys). That makes a production APO
+;  package an *extension INF* that targets a specific audio device by hardware
+;  ID, signed and (ideally) submitted to the Microsoft Hardware Dev Center.
+;
+;  This file is a commented starting point, NOT a drop-in installer. Replace the
+;  placeholders and sign it before use. For development, see BUILD_GUIDE.md for
+;  the test-signing + regsvr32 path, which is simpler than a full driver package.
+; =============================================================================
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = Extension
+ClassGuid   = {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Provider    = %ProviderName%
+ExtensionId = {00000000-0000-0000-0000-000000000000}  ; TODO: generate a unique GUID
+CatalogFile = veyra_apo.cat
+DriverVer   = ; set by stampinf / signing tooling
+PnpLockdown = 1
+
+[Manufacturer]
+%ProviderName% = Veyra, NTamd64.10.0...19041
+
+; TODO: target the audio endpoint device this APO attaches to.
+[Veyra.NTamd64.10.0...19041]
+%Veyra.DeviceDesc% = Veyra_APO_Install, ; <HardwareId of the target audio device>
+
+[Veyra_APO_Install]
+CopyFiles = Veyra_APO_CopyFiles
+
+[Veyra_APO_CopyFiles]
+veyra-apo.dll
+
+; Associate the registered CLSID as the endpoint's post-mix (SFX/EFX) effect.
+; CLSID below must match CLSID_VeyraApoEfx in dllmain.cpp.
+[Veyra_APO_Install.Interfaces]
+AddInterface = %KSCATEGORY_AUDIO%, , Veyra_APO_AddReg
+
+[Veyra_APO_AddReg]
+HKR,"FX\\0\\%PKEY_FX_PostMixEffectClsid%",,,"{7E9C2B14-3F6A-4D8E-9B21-5C0A1F2E3D44}"
+
+[SourceDisksNames]
+1 = %DiskName%
+
+[SourceDisksFiles]
+veyra-apo.dll = 1
+
+[DestinationDirs]
+Veyra_APO_CopyFiles = 13 ; driver store package directory
+
+[Strings]
+ProviderName       = "Veyra Sounds"
+Veyra.DeviceDesc   = "Veyra Audio Enhancer"
+DiskName           = "Veyra APO Installation Media"
+KSCATEGORY_AUDIO   = "{6994AD04-93EF-11D0-A3CC-00A0C9223196}"
+PKEY_FX_PostMixEffectClsid = "{D04E05A6-594B-4FB6-A80D-01AF5EEC11D9},6"

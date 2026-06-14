@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ApoPublisher.h"
 #include "ConfigManager.h"
 #include "ControlServer.h"
 #include "veyra/Logging.h"
@@ -20,6 +21,7 @@ public:
 
 private:
     Logger        log_;
+    ApoPublisher  publisher_;
     ConfigManager config_;
     ControlServer control_;
 };
