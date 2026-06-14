@@ -7,6 +7,7 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
+#include <olectl.h>   // SELFREG_E_CLASS
 
 #include <atomic>
 #include <new>
