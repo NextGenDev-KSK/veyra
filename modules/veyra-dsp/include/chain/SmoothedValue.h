@@ -59,8 +59,12 @@ public:
     }
 
     // True once the smoother has effectively reached its target (lets callers
-    // skip per-sample work when nothing is moving).
-    bool isSmoothing(float epsilon = 1.0e-6f) const noexcept
+    // skip per-sample work when nothing is moving). The default tolerance sits
+    // comfortably above the float stall floor — a one-pole multiplies the
+    // remaining distance by a constant each sample, so progress rounds to zero
+    // well before the value bit-equals the target. 1e-4 is inaudible for any
+    // normalised or dB parameter.
+    bool isSmoothing(float epsilon = 1.0e-4f) const noexcept
     {
         return std::fabs(current_ - target_) > epsilon;
     }
