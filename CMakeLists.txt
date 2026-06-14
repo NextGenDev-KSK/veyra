@@ -28,6 +28,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # stop <windows.h> from defining the min/max macros that collide with the STL.
 add_compile_definitions(UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
 
+# Treat sources (and the execution charset) as UTF-8. Our files contain UTF-8
+# literals, and fmt/spdlog static-assert that Unicode builds use /utf-8.
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
+
 # Keep all build artifacts in one predictable place so CI and the installer
 # scripts can find the four binaries without guessing per-target output dirs.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
