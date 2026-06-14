@@ -24,6 +24,17 @@ add_library(veyra_catch2 INTERFACE)
 add_library(veyra::catch2 ALIAS veyra_catch2)
 target_include_directories(veyra_catch2 INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}")
 
+# --- spdlog (submodule, MIT, header-only mode) -----------------------------
+# Used by veyra-common's logger. Header-only (no SPDLOG_COMPILED_LIB), so this
+# is just an include path + bundled fmt; nothing extra to build.
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/spdlog/include/spdlog/spdlog.h")
+    message(FATAL_ERROR
+        "spdlog submodule missing. Run: git submodule update --init third_party/spdlog")
+endif()
+add_library(veyra_spdlog INTERFACE)
+add_library(veyra::spdlog ALIAS veyra_spdlog)
+target_include_directories(veyra_spdlog INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/spdlog/include")
+
 # --- Submodule-backed dependencies (later phases) --------------------------
 if(NOT VEYRA_FETCH_DEPS)
     message(STATUS "third_party: submodule dependencies disabled (stub build)")

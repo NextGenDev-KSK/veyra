@@ -23,8 +23,9 @@ target_include_directories(veyra-common PUBLIC
 
 target_compile_features(veyra-common PUBLIC cxx_std_20)
 
-# JSON is an implementation detail (used only inside Config.cpp), so keep it
-# PRIVATE — consumers of veyra::common don't inherit the nlohmann include path.
+# JSON and spdlog are implementation details (used only inside Config.cpp /
+# Logging.cpp), so keep them PRIVATE — consumers of veyra::common don't inherit
+# their include paths or compile cost.
 target_link_libraries(veyra-common
-    PRIVATE veyra::json
+    PRIVATE veyra::json veyra::spdlog
     PUBLIC  shell32 ole32)   # SHGetKnownFolderPath / CoTaskMemFree

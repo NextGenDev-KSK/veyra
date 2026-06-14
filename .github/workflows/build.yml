@@ -21,7 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        # No submodule recursion in Phase 0 — stubs link no third-party deps.
+        with:
+          submodules: recursive   # spdlog (and future submodules)
 
       - name: Set up MSVC environment
         uses: ilammy/msvc-dev-cmd@v1

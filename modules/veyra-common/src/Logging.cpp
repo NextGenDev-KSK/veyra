@@ -1,58 +1,54 @@
 #include "veyra/Logging.h"
 
-#include <chrono>
-#include <ctime>
-#include <system_error>
+#include <spdlog/sinks/rotating_file_sink.h>
+#include <spdlog/spdlog.h>
 
 namespace veyra {
 
 namespace {
-
-const char* levelTag(LogLevel level)
+spdlog::level::level_enum toSpd(LogLevel level)
 {
     switch (level)
     {
-    case LogLevel::Info:  return "INFO";
-    case LogLevel::Warn:  return "WARN";
-    case LogLevel::Error: return "ERROR";
+    case LogLevel::Info:  return spdlog::level::info;
+    case LogLevel::Warn:  return spdlog::level::warn;
+    case LogLevel::Error: return spdlog::level::err;
     }
-    return "INFO";
+    return spdlog::level::info;
 }
-
-std::string timestamp()
-{
-    using namespace std::chrono;
-    const auto now = system_clock::now();
-    const auto secs = system_clock::to_time_t(now);
-    const auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
-
-    std::tm tm{};
-    localtime_s(&tm, &secs);
-
-    char buf[32];
-    std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
-
-    char out[40];
-    std::snprintf(out, sizeof(out), "%s.%03lld", buf, static_cast<long long>(ms.count()));
-    return out;
-}
-
 } // namespace
 
 Logger::Logger(std::filesystem::path file)
 {
-    std::error_code ec;
-    std::filesystem::create_directories(file.parent_path(), ec); // best-effort
-    out_.open(file, std::ios::out | std::ios::app);
+    try
+    {
+        std::error_code ec;
+        std::filesystem::create_directories(file.parent_path(), ec); // best-effort
+
+        // 5 MB x 3 rotated files keeps disk use bounded without external config.
+        auto sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+            file.string(), 5 * 1024 * 1024, 3);
+        auto logger = std::make_shared<spdlog::logger>("veyra", std::move(sink));
+        logger->set_level(spdlog::level::trace);
+        logger->flush_on(spdlog::level::info);
+        logger->set_pattern("%Y-%m-%d %H:%M:%S.%e [%^%l%$] %v");
+        impl_ = std::move(logger);
+    }
+    catch (...)
+    {
+        impl_ = nullptr; // silent no-op on failure
+    }
 }
+
+Logger::~Logger() = default;
 
 void Logger::log(LogLevel level, std::string_view message)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (!out_.is_open())
+    if (!impl_)
         return;
-    out_ << timestamp() << " [" << levelTag(level) << "] " << message << '\n';
-    out_.flush();
+    auto* logger = static_cast<spdlog::logger*>(impl_.get());
+    // "{}" so message text is data, never interpreted as a format string.
+    logger->log(toSpd(level), "{}", message);
 }
 
 } // namespace veyra

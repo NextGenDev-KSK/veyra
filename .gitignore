@@ -27,10 +27,10 @@ desktop.ini
 # Keep the placeholders and per-dir CMake glue, ignore everything else.
 /third_party/JUCE/*
 /third_party/rnnoise/*
-/third_party/spdlog/*
 /third_party/flatbuffers/*
 /third_party/kissfft/*
 !/third_party/**/.gitkeep
+# NB: third_party/spdlog is a real git submodule (tracked), not ignored.
 
 # Runtime / user data produced by the app (never committed)
 /**/crashes/

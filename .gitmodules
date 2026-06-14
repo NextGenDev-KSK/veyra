@@ -15,3 +15,6 @@
 #   git submodule add https://github.com/mborgerding/kissfft.git           third_party/kissfft
 #
 # and pin a tag, then add the matching entry below.
+[submodule "third_party/spdlog"]
+	path = third_party/spdlog
+	url = https://github.com/gabime/spdlog
