@@ -24,6 +24,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Project-wide Win32 hygiene: build against the wide (W) APIs everywhere, and
+# stop <windows.h> from defining the min/max macros that collide with the STL.
+add_compile_definitions(UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+
 # Keep all build artifacts in one predictable place so CI and the installer
 # scripts can find the four binaries without guessing per-target output dirs.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
