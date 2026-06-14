@@ -5,8 +5,8 @@ phases complete and pass CI. Phase acceptance criteria come from the engineering
 spec §17.
 
 **Repo:** https://github.com/NextGenDev-KSK/veyra
-**Current version:** 0.1.0
-**Last green CI:** [run 27490912117](https://github.com/NextGenDev-KSK/veyra/actions/runs/27490912117) (Phase 0 + 1)
+**Current version:** 0.2.0
+**Last green CI:** [run 27502435601](https://github.com/NextGenDev-KSK/veyra/actions/runs/27502435601) (Phase 0 + 1 + 3; DSP tests pass)
 
 > Verification note: this machine has no local C++ toolchain, so every phase is
 > proven by the GitHub Actions `windows-latest` build (compile + link + the
@@ -58,11 +58,19 @@ The orchestrator service, a minimal UI shell, and the named-pipe IPC between the
 - [ ] Pure passthrough — no DSP, no glitches, normal `audiodg.exe` CPU
 - [ ] Shared-memory parameter block (`Local\VeyraAPOParameters_v1`, cache-aligned, sequence-locked)
 
-### ⬜ Phase 3 — Core DSP chain
-- [ ] 10-band graphic EQ (biquad cascade); bass/treble shelves; volume gain; mono/balance
-- [ ] Compressor + true-peak limiter
-- [ ] Smooth parameter changes (no zipper); spectrum analyzer + VU + clipping → ring buffer
-- [ ] Integrate spdlog; DSP golden-output tests (Catch2)
+## ✅ Phase 3 — Core DSP chain  `[x] COMPLETE` (CI green, DSP tests pass)
+
+Header-only, allocation-free, RT-safe DSP in `veyra-dsp`, with a Catch2 suite.
+
+- [x] 10-band graphic EQ (biquad cascade); bass/treble shelves; volume gain; mono/balance
+- [x] Compressor (soft-knee, stereo-linked) + lookahead limiter (guaranteed ceiling)
+- [x] Smooth parameter changes (one-pole, zipper-free); spectrum analyzer + VU + clipping → lock-free ring buffer
+- [x] DSP tests (Catch2): smoothing, biquad response, EQ boost/cut, shelves, stereo, compressor ratio, limiter ceiling, FFT bin, ring-buffer FIFO, analyzer metering, end-to-end chain
+- [ ] spdlog integration — **deferred** (minimal logger still in use; swap is mechanical)
+- [ ] Wire DSP into the APO real-time path — **Phase 2** (APO skeleton)
+
+**Acceptance (build + unit-test verified):** all DSP blocks behave correctly under Catch2.
+**Still to runtime-verify:** sliders move bands and audio reflects it (needs the APO + a real run).
 
 ### ⬜ Phase 4 — UI proper (JUCE)
 - [ ] Bring in JUCE; theme system + glass rendering; global layout shell (per design additions)

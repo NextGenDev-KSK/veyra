@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.25)
 
 # Single source of truth for the product version. Propagated to C++ via
 # modules/veyra-common/include/veyra/version.h.in and to installers later.
-set(VEYRA_VERSION 0.1.0 CACHE STRING "Veyra Sounds product version")
+set(VEYRA_VERSION 0.2.0 CACHE STRING "Veyra Sounds product version")
 
 project(Veyra
     VERSION ${VEYRA_VERSION}
