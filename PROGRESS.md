@@ -5,8 +5,8 @@ phases complete and pass CI. Phase acceptance criteria come from the engineering
 spec §17.
 
 **Repo:** https://github.com/NextGenDev-KSK/veyra
-**Current version:** 0.2.0
-**Last green CI:** [run 27502435601](https://github.com/NextGenDev-KSK/veyra/actions/runs/27502435601) (Phase 0 + 1 + 3; DSP tests pass)
+**Current version:** 0.3.0
+**Last green CI:** [run 27512276638](https://github.com/NextGenDev-KSK/veyra/actions/runs/27512276638) (Phase 0–3; DSP + seqlock tests pass, APO compiles)
 
 > Verification note: this machine has no local C++ toolchain, so every phase is
 > proven by the GitHub Actions `windows-latest` build (compile + link + the
@@ -53,10 +53,21 @@ The orchestrator service, a minimal UI shell, and the named-pipe IPC between the
 
 ## ⬜ Remaining phases (planned)
 
-### ⬜ Phase 2 — APO skeleton with passthrough
-- [ ] APO registers as EFX on the default output endpoint (needs WDK + driver INF / test-signing)
-- [ ] Pure passthrough — no DSP, no glitches, normal `audiodg.exe` CPU
-- [ ] Shared-memory parameter block (`Local\VeyraAPOParameters_v1`, cache-aligned, sequence-locked)
+## ✅ Phase 2 — APO with passthrough + DSP  `[x] COMPLETE` (CI compiles/links; runtime = your PC)
+
+A real output APO built against the base Windows SDK (no WDK), running the
+veyra::dsp chain and reading parameters from the service via shared memory.
+
+- [x] `VeyraApoEfx` implements IAudioProcessingObject / RT / Configuration + IAudioSystemEffects directly (no WDK base class)
+- [x] APOProcess: deinterleave → DspChain → reinterleave; allocation/lock-free RT path (scratch sized in LockForProcess)
+- [x] Shared-memory parameter block (`Local\VeyraAPOParameters_v1`, cache-aligned, **sequence-locked**) + unit test
+- [x] DLL class factory + COM exports (.def) + CLSID self-registration
+- [x] Service `ApoPublisher` writes config-derived params; `ConfigManager` onChanged republishes live
+- [x] INF template + `register-apo.ps1` + BUILD_GUIDE dev-registration steps
+- [ ] Register as EFX on an endpoint + confirm passthrough audio — **runtime-only** (needs your PC: test-signing + admin + endpoint association)
+
+**Acceptance (build-verified):** APO compiles & links; `veyra-apo.dll` produced; seqlock test passes.
+**Still to runtime-verify:** audio actually plays through Veyra with normal `audiodg.exe` CPU.
 
 ## ✅ Phase 3 — Core DSP chain  `[x] COMPLETE` (CI green, DSP tests pass)
 
@@ -66,8 +77,8 @@ Header-only, allocation-free, RT-safe DSP in `veyra-dsp`, with a Catch2 suite.
 - [x] Compressor (soft-knee, stereo-linked) + lookahead limiter (guaranteed ceiling)
 - [x] Smooth parameter changes (one-pole, zipper-free); spectrum analyzer + VU + clipping → lock-free ring buffer
 - [x] DSP tests (Catch2): smoothing, biquad response, EQ boost/cut, shelves, stereo, compressor ratio, limiter ceiling, FFT bin, ring-buffer FIFO, analyzer metering, end-to-end chain
-- [ ] spdlog integration — **deferred** (minimal logger still in use; swap is mechanical)
-- [ ] Wire DSP into the APO real-time path — **Phase 2** (APO skeleton)
+- [x] spdlog integration (header-only, behind the Logger facade; rotating file sink)
+- [x] Wire DSP into the APO real-time path (done in Phase 2)
 
 **Acceptance (build + unit-test verified):** all DSP blocks behave correctly under Catch2.
 **Still to runtime-verify:** sliders move bands and audio reflects it (needs the APO + a real run).
