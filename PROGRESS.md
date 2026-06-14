@@ -1,0 +1,109 @@
+# Veyra Sounds — Build Progress Log
+
+A running record of what was done in each phase. Tick marks (`[x]`) advance as
+phases complete and pass CI. Phase acceptance criteria come from the engineering
+spec §17.
+
+**Repo:** https://github.com/NextGenDev-KSK/veyra
+**Current version:** 0.1.0
+**Last green CI:** [run 27490912117](https://github.com/NextGenDev-KSK/veyra/actions/runs/27490912117) (Phase 0 + 1)
+
+> Verification note: this machine has no local C++ toolchain, so every phase is
+> proven by the GitHub Actions `windows-latest` build (compile + link + the
+> "four binaries exist" check). CI green = compiles & links. Runtime behaviour
+> (audio, service install, pipe handshake) still needs a real Windows run.
+
+---
+
+## ✅ Phase 0 — Scaffolding  `[x] COMPLETE` (CI green)
+
+Established the full repository and a buildable no-op skeleton.
+
+- [x] Repo tree per spec §3 (apps/, modules/, third_party/, resources/, ipc/, installer/, tests/) with `.gitkeep` placeholders
+- [x] Top-level `CMakeLists.txt` — C++20, `VEYRA_VERSION`, `RC` language, unified `bin/` output, `VEYRA_FETCH_DEPS` option (OFF)
+- [x] `CMakePresets.json` — `windows-release` / `windows-debug` (Ninja + MSVC)
+- [x] Four no-op stub targets build: `veyra.exe`, `veyra-service.exe`, `veyra-apo.dll`, `veyra-overlay.exe`
+- [x] `veyra::common` (static) + `veyra::dsp` (interface) module stubs; generated `version.h`
+- [x] App manifests (UI asInvoker + PerMonitorV2 DPI) embedded via `.rc`; MSVC duplicate-manifest pitfall handled
+- [x] `.gitmodules` + guarded `third_party/CMakeLists.txt` (JUCE/rnnoise/spdlog/flatbuffers/kissfft declared, not fetched)
+- [x] GitHub Actions `build.yml` — configure → build → verify 4 binaries → upload artifacts
+- [x] Docs: `README`, `ARCHITECTURE` (full diagram), `BUILD_GUIDE`, `CONTRIBUTING`; `LICENSE` (verbatim GPLv3); `.gitignore` / `.gitattributes`
+
+**Acceptance met:** `cmake --build` produces all four binaries; CI passes.
+
+---
+
+## ✅ Phase 1 — Service + UI + IPC backbone  `[x] COMPLETE` (CI green)
+
+The orchestrator service, a minimal UI shell, and the named-pipe IPC between them.
+
+- [x] **IPC protocol** (`veyra-common/ipc/Protocol.h`) — small versioned framed binary protocol (Ping/Pong, GetVersion, GetConfig/SetConfig, Error)
+- [x] **PipeServer** — single-listener `\\.\pipe\veyra-control`, clean `CancelSynchronousIo` shutdown; **PipeClient** — sync request/reply; **PipeIo** — framed message read/write
+- [x] **Config** — `nlohmann/json` (vendored, MIT) load/save with atomic `MoveFileEx` replace; **Paths** (`%APPDATA%\Veyra`); **Logging** (thread-safe file logger)
+- [x] **Service** runs under the SCM (`ServiceMain`) or `--console`; `--install` / `--uninstall` register an auto-start LocalSystem service
+- [x] **ServiceRuntime** wires `ConfigManager` + `ControlServer`; config loads or writes-and-verifies a default (round-trip check)
+- [x] **UI** — minimal native Win32 shell showing live status ("Service connected · v0.1.0" / animated reconnect)
+- [x] **ServiceClient** — background thread, version handshake, keepalive pings, exponential-backoff auto-reconnect (cap 30s)
+- [x] Build fix: `UNICODE`/`_UNICODE`/`NOMINMAX` defined project-wide
+
+**Acceptance (build-verified):** all targets compile & link on CI.
+**Still to runtime-verify:** UI displays "Service connected · v…"; killing the service shows the reconnect spinner.
+
+---
+
+## ⬜ Remaining phases (planned)
+
+### ⬜ Phase 2 — APO skeleton with passthrough
+- [ ] APO registers as EFX on the default output endpoint (needs WDK + driver INF / test-signing)
+- [ ] Pure passthrough — no DSP, no glitches, normal `audiodg.exe` CPU
+- [ ] Shared-memory parameter block (`Local\VeyraAPOParameters_v1`, cache-aligned, sequence-locked)
+
+### ⬜ Phase 3 — Core DSP chain
+- [ ] 10-band graphic EQ (biquad cascade); bass/treble shelves; volume gain; mono/balance
+- [ ] Compressor + true-peak limiter
+- [ ] Smooth parameter changes (no zipper); spectrum analyzer + VU + clipping → ring buffer
+- [ ] Integrate spdlog; DSP golden-output tests (Catch2)
+
+### ⬜ Phase 4 — UI proper (JUCE)
+- [ ] Bring in JUCE; theme system + glass rendering; global layout shell (per design additions)
+- [ ] Home screen (EQ + effect knobs), 8 visualizers, Mini-mode, tray icon + custom popup
+- [ ] All EQ controls work end-to-end through the APO
+
+### ⬜ Phase 5 — Presets + Per-App + Per-Device
+- [ ] `.vpreset` save/load/export/import + built-in presets
+- [ ] Per-app rule engine (rate-limited, priority resolution); per-device profile memory
+
+### ⬜ Phase 6 — Voice / Mic chain
+- [ ] Mic APO full chain; RNNoise integrated + tunable; mic profiles; side-tone routing
+
+### ⬜ Phase 7 — Spatial / HRTF
+- [ ] Partitioned convolution with MIT KEMAR; Cinematic + Competitive presets; virtual headset + crossfeed
+
+### ⬜ Phase 8 — Gamer Mode + Sound Tracker
+- [ ] Loopback capture; feature extraction + DSP classifier + direction estimator
+- [ ] Overlay (3 radar modes, competitive/rich); game + anti-cheat detection (layered-window only)
+
+### ⬜ Phase 9 — Sound Lab + Night Mode + Sleep Timer
+- [ ] 7 testing tools; night mode; sleep timer with exponential fade-out
+
+### ⬜ Phase 10 — Sound Sharing (multi-output)
+- [ ] Multi-device routing with latency compensation; per-output EQ
+
+### ⬜ Phase 11 — Onboarding + Settings + Hotkeys
+- [ ] 4-step onboarding; all settings sub-screens; global hotkey manager
+
+### ⬜ Phase 12 — Loudness Normalization + Loudness Lab
+- [ ] EBU R128 measurement; true-peak limiter; loudness-match mode
+
+### ⬜ Phase 13 — Updater + Crash Reporter + Localization
+- [ ] Squirrel-style updater; crash capture + UI banner; 6 languages
+
+### ⬜ Phase 14 — MSIX + Portable + Signing
+- [ ] MSIX package; portable ZIP; code-signing documented + test-signing
+
+### ⬜ Phase 15 — Polish + Performance Pass
+- [ ] Hit every performance budget (§13); 8-hour soak test; benchmarks vs competitors
+
+---
+
+_Log started 2026-06-14. Update the tick marks and the "Last green CI" line as each phase lands._
