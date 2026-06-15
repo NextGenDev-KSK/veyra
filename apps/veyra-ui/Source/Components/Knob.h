@@ -22,6 +22,12 @@ public:
     void setValue(double v01) { value_ = juce::jlimit(0.0, 1.0, v01); repaint(); }
     double getValue() const noexcept { return value_; }
 
+    // Dim the knob (off look) when its value is zero — used for Reverb/Compression.
+    void setDimWhenZero(bool b) { dimWhenZero_ = b; repaint(); }
+    // Arc turns to the warning/danger colour past this normalised value (e.g.
+    // Volume Gain beyond 100%). Default > 1 disables it.
+    void setDangerThreshold(float t) { dangerThreshold_ = t; repaint(); }
+
     std::function<void(double)> onChange;
 
     void paint(juce::Graphics&) override;
@@ -33,6 +39,8 @@ private:
     juce::String label_, valueText_;
     double value_ = 0.0;
     double dragStartValue_ = 0.0;
+    bool dimWhenZero_ = false;
+    float dangerThreshold_ = 2.0f; // > 1 => no danger zone
 };
 
 } // namespace veyra::ui

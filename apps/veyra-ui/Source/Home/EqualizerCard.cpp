@@ -84,7 +84,27 @@ void EqualizerCard::paintContent(juce::Graphics& g)
                juce::Rectangle<int>(showSpectrum_.getX() - 102, header.getY(), 98, 36),
                juce::Justification::centredRight, false);
 
-    // Response curve through the band thumbs (behind the sliders).
+    // dB grid behind the bands (0 / +/-6 / +/-12) for readability.
+    if (! bands_[0])
+        return;
+    const int gridL = bands_[0]->getX();
+    const int gridR = bands_[(size_t) kBands - 1]->getRight();
+    const int band0Y = bands_[0]->getPosition().y;
+
+    auto lineForDb = [&](float db) -> float { return (float) band0Y + bands_[0]->yForGain(db); };
+    struct Grid { float db; const char* label; };
+    for (const auto& gline : {Grid{12, "+12"}, Grid{6, "+6"}, Grid{0, "0"}, Grid{-6, "-6"}, Grid{-12, "-12"}})
+    {
+        const float y = lineForDb(gline.db);
+        g.setColour(gline.db == 0 ? palette_.strokeHover : palette_.strokeDefault);
+        g.drawLine((float) gridL, y, (float) gridR, y, 1.0f);
+        g.setColour(palette_.textTertiary);
+        g.setFont(fonts::mono(9.0f));
+        g.drawText(gline.label, juce::Rectangle<float>((float) gridR + 2.0f, y - 7.0f, 28.0f, 14.0f),
+                   juce::Justification::centredLeft, false);
+    }
+
+    // Dominant, glowing response curve through the band thumbs.
     if (showCurve_.getToggleState())
     {
         juce::Path curve;
@@ -101,8 +121,11 @@ void EqualizerCard::paintContent(juce::Graphics& g)
             const float midX = (a.x + b.x) * 0.5f;
             curve.cubicTo(midX, a.y, midX, b.y, b.x, b.y);
         }
-        g.setColour(palette_.accentPrimary.withAlpha(0.55f));
-        g.strokePath(curve, juce::PathStrokeType(2.0f));
+        // Wide translucent under-stroke (glow) + sharp bright over-stroke.
+        g.setColour(palette_.accentGlow);
+        g.strokePath(curve, juce::PathStrokeType(8.0f, juce::PathStrokeType::curved));
+        g.setColour(palette_.accentPrimary);
+        g.strokePath(curve, juce::PathStrokeType(3.5f, juce::PathStrokeType::curved));
     }
 }
 

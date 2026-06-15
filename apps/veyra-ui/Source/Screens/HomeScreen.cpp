@@ -45,11 +45,16 @@ HomeScreen::HomeScreen()
     {
         auto card = std::make_unique<GlassPanel>();
         card->setBackdrop(&background_);
+        card->setElevated(true); // knob cards sit a tier above the big panels
 
         auto knob = std::make_unique<Knob>();
         knob->setLabel(kKnobSpecs[i].label);
         knob->setValueText(kKnobSpecs[i].value);
         knob->setValue(kKnobSpecs[i].v);
+        if (i == 4 || i == 5) // Reverb, Compression: show an "off" look at zero
+            knob->setDimWhenZero(true);
+        if (i == 2)           // Volume Gain: danger zone past ~200%
+            knob->setDangerThreshold(0.66f);
         card->addAndMakeVisible(*knob);
 
         addAndMakeVisible(*card);
@@ -82,10 +87,10 @@ void HomeScreen::resized()
     auto b = getLocalBounds();
     background_.setBounds(b);
     topBar_.setBounds(b.removeFromTop(56));
-    sidebar_.setBounds(b.removeFromLeft(220));
+    sidebar_.setBounds(b.removeFromLeft(200));
 
     auto main = b.reduced(24);
-    viz_.setBounds(main.removeFromTop(220));
+    viz_.setBounds(main.removeFromTop(150)); // shorter — more room for controls
     main.removeFromTop(20);
 
     auto knobsRow = main.removeFromBottom(132);

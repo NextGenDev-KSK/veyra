@@ -38,13 +38,12 @@ void SegmentedControl::paint(juce::Graphics& g)
         const bool active = (i == selected_);
         if (active)
         {
-            g.setColour(palette_.bgGlassElevated);
+            juce::DropShadow(palette_.accentGlow, 14, {}).drawForRectangle(g, seg.toNearestInt());
+            g.setColour(palette_.accentPrimary);
             g.fillRoundedRectangle(seg, seg.getHeight() * 0.5f);
-            g.setColour(palette_.strokeActive);
-            g.drawRoundedRectangle(seg.reduced(0.5f), seg.getHeight() * 0.5f, 1.0f);
         }
-        g.setColour(active ? palette_.textPrimary : palette_.textSecondary);
-        g.setFont(fonts::body(13.0f, active));
+        g.setColour(active ? palette_.textOnAccent : palette_.textSecondary);
+        g.setFont(fonts::body(13.0f, true));
         g.drawText(items_[i], seg, juce::Justification::centred, false);
     }
 }

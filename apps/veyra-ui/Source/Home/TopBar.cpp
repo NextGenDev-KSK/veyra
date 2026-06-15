@@ -96,33 +96,58 @@ void TopBar::paint(juce::Graphics& g)
     g.setColour(palette_.strokeDefault);
     g.drawLine(divX, h * 0.25f, divX, h * 0.75f, 1.0f);
 
+    // Master cluster container: a subtle accent-bordered group so the primary
+    // control reads above the utility icons.
+    juce::Rectangle<float> cluster((float) master_.getX() - 12.0f, (h - 40.0f) * 0.5f,
+                                   (float) (volume_.getRight() + 52) - (master_.getX() - 12), 40.0f);
+    g.setColour(palette_.bgGlassElevated);
+    g.fillRoundedRectangle(cluster, 12.0f);
+    g.setColour(palette_.strokeActive);
+    g.drawRoundedRectangle(cluster.reduced(0.5f), 12.0f, 1.0f);
+
     // MASTER label + value around the volume slider.
-    g.setColour(palette_.textTertiary);
+    g.setColour(palette_.accentSecondary);
     g.setFont(fonts::body(10.0f, true));
     g.drawText("MASTER", juce::Rectangle<int>(volume_.getX(), 6, 200, 12),
                juce::Justification::centredLeft, false);
-    g.setColour(palette_.textSecondary);
-    g.setFont(fonts::mono(12.0f));
+    g.setColour(palette_.textPrimary);
+    g.setFont(fonts::mono(13.0f, true));
     g.drawText(juce::String(juce::roundToInt(volume_.getValue() * 100.0)) + "%",
                juce::Rectangle<int>(volume_.getRight() + 8, 0, 48, getHeight()),
                juce::Justification::centredLeft, false);
 
-    // Preset chip (decorative for now) centred between the volume area and A/B.
-    const int chipL = volume_.getRight() + 64;
+    // Preset selector (distinct from a search field: EQ glyph on the left, caret
+    // on the right) centred between the master cluster and A/B.
+    const int chipL = volume_.getRight() + 72;
     const int chipR = ab_.getX() - 16;
-    if (chipR - chipL > 120)
+    if (chipR - chipL > 150)
     {
-        juce::Rectangle<float> chip((float) chipL, (h - 28.0f) * 0.5f, 220.0f, 28.0f);
+        juce::Rectangle<float> chip((float) chipL, (h - 30.0f) * 0.5f, 240.0f, 30.0f);
         g.setColour(palette_.bgGlassHover);
-        g.fillRoundedRectangle(chip, 14.0f);
-        g.setColour(palette_.strokeDefault);
-        g.drawRoundedRectangle(chip.reduced(0.5f), 14.0f, 1.0f);
+        g.fillRoundedRectangle(chip, 10.0f);
+        g.setColour(palette_.strokeHover);
+        g.drawRoundedRectangle(chip.reduced(0.5f), 10.0f, 1.0f);
+
+        // Mini-EQ glyph (says "preset", not "search").
+        const float gx = chip.getX() + 12.0f, gy = chip.getCentreY();
+        const float hs[] = {6.0f, 10.0f, 7.0f};
         g.setColour(palette_.accentPrimary);
-        g.fillEllipse(chip.getX() + 12.0f, chip.getCentreY() - 3.0f, 6.0f, 6.0f);
+        for (int i = 0; i < 3; ++i)
+            g.fillRoundedRectangle(gx + i * 4.0f, gy - hs[i] * 0.5f, 2.5f, hs[i], 1.0f);
+
         g.setColour(palette_.textPrimary);
-        g.setFont(fonts::body(12.0f, true));
-        g.drawText("FPS Footstep Boost", chip.withTrimmedLeft(28.0f),
+        g.setFont(fonts::body(13.0f, true));
+        g.drawText("FPS Footstep Boost", chip.withTrimmedLeft(28.0f).withTrimmedRight(24.0f),
                    juce::Justification::centredLeft, true);
+
+        // Caret.
+        juce::Path caret;
+        const float cxr = chip.getRight() - 16.0f, cyr = chip.getCentreY();
+        caret.startNewSubPath(cxr - 4.0f, cyr - 2.0f);
+        caret.lineTo(cxr, cyr + 3.0f);
+        caret.lineTo(cxr + 4.0f, cyr - 2.0f);
+        g.setColour(palette_.textSecondary);
+        g.strokePath(caret, juce::PathStrokeType(1.5f));
     }
 }
 

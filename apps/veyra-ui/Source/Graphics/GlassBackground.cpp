@@ -11,10 +11,10 @@ void GlassBackground::renderSharp(juce::Image& img) const
 
     struct Blob { float rx, ry, rr; juce::Colour c; };
     const Blob blobs[] = {
-        {0.16f, 0.14f, 0.55f, palette_.accentPrimary.withAlpha(0.22f)},
-        {0.88f, 0.26f, 0.45f, palette_.accentSecondary.withAlpha(0.12f)},
-        {0.70f, 0.96f, 0.62f, palette_.accentPrimary.withAlpha(0.16f)},
-        {0.04f, 0.98f, 0.42f, palette_.info.withAlpha(0.10f)},
+        {0.15f, 0.12f, 0.55f, palette_.accentPrimary.withAlpha(0.32f)},
+        {0.90f, 0.22f, 0.45f, palette_.accentSecondary.withAlpha(0.14f)},
+        {0.72f, 0.98f, 0.62f, palette_.accentPrimary.withAlpha(0.22f)},
+        {0.02f, 0.99f, 0.42f, palette_.info.withAlpha(0.12f)},
     };
     for (const auto& blob : blobs)
     {

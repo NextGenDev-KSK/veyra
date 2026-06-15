@@ -18,7 +18,7 @@ juce::Rectangle<int> Sidebar::itemBounds(int i) const
 {
     const int w = getWidth();
     if (i < 6)
-        return {8, 24 + i * 44, w - 16, 40};
+        return {8, 20 + i * 42, w - 16, 38};
     // Settings sits just above the divider / mini button.
     return {8, miniBounds().getY() - 16 - 40, w - 16, 40};
 }
@@ -44,11 +44,13 @@ void Sidebar::paint(juce::Graphics& g)
 
         if (active)
         {
-            g.setColour(palette_.bgGlassActive);
+            g.setColour(palette_.accentPrimary.withAlpha(0.16f));
             g.fillRoundedRectangle(r.toFloat(), 10.0f);
+            auto rail = juce::Rectangle<float>((float) r.getX(), (float) r.getY() + 7.0f,
+                                               3.0f, (float) r.getHeight() - 14.0f);
+            juce::DropShadow(palette_.accentGlow, 8, {}).drawForRectangle(g, rail.toNearestInt());
             g.setColour(palette_.accentPrimary);
-            g.fillRoundedRectangle(juce::Rectangle<float>((float) r.getX(), (float) r.getY() + 8.0f,
-                                                          3.0f, (float) r.getHeight() - 16.0f), 1.5f);
+            g.fillRoundedRectangle(rail, 1.5f);
         }
         else if (hover)
         {
@@ -61,8 +63,8 @@ void Sidebar::paint(juce::Graphics& g)
         auto iconBox = juce::Rectangle<float>((float) r.getX() + 12.0f, (float) r.getCentreY() - 9.0f, 18.0f, 18.0f);
         items_[(size_t) i].icon(g, iconBox, col);
 
-        g.setColour(active || hover ? palette_.textPrimary : palette_.textSecondary);
-        g.setFont(fonts::body(14.0f, false));
+        g.setColour(active ? palette_.textPrimary : hover ? palette_.textPrimary : palette_.textSecondary);
+        g.setFont(fonts::body(14.0f, active));
         g.drawText(items_[(size_t) i].label, r.withTrimmedLeft(42), juce::Justification::centredLeft, false);
     }
 

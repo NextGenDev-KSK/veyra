@@ -25,8 +25,12 @@ private:
     void timerCallback() override;
 
     static constexpr int kBars = 48;
-    std::array<float, kBars> bars_{};
+    std::array<float, kBars> bars_{};    // normalised 0..1
+    std::array<float, kBars> targets_{}; // normalised 0..1
     float vuL_ = 0.4f, vuR_ = 0.3f;
+    float peakL_ = 0.4f, peakR_ = 0.3f;
+    bool clip_ = false;
+    int frame_ = 0;
     juce::Random rng_;
 
     juce::ComboBox mode_;

@@ -22,6 +22,9 @@ public:
     // Thumb centre in this component's local coordinates (for the EQ curve).
     juce::Point<float> thumbCentre() const;
 
+    // Local y for an arbitrary gain (for the card's dB grid lines).
+    float yForGain(float db) const;
+
     std::function<void(float)> onChange;
 
     void paint(juce::Graphics&) override;

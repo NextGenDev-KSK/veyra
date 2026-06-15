@@ -17,22 +17,23 @@ Palette midnight()
 
     p.bgApp          = hex(0x0A0B10);
     p.bgCanvas       = hex(0x0F1117);
-    p.bgGlass        = rgba(20, 22, 32, 0.55f);
-    p.bgGlassHover   = rgba(28, 30, 42, 0.65f);
-    p.bgGlassActive  = rgba(36, 38, 52, 0.75f);
-    p.bgGlassElevated= rgba(32, 34, 48, 0.82f);
+    // More transparent so the blurred backdrop reads as real frosted glass.
+    p.bgGlass        = rgba(22, 24, 36, 0.42f);
+    p.bgGlassHover   = rgba(40, 44, 62, 0.55f);
+    p.bgGlassActive  = rgba(40, 44, 62, 0.62f);
+    p.bgGlassElevated= rgba(40, 43, 62, 0.60f);
     p.bgModalScrim   = rgba(0, 0, 0, 0.55f);
     p.bgInput        = hex(0x07080C);
 
-    p.strokeDefault  = rgba(255, 255, 255, 0.08f);
-    p.strokeHover    = rgba(255, 255, 255, 0.14f);
-    p.strokeActive   = rgba(124, 92, 255, 0.45f);
+    p.strokeDefault  = rgba(255, 255, 255, 0.10f);
+    p.strokeHover    = rgba(255, 255, 255, 0.16f);
+    p.strokeActive   = rgba(124, 92, 255, 0.55f);
     p.strokeFocus    = rgba(124, 92, 255, 0.80f);
-    p.strokeLightLeak= rgba(255, 255, 255, 0.06f);
+    p.strokeLightLeak= rgba(255, 255, 255, 0.10f);
 
     p.textPrimary    = hex(0xF2F3F8);
-    p.textSecondary  = hex(0xA8ABBD);
-    p.textTertiary   = hex(0x6B6F84);
+    p.textSecondary  = hex(0xB6B9CC);
+    p.textTertiary   = hex(0x7B7F95);
     p.textDisabled   = hex(0x4A4D5E);
     p.textOnAccent   = hex(0xFFFFFF);
 
