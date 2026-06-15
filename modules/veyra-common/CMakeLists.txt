@@ -11,6 +11,9 @@ add_library(veyra-common STATIC
     src/Paths.cpp
     src/Logging.cpp
     src/Config.cpp
+    src/Preset.cpp
+    src/AppRules.cpp
+    src/DeviceProfiles.cpp
     src/ipc/PipeIo.cpp
     src/ipc/PipeServer.cpp
     src/ipc/PipeClient.cpp

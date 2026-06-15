@@ -11,6 +11,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "ConfigJson.h"
+
 namespace veyra {
 
 using nlohmann::json;
@@ -32,16 +34,7 @@ std::string Config::toJson() const
         {"latency_mode",  audioEngine.latencyMode},
         {"dsp_precision", audioEngine.dspPrecision},
     };
-    j["enhancement"]        = {
-        {"eq_bands_db",        enhancement.eqBandsDb},
-        {"eq_mode",            enhancement.eqMode},
-        {"bass_boost_db",      enhancement.bassBoostDb},
-        {"treble_db",          enhancement.trebleDb},
-        {"volume_gain",        enhancement.volumeGain},
-        {"stereo_width",       enhancement.stereoWidth},
-        {"compression_amount", enhancement.compressionAmount},
-        {"reverb_amount",      enhancement.reverbAmount},
-    };
+    j["enhancement"]        = enhancement;
     return j.dump(2);
 }
 
@@ -73,21 +66,7 @@ std::optional<Config> Config::fromJson(const std::string& text)
     }
 
     if (const auto it = j.find("enhancement"); it != j.end() && it->is_object())
-    {
-        const auto& e = *it;
-        auto& dst = c.enhancement;
-        if (const auto bands = e.find("eq_bands_db");
-            bands != e.end() && bands->is_array() && bands->size() == dst.eqBandsDb.size())
-            for (size_t i = 0; i < dst.eqBandsDb.size(); ++i)
-                dst.eqBandsDb[i] = (*bands)[i].get<float>();
-        dst.eqMode            = e.value("eq_mode", dst.eqMode);
-        dst.bassBoostDb       = e.value("bass_boost_db", dst.bassBoostDb);
-        dst.trebleDb          = e.value("treble_db", dst.trebleDb);
-        dst.volumeGain        = e.value("volume_gain", dst.volumeGain);
-        dst.stereoWidth       = e.value("stereo_width", dst.stereoWidth);
-        dst.compressionAmount = e.value("compression_amount", dst.compressionAmount);
-        dst.reverbAmount      = e.value("reverb_amount", dst.reverbAmount);
-    }
+        from_json(*it, c.enhancement);
     return c;
 }
 
