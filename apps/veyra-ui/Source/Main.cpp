@@ -19,7 +19,9 @@ public:
                                juce::Colour(0xff0A0B10),
                                juce::DocumentWindow::allButtons)
     {
-        setUsingNativeTitleBar(true); // custom glass titlebar arrives in 4b
+        // Borderless: our TopBar is the custom glass title bar.
+        setUsingNativeTitleBar(false);
+        setTitleBarHeight(0);
         setContentOwned(new veyra::ui::RootComponent(), true);
         setResizable(true, false);
         setResizeLimits(960, 620, 4000, 3000);

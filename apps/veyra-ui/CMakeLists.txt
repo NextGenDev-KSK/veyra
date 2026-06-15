@@ -23,11 +23,15 @@ target_sources(veyra PRIVATE
     Source/Theme/Fonts.cpp
     Source/Theme/VeyraLookAndFeel.cpp
     Source/Graphics/GlassBackground.cpp
-    Source/Graphics/GlassCard.cpp
     Source/Components/ToggleSwitch.cpp
     Source/Components/Knob.cpp
     Source/Components/SegmentedControl.cpp
-    Source/Screens/GalleryComponent.cpp)
+    Source/Components/EqBandSlider.cpp
+    Source/Home/TopBar.cpp
+    Source/Home/Sidebar.cpp
+    Source/Home/VisualizerCard.cpp
+    Source/Home/EqualizerCard.cpp
+    Source/Screens/HomeScreen.cpp)
 
 target_include_directories(veyra PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source")
 
