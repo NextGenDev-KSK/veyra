@@ -6,7 +6,7 @@ spec §17.
 
 **Repo:** https://github.com/NextGenDev-KSK/veyra
 **Current version:** 0.3.0
-**Last green CI:** [run 27512276638](https://github.com/NextGenDev-KSK/veyra/actions/runs/27512276638) (Phase 0–3; DSP + seqlock tests pass, APO compiles)
+**Last green CI:** [run 27550535473](https://github.com/NextGenDev-KSK/veyra/actions/runs/27550535473) (Phase 0–3 + 4a; JUCE app builds, DSP/seqlock tests pass)
 
 > Verification note: this machine has no local C++ toolchain, so every phase is
 > proven by the GitHub Actions `windows-latest` build (compile + link + the
@@ -83,10 +83,24 @@ Header-only, allocation-free, RT-safe DSP in `veyra-dsp`, with a Catch2 suite.
 **Acceptance (build + unit-test verified):** all DSP blocks behave correctly under Catch2.
 **Still to runtime-verify:** sliders move bands and audio reflects it (needs the APO + a real run).
 
-### ⬜ Phase 4 — UI proper (JUCE)
-- [ ] Bring in JUCE; theme system + glass rendering; global layout shell (per design additions)
-- [ ] Home screen (EQ + effect knobs), 8 visualizers, Mini-mode, tray icon + custom popup
-- [ ] All EQ controls work end-to-end through the APO
+### Phase 4 — UI proper (JUCE) — sub-phased
+
+**✅ 4a — Foundation `[x] COMPLETE` (CI builds the JUCE app)**
+- [x] JUCE 8.0.13 integrated; veyra-ui is a juce_add_gui_app; Orbitron/Inter/JetBrains Mono (OFL) embedded
+- [x] Design-token palettes (Midnight + 10 variants) + ThemeManager with live switching
+- [x] VeyraLookAndFeel; GlassBackground (ambient blobs + grain) + GlassCard recipe
+- [x] Components: ToggleSwitch, Knob, SegmentedControl (+ themed buttons/sliders/combo)
+- [x] Foundations gallery view; runnable veyra.exe artifact for visual verification
+- [ ] **Runtime-verify by running the artifact** (download from CI, eyeball look + theme switch)
+
+**⬜ 4b — Home screen**
+- [ ] Custom glass titlebar + 7-item sidebar + top utility bar
+- [ ] Visualizer card (spectrum + VU + mode dropdown + FPS), 10-band EQ card, 6 effect knobs
+- [ ] ServiceClient re-integrated (refactored); EQ/effects drive DSP params via the service
+
+**⬜ 4c — Mini-mode + Settings→Appearance + Tray**
+- [ ] Mini-mode bar; Settings→Appearance (11-theme grid, opacity, bg mode, reduce-motion)
+- [ ] System tray icon + custom glass popup menu
 
 ### ⬜ Phase 5 — Presets + Per-App + Per-Device
 - [ ] `.vpreset` save/load/export/import + built-in presets
