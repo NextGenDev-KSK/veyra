@@ -17,7 +17,7 @@ project(Veyra
     VERSION ${VEYRA_VERSION}
     DESCRIPTION "Veyra Sounds — free, open-source system-wide audio enhancer for Windows"
     HOMEPAGE_URL "https://github.com/NextGenDev-KSK/veyra"
-    LANGUAGES CXX RC)
+    LANGUAGES C CXX RC)   # C is required by JUCE
 
 # ---- Global language settings ----------------------------------------------
 set(CMAKE_CXX_STANDARD 20)
