@@ -6,7 +6,7 @@ spec §17.
 
 **Repo:** https://github.com/NextGenDev-KSK/veyra
 **Current version:** 0.3.0
-**Last green CI:** [run 27550535473](https://github.com/NextGenDev-KSK/veyra/actions/runs/27550535473) (Phase 0–3 + 4a; JUCE app builds, DSP/seqlock tests pass)
+**Last green CI:** [run 27553100783](https://github.com/NextGenDev-KSK/veyra/actions/runs/27553100783) (Phase 0–3 + 4a + 4b Home screen; builds, tests pass)
 
 > Verification note: this machine has no local C++ toolchain, so every phase is
 > proven by the GitHub Actions `windows-latest` build (compile + link + the
@@ -93,10 +93,15 @@ Header-only, allocation-free, RT-safe DSP in `veyra-dsp`, with a Catch2 suite.
 - [x] Foundations gallery view; runnable veyra.exe artifact for visual verification
 - [ ] **Runtime-verify by running the artifact** (download from CI, eyeball look + theme switch)
 
-**⬜ 4b — Home screen**
-- [ ] Custom glass titlebar + 7-item sidebar + top utility bar
-- [ ] Visualizer card (spectrum + VU + mode dropdown + FPS), 10-band EQ card, 6 effect knobs
-- [ ] ServiceClient re-integrated (refactored); EQ/effects drive DSP params via the service
+**🟡 4b — Home screen (CI builds; awaiting visual check on the artifact)**
+- [x] Real frosted glass (blurred backdrop slice + tint) — fixes the flat 4a look
+- [x] Borderless window + custom glass TopBar (logo/wordmark/master/preset/icons/window controls + drag)
+- [x] Sidebar: 7 nav items + icons + active accent rail + mini + version
+- [x] Visualizer card (animated spectrum + L/R VU + mode dropdown + fullscreen + FPS)
+- [x] 10-band EQ card (band sliders + center detent + response curve + Graphic/Parametric + toggles + reset)
+- [x] 6 effect knobs + More Effects; mockup-matched layout
+- [ ] **Runtime-verify by running the artifact** (look + interactions)
+- [ ] ServiceClient re-integrated (refactored); EQ/effects drive DSP params via the service (next)
 
 **⬜ 4c — Mini-mode + Settings→Appearance + Tray**
 - [ ] Mini-mode bar; Settings→Appearance (11-theme grid, opacity, bg mode, reduce-motion)
