@@ -10,6 +10,8 @@
 #include "Theme/DesignTokens.h"
 #include "VeyraGui.h"
 
+#include <functional>
+
 namespace veyra::ui {
 
 class TopBar : public juce::Component {
@@ -23,10 +25,24 @@ public:
     void mouseDrag(const juce::MouseEvent&) override;
     void mouseDoubleClick(const juce::MouseEvent&) override;
 
+    // Master controls — emitted on user interaction.
+    std::function<void(bool)>   onMasterToggle;  // enabled
+    std::function<void(double)> onMasterVolume;  // linear gain (0..slider max)
+
+    // Refresh control state from config without firing the callbacks above.
+    void setMasterEnabled(bool on);
+    void setMasterVolume(double gain);
+
+    // Connection status dot beside the wordmark.
+    void setConnection(bool connected, juce::String version);
+
 private:
     void toggleMaximise();
 
     Palette palette_ = paletteForTheme("midnight");
+
+    bool         connected_ = false;
+    juce::String version_;
 
     ToggleSwitch master_;
     juce::Slider volume_;

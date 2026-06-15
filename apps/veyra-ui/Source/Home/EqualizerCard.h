@@ -25,8 +25,13 @@ public:
 
     std::function<void(int, float)> onBandChanged; // (band index, dB)
 
-private:
+    // Set a band's gain from config without firing onBandChanged.
+    void setBandGain(int index, float db);
+    float bandGain(int index) const;
+
     static constexpr int kBands = 10;
+
+private:
     std::array<std::unique_ptr<EqBandSlider>, kBands> bands_;
     SegmentedControl modeToggle_;
     ToggleSwitch showCurve_, showSpectrum_;

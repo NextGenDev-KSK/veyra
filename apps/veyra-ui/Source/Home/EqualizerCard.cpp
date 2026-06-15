@@ -31,7 +31,12 @@ EqualizerCard::EqualizerCard()
     reset_.getProperties().set("variant", "ghost");
     reset_.onClick = [this]
     {
-        for (auto& b : bands_) b->setGainDb(0.0f);
+        for (int i = 0; i < kBands; ++i)
+        {
+            bands_[(size_t) i]->setGainDb(0.0f);
+            if (onBandChanged)
+                onBandChanged(i, 0.0f);
+        }
         repaint();
     };
     addAndMakeVisible(reset_);
@@ -44,6 +49,20 @@ void EqualizerCard::setPalette(const Palette& p)
     modeToggle_.setPalette(p);
     showCurve_.setPalette(p);
     showSpectrum_.setPalette(p);
+}
+
+void EqualizerCard::setBandGain(int index, float db)
+{
+    if (index >= 0 && index < kBands)
+    {
+        bands_[(size_t) index]->setGainDb(db);
+        repaint();
+    }
+}
+
+float EqualizerCard::bandGain(int index) const
+{
+    return (index >= 0 && index < kBands) ? bands_[(size_t) index]->gainDb() : 0.0f;
 }
 
 void EqualizerCard::resized()

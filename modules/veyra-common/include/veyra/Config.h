@@ -4,6 +4,7 @@
 // Phase 1; fields are added as later phases bring features online). JSON is kept
 // out of this header so consumers don't take a dependency on nlohmann.
 
+#include <array>
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -18,6 +19,20 @@ struct AudioEngineConfig {
     std::string dspPrecision = "float32";
 };
 
+// Live audio enhancement parameters surfaced by the Home screen. Ranges are
+// chosen to map cleanly onto veyra::dsp::DspParameters; the service's
+// ApoPublisher does the final translation into the shared-memory payload.
+struct EnhancementConfig {
+    std::array<float, 10> eqBandsDb{}; // graphic EQ, -12..+12 dB per band
+    std::string           eqMode = "graphic"; // graphic | parametric
+    float bassBoostDb       = 0.0f; // low shelf, 0..+12 dB
+    float trebleDb          = 0.0f; // high shelf, 0..+12 dB
+    float volumeGain        = 1.0f; // pre-amp knob, 0..3 (×master trim)
+    float stereoWidth       = 1.0f; // 0 (mono) .. 2 (wide)
+    float compressionAmount = 0.0f; // 0..1
+    float reverbAmount      = 0.0f; // 0..1 — no DSP stage yet, persisted for the UI
+};
+
 struct Config {
     int         version            = 1;
     bool        masterEnabled      = true;
@@ -27,6 +42,7 @@ struct Config {
     std::string language           = "en";
     bool        telemetryOptIn     = false;
     AudioEngineConfig audioEngine;
+    EnhancementConfig enhancement;
 
     // Serialise to / from pretty-printed JSON text.
     std::string toJson() const;

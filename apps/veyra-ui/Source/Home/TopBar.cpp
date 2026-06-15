@@ -8,12 +8,13 @@ TopBar::TopBar()
 {
     addAndMakeVisible(master_);
     master_.setToggleState(true, juce::dontSendNotification);
+    master_.onClick = [this] { if (onMasterToggle) onMasterToggle(master_.getToggleState()); };
 
     volume_.setSliderStyle(juce::Slider::LinearHorizontal);
     volume_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     volume_.setRange(0.0, 1.5, 0.01);
     volume_.setValue(1.0, juce::dontSendNotification);
-    volume_.onValueChange = [this] { repaint(); };
+    volume_.onValueChange = [this] { repaint(); if (onMasterVolume) onMasterVolume(volume_.getValue()); };
     addAndMakeVisible(volume_);
 
     ab_.getProperties().set("variant", "ghost");
@@ -40,6 +41,24 @@ void TopBar::toggleMaximise()
 {
     if (auto* w = dynamic_cast<juce::ResizableWindow*>(getTopLevelComponent()))
         w->setFullScreen(!w->isFullScreen());
+}
+
+void TopBar::setMasterEnabled(bool on)
+{
+    master_.setToggleState(on, juce::dontSendNotification);
+}
+
+void TopBar::setMasterVolume(double gain)
+{
+    volume_.setValue(gain, juce::dontSendNotification);
+    repaint();
+}
+
+void TopBar::setConnection(bool connected, juce::String version)
+{
+    connected_ = connected;
+    version_   = std::move(version);
+    repaint();
 }
 
 void TopBar::resized()
@@ -84,6 +103,16 @@ void TopBar::paint(juce::Graphics& g)
     g.setColour(juce::Colours::white);
     g.setFont(fonts::display(14.0f));
     g.drawText("V", logo, juce::Justification::centred, false);
+
+    // Connection status LED on the brand mark (green = service connected).
+    const juce::Colour dot = connected_ ? juce::Colour(0xff37D67A) : palette_.warning;
+    const float dx = logo.getRight() - 3.0f, dy = logo.getY() - 1.0f;
+    juce::DropShadow(dot.withAlpha(0.7f), 6, {}).drawForRectangle(
+        g, juce::Rectangle<float>(dx - 4.0f, dy - 4.0f, 8.0f, 8.0f).toNearestInt());
+    g.setColour(palette_.bgCanvas);
+    g.fillEllipse(dx - 4.0f, dy - 4.0f, 8.0f, 8.0f);
+    g.setColour(dot);
+    g.fillEllipse(dx - 3.0f, dy - 3.0f, 6.0f, 6.0f);
 
     // Wordmark.
     g.setColour(palette_.textPrimary);

@@ -1,6 +1,7 @@
 #include "Screens/HomeScreen.h"
 
 #include "Graphics/Icons.h"
+#include "ServiceClient.h"
 #include "Theme/Fonts.h"
 
 namespace veyra::ui {
@@ -12,6 +13,9 @@ const KnobSpec kKnobSpecs[] = {
     {"Volume Gain", "100%", 0.33}, {"Stereo Width", "100%", 0.5},
     {"Reverb", "0%", 0.0},         {"Compression", "0%", 0.0},
 };
+
+juce::String dbText(float db)  { return (db >= 0 ? "+" : "") + juce::String(juce::roundToInt(db)) + " dB"; }
+juce::String pctText(float fr) { return juce::String(juce::roundToInt(fr * 100.0f)) + "%"; }
 
 // "More Effects" tile.
 class MoreEffectsCard : public GlassPanel {
@@ -55,6 +59,7 @@ HomeScreen::HomeScreen()
             knob->setDimWhenZero(true);
         if (i == 2)           // Volume Gain: danger zone past ~200%
             knob->setDangerThreshold(0.66f);
+        knob->onChange = [this, i](double v) { onKnobChanged(i, v); };
         card->addAndMakeVisible(*knob);
 
         addAndMakeVisible(*card);
@@ -65,6 +70,17 @@ HomeScreen::HomeScreen()
     moreCard_ = std::make_unique<MoreEffectsCard>();
     moreCard_->setBackdrop(&background_);
     addAndMakeVisible(*moreCard_);
+
+    // Controls -> config.
+    eq_.onBandChanged = [this](int i, float db)
+    {
+        working_.enhancement.eqBandsDb[(size_t) i] = db;
+        pushConfig();
+    };
+    topBar_.onMasterToggle = [this](bool on) { working_.masterEnabled = on; pushConfig(); };
+    topBar_.onMasterVolume = [this](double g) { working_.masterVolumeGain = g; pushConfig(); };
+
+    seedConfigFromControls();
 }
 
 void HomeScreen::setPalette(const Palette& p)
@@ -80,6 +96,75 @@ void HomeScreen::setPalette(const Palette& p)
         knobs_[(size_t) i]->setPalette(p);
     }
     moreCard_->setPalette(p);
+}
+
+void HomeScreen::attachService(ServiceClient* client)
+{
+    client_ = client;
+}
+
+void HomeScreen::refreshFromService()
+{
+    if (!client_)
+        return;
+
+    const auto st = client_->status();
+    topBar_.setConnection(st.state == ConnectionState::Connected,
+                          juce::String(st.serviceVersion.c_str()));
+
+    if (auto c = client_->config())
+        applyConfig(*c);
+}
+
+void HomeScreen::onKnobChanged(int index, double v01)
+{
+    auto& e = working_.enhancement;
+    switch (index)
+    {
+    case 0: e.bassBoostDb       = (float) (v01 * 12.0); knobs_[0]->setValueText(dbText(e.bassBoostDb)); break;
+    case 1: e.trebleDb          = (float) (v01 * 12.0); knobs_[1]->setValueText(dbText(e.trebleDb));    break;
+    case 2: e.volumeGain        = (float) (v01 * 3.0);  knobs_[2]->setValueText(pctText(e.volumeGain)); break;
+    case 3: e.stereoWidth       = (float) (v01 * 2.0);  knobs_[3]->setValueText(pctText(e.stereoWidth)); break;
+    case 4: e.reverbAmount      = (float) v01;          knobs_[4]->setValueText(pctText(e.reverbAmount)); break;
+    case 5: e.compressionAmount = (float) v01;          knobs_[5]->setValueText(pctText(e.compressionAmount)); break;
+    default: return;
+    }
+    pushConfig();
+}
+
+void HomeScreen::applyConfig(const veyra::Config& c)
+{
+    working_ = c;
+    const auto& e = c.enhancement;
+
+    topBar_.setMasterEnabled(c.masterEnabled);
+    topBar_.setMasterVolume(c.masterVolumeGain);
+
+    knobs_[0]->setValue(e.bassBoostDb / 12.0);  knobs_[0]->setValueText(dbText(e.bassBoostDb));
+    knobs_[1]->setValue(e.trebleDb / 12.0);     knobs_[1]->setValueText(dbText(e.trebleDb));
+    knobs_[2]->setValue(e.volumeGain / 3.0);    knobs_[2]->setValueText(pctText(e.volumeGain));
+    knobs_[3]->setValue(e.stereoWidth / 2.0);   knobs_[3]->setValueText(pctText(e.stereoWidth));
+    knobs_[4]->setValue(e.reverbAmount);        knobs_[4]->setValueText(pctText(e.reverbAmount));
+    knobs_[5]->setValue(e.compressionAmount);   knobs_[5]->setValueText(pctText(e.compressionAmount));
+
+    for (int i = 0; i < EqualizerCard::kBands; ++i)
+        eq_.setBandGain(i, e.eqBandsDb[(size_t) i]);
+}
+
+void HomeScreen::seedConfigFromControls()
+{
+    working_.masterEnabled    = true;
+    working_.masterVolumeGain = 1.0;
+    for (int i = 0; i < kKnobs; ++i)
+        onKnobChanged(i, knobs_[(size_t) i]->getValue()); // client_ is null -> no push yet
+    for (int i = 0; i < EqualizerCard::kBands; ++i)
+        working_.enhancement.eqBandsDb[(size_t) i] = eq_.bandGain(i);
+}
+
+void HomeScreen::pushConfig()
+{
+    if (client_)
+        client_->updateConfig(working_);
 }
 
 void HomeScreen::resized()

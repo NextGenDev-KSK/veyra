@@ -4,6 +4,7 @@
 // the current screen (Home in 4b). Applies the active palette across it.
 
 #include "Screens/HomeScreen.h"
+#include "ServiceClient.h"
 #include "Theme/ThemeManager.h"
 #include "Theme/VeyraLookAndFeel.h"
 #include "VeyraGui.h"
@@ -21,6 +22,7 @@ private:
     VeyraLookAndFeel laf_;
     ThemeManager     themeManager_;
     HomeScreen       home_;
+    ServiceClient    client_; // declared last -> destroyed first (thread joins early)
 };
 
 } // namespace veyra::ui

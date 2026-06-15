@@ -101,7 +101,9 @@ Header-only, allocation-free, RT-safe DSP in `veyra-dsp`, with a Catch2 suite.
 - [x] 10-band EQ card (band sliders + center detent + response curve + Graphic/Parametric + toggles + reset)
 - [x] 6 effect knobs + More Effects; mockup-matched layout
 - [ ] **Runtime-verify by running the artifact** (look + interactions)
-- [ ] ServiceClient re-integrated (refactored); EQ/effects drive DSP params via the service (next)
+- [x] ServiceClient re-integrated (callback-based, fetches config, coalescing SetConfig push)
+- [x] EQ/master/effect knobs drive DSP params end-to-end (UI → SetConfig → ConfigManager → ApoPublisher → shared memory)
+- [x] Config extended with `enhancement` block (EQ bands, bass/treble, volume gain, width, compression, reverb); TopBar connection LED
 
 **⬜ 4c — Mini-mode + Settings→Appearance + Tray**
 - [ ] Mini-mode bar; Settings→Appearance (11-theme grid, opacity, bg mode, reduce-motion)

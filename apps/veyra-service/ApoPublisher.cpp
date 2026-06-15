@@ -1,5 +1,7 @@
 #include "ApoPublisher.h"
 
+#include <algorithm>
+
 #include "veyra/Logging.h"
 
 namespace veyra::service {
@@ -30,10 +32,23 @@ void ApoPublisher::publish(const Config& config)
     if (!params_)
         return;
 
+    const auto& e = config.enhancement;
+
     ipc::VeyraParamsPayload p; // in-struct defaults: flat EQ, width 1, gain 1
     p.bypass = config.masterEnabled ? 0u : 1u;
-    p.volumeGain = static_cast<float>(config.masterVolumeGain);
-    // Per-preset EQ / tone / dynamics map in here as Config grows (later phases).
+
+    // Effective output gain = master trim × the Volume Gain knob, clamped to the
+    // DSP's sane 0..300% range.
+    const float master = static_cast<float>(config.masterVolumeGain);
+    p.volumeGain = std::clamp(master * e.volumeGain, 0.0f, 3.0f);
+
+    for (size_t i = 0; i < e.eqBandsDb.size(); ++i)
+        p.eqBandsDb[i] = e.eqBandsDb[i];
+    p.bassBoostDb       = e.bassBoostDb;
+    p.trebleDb          = e.trebleDb;
+    p.stereoWidth       = e.stereoWidth;
+    p.compressionAmount = e.compressionAmount;
+    // Reverb has no DSP stage yet; e.reverbAmount is carried in Config for the UI.
 
     ipc::publishParameters(params_, p);
 }
