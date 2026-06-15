@@ -27,13 +27,29 @@ RootComponent::RootComponent()
     working_.enhancement = home_.enhancement();
     working_.theme       = themeManager_.currentId().toStdString();
 
+    // Mini-mode window (hidden until invoked) sharing this shell's config/client.
+    mini_ = std::make_unique<MiniWindow>();
+    auto& mc = mini_->content();
+    mc.setPalette(themeManager_.palette());
+    mc.onMasterToggle = [this](bool on) { setMasterEnabled(on); };
+    mc.onMasterVolume = [this](double g) { setMasterVolume(g); };
+    mc.onExpand       = [this] { enterFullMode(); };
+    mc.onClose        = [] { juce::JUCEApplication::getInstance()->systemRequestedQuit(); };
+
+    // System tray.
+    tray_.onOpen          = [this] { enterFullMode(); };
+    tray_.onMini          = [this] { enterMiniMode(); };
+    tray_.onQuit          = [] { juce::JUCEApplication::getInstance()->systemRequestedQuit(); };
+    tray_.onToggleMaster  = [this](bool on) { setMasterEnabled(on); };
+    tray_.isMasterEnabled = [this] { return working_.masterEnabled; };
+
     // Navigation.
     sidebar_.onNavigate = [this](int i) { showScreen(i); };
-    sidebar_.onMiniMode = [] { /* mini-mode window: later 4c step */ };
+    sidebar_.onMiniMode = [this] { enterMiniMode(); };
 
     // Master controls (top bar).
-    topBar_.onMasterToggle = [this](bool on) { working_.masterEnabled = on; pushConfig(); };
-    topBar_.onMasterVolume = [this](double g) { working_.masterVolumeGain = g; pushConfig(); };
+    topBar_.onMasterToggle = [this](bool on) { setMasterEnabled(on); };
+    topBar_.onMasterVolume = [this](double g) { setMasterVolume(g); };
 
     // Enhancement params (home knobs + EQ).
     home_.onEnhancementChanged = [this](const EnhancementConfig& e)
@@ -95,6 +111,9 @@ void RootComponent::applyPalette()
     home_.setPalette(p);
     settings_.setPalette(p);
     placeholder_.setPalette(p);
+    if (mini_ != nullptr)
+        mini_->content().setPalette(p);
+    tray_.updateIcon(p);
     repaint();
 }
 
@@ -125,6 +144,8 @@ void RootComponent::applyConfig(const veyra::Config& c)
     working_ = c;
     topBar_.setMasterEnabled(c.masterEnabled);
     topBar_.setMasterVolume(c.masterVolumeGain);
+    mini_->content().setMasterEnabled(c.masterEnabled);
+    mini_->content().setMasterVolume(c.masterVolumeGain);
     home_.applyEnhancement(c.enhancement);
 
     const juce::String themeId(c.theme);
@@ -143,10 +164,52 @@ void RootComponent::pushConfig()
 void RootComponent::refreshFromService()
 {
     const auto st = client_.status();
-    topBar_.setConnection(st.state == ConnectionState::Connected,
-                          juce::String(st.serviceVersion.c_str()));
+    const bool connected = st.state == ConnectionState::Connected;
+    topBar_.setConnection(connected, juce::String(st.serviceVersion.c_str()));
+    mini_->content().setConnection(connected);
     if (auto c = client_.config())
         applyConfig(*c);
+}
+
+void RootComponent::setMasterEnabled(bool on)
+{
+    working_.masterEnabled = on;
+    topBar_.setMasterEnabled(on);
+    mini_->content().setMasterEnabled(on);
+    pushConfig();
+}
+
+void RootComponent::setMasterVolume(double gain)
+{
+    working_.masterVolumeGain = gain;
+    topBar_.setMasterVolume(gain);
+    mini_->content().setMasterVolume(gain);
+    pushConfig();
+}
+
+void RootComponent::enterMiniMode()
+{
+    if (auto* w = getTopLevelComponent())
+        w->setVisible(false);
+
+    // Park the bar at the top-centre of the primary display.
+    if (auto* disp = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay())
+    {
+        const auto area = disp->userArea;
+        mini_->setTopLeftPosition(area.getCentreX() - mini_->getWidth() / 2, area.getY() + 24);
+    }
+    mini_->setVisible(true);
+    mini_->toFront(true);
+}
+
+void RootComponent::enterFullMode()
+{
+    mini_->setVisible(false);
+    if (auto* w = getTopLevelComponent())
+    {
+        w->setVisible(true);
+        w->toFront(true);
+    }
 }
 
 void RootComponent::resized()

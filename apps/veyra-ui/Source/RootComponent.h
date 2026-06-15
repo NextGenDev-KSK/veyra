@@ -8,15 +8,19 @@
 #include "Graphics/GlassBackground.h"
 #include "Home/Sidebar.h"
 #include "Home/TopBar.h"
+#include "MiniWindow.h"
 #include "Screens/HomeScreen.h"
 #include "Screens/PlaceholderScreen.h"
 #include "Screens/SettingsScreen.h"
 #include "ServiceClient.h"
 #include "Theme/ThemeManager.h"
 #include "Theme/VeyraLookAndFeel.h"
+#include "TrayIcon.h"
 #include "VeyraGui.h"
 
 #include "veyra/Config.h"
+
+#include <memory>
 
 namespace veyra::ui {
 
@@ -35,6 +39,11 @@ private:
     void pushConfig();
     void refreshFromService();
 
+    void setMasterEnabled(bool on); // sync top bar + mini, push
+    void setMasterVolume(double gain);
+    void enterMiniMode();
+    void enterFullMode();
+
     VeyraLookAndFeel laf_;
     ThemeManager     themeManager_;
     GlassBackground  background_;
@@ -45,6 +54,9 @@ private:
     SettingsScreen    settings_;
     PlaceholderScreen placeholder_;
     juce::Component*  current_ = nullptr;
+
+    std::unique_ptr<MiniWindow> mini_;
+    TrayIcon                    tray_;
 
     veyra::Config working_;
 

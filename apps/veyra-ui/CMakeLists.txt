@@ -19,6 +19,7 @@ juce_add_binary_data(veyra_assets SOURCES
 target_sources(veyra PRIVATE
     Source/Main.cpp
     Source/RootComponent.cpp
+    Source/MiniWindow.cpp
     Source/ServiceClient.cpp
     Source/Theme/DesignTokens.cpp
     Source/Theme/Fonts.cpp
