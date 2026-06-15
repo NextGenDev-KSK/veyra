@@ -6,7 +6,7 @@ spec §17.
 
 **Repo:** https://github.com/NextGenDev-KSK/veyra
 **Current version:** 0.3.0
-**Last green CI:** [run 27553100783](https://github.com/NextGenDev-KSK/veyra/actions/runs/27553100783) (Phase 0–3 + 4a + 4b Home screen; builds, tests pass)
+**Last green CI:** [run 27583436154](https://github.com/NextGenDev-KSK/veyra/actions/runs/27583436154) (Phase 0–3 + 4a/4b/4c: Home wired to DSP, shell routing, Settings/Appearance, mini mode, tray; builds, tests pass)
 
 > Verification note: this machine has no local C++ toolchain, so every phase is
 > proven by the GitHub Actions `windows-latest` build (compile + link + the
@@ -105,9 +105,14 @@ Header-only, allocation-free, RT-safe DSP in `veyra-dsp`, with a Catch2 suite.
 - [x] EQ/master/effect knobs drive DSP params end-to-end (UI → SetConfig → ConfigManager → ApoPublisher → shared memory)
 - [x] Config extended with `enhancement` block (EQ bands, bass/treble, volume gain, width, compression, reverb); TopBar connection LED
 
-**⬜ 4c — Mini-mode + Settings→Appearance + Tray**
-- [ ] Mini-mode bar; Settings→Appearance (11-theme grid, opacity, bg mode, reduce-motion)
-- [ ] System tray icon + custom glass popup menu
+**🟡 4c — Routing + Settings→Appearance + Mini-mode + Tray (CI builds; awaiting visual check)**
+- [x] App shell: chrome (background/top bar/sidebar) promoted out of HomeScreen; single working Config
+- [x] Sidebar routing between content screens (Home, Settings, on-brand placeholders for the rest)
+- [x] Settings→Appearance: 11-theme preview grid (live switch + persisted via config.theme), reduce-motion (freezes visualizer)
+- [x] Opacity + background-mode controls present (deep wiring deferred to a persisted-appearance config pass)
+- [x] Mini-mode bar (master toggle/volume + expand/close, always-on-top, shares config/client)
+- [x] System tray icon + popup menu (open / mini / toggle master / quit); themed standard menu (glass popup later)
+- [ ] **Runtime-verify by running the artifact** (routing, theme switch, mini, tray)
 
 ### ⬜ Phase 5 — Presets + Per-App + Per-Device
 - [ ] `.vpreset` save/load/export/import + built-in presets
