@@ -35,9 +35,18 @@ add_library(veyra_spdlog INTERFACE)
 add_library(veyra::spdlog ALIAS veyra_spdlog)
 target_include_directories(veyra_spdlog INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/spdlog/include")
 
-# --- Submodule-backed dependencies (later phases) --------------------------
+# --- JUCE (submodule, GPL tier) --------------------------------------------
+# Required by veyra-ui (Phase 4+). Bringing the subdirectory in only makes the
+# JUCE targets available; nothing compiles unless veyra-ui links them.
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/JUCE/CMakeLists.txt")
+    message(FATAL_ERROR
+        "JUCE submodule missing. Run: git submodule update --init third_party/JUCE")
+endif()
+add_subdirectory(JUCE)
+
+# --- Other submodule-backed dependencies (later phases) --------------------
 if(NOT VEYRA_FETCH_DEPS)
-    message(STATUS "third_party: submodule dependencies disabled (stub build)")
+    message(STATUS "third_party: optional submodule dependencies disabled (stub build)")
     return()
 endif()
 

@@ -1,25 +1,50 @@
-# veyra-ui — the main user-facing application. Produces veyra.exe.
+# veyra-ui — the main JUCE application. Produces veyra.exe.
 #
-# Phase 1: a minimal native Win32 shell that displays the live service
-# connection status via the background ServiceClient (named-pipe IPC). No JUCE
-# yet — that replaces this shell in Phase 4. The manifest (asInvoker +
-# per-monitor-v2 DPI awareness) is already embedded for correct HiDPI behaviour.
+# Phase 4a: JUCE integration + theme engine + glass renderer + component
+# library, shown via a Foundations/Gallery view so the design language can be
+# verified by running the CI-built artifact. Home / Mini-mode / Settings land
+# in 4b/4c.
 
-add_executable(veyra WIN32
+juce_add_gui_app(veyra
+    PRODUCT_NAME "Veyra Sounds"
+    COMPANY_NAME "Veyra Sounds")
+
+# Embed fonts (OFL). BinaryData::Orbitron_ttf / Inter_ttf / JetBrainsMono_ttf.
+juce_add_binary_data(veyra_assets SOURCES
+    "${CMAKE_SOURCE_DIR}/resources/fonts/Orbitron.ttf"
+    "${CMAKE_SOURCE_DIR}/resources/fonts/Inter.ttf"
+    "${CMAKE_SOURCE_DIR}/resources/fonts/JetBrainsMono.ttf")
+
+target_sources(veyra PRIVATE
     Source/Main.cpp
-    Source/ServiceClient.cpp
-    veyra.rc)
+    Source/RootComponent.cpp
+    Source/Theme/DesignTokens.cpp
+    Source/Theme/Fonts.cpp
+    Source/Theme/VeyraLookAndFeel.cpp
+    Source/Graphics/GlassBackground.cpp
+    Source/Graphics/GlassCard.cpp
+    Source/Components/ToggleSwitch.cpp
+    Source/Components/Knob.cpp
+    Source/Components/SegmentedControl.cpp
+    Source/Screens/GalleryComponent.cpp)
 
 target_include_directories(veyra PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source")
 
-target_link_libraries(veyra PRIVATE veyra::common veyra::dsp user32 gdi32)
+target_compile_definitions(veyra PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_APPLICATION_NAME_STRING="Veyra Sounds"
+    JUCE_APPLICATION_VERSION_STRING="${VEYRA_VERSION}")
 
-# Ensure the resource compiler can locate veyra.exe.manifest referenced from
-# veyra.rc (CMake forwards include dirs to rc.exe as /I).
-target_include_directories(veyra PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+target_link_libraries(veyra PRIVATE
+    veyra_assets
+    veyra::common
+    veyra::dsp
+    juce::juce_gui_extra
+    juce::juce_recommended_config_flags
+    juce::juce_recommended_warning_flags)
 
-# We embed our own RT_MANIFEST via veyra.rc, so suppress the linker's default
-# manifest to avoid an mt.exe duplicate-manifest conflict.
-if(MSVC)
-    target_link_options(veyra PRIVATE "/MANIFEST:NO")
-endif()
+# Keep the binary in the unified bin/ dir as veyra.exe (matches CI checks).
+set_target_properties(veyra PROPERTIES
+    OUTPUT_NAME "veyra"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

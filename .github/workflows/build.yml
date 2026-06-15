@@ -41,28 +41,29 @@ jobs:
       - name: Test (DSP)
         run: ctest --test-dir build/windows-release --output-on-failure
 
-      - name: Verify all four binaries exist
+      - name: Verify all four binaries exist and stage them
         shell: pwsh
         run: |
-          $bin = "build/windows-release/bin"
+          $root = "build/windows-release"
           $expected = @("veyra.exe", "veyra-service.exe", "veyra-apo.dll", "veyra-overlay.exe")
+          New-Item -ItemType Directory -Force dist | Out-Null
           $missing = @()
           foreach ($f in $expected) {
-            if (-not (Test-Path (Join-Path $bin $f))) { $missing += $f }
+            # JUCE may emit veyra.exe under a *_artefacts/ subfolder, so search recursively.
+            $hit = Get-ChildItem -Path $root -Recurse -Filter $f -File -ErrorAction SilentlyContinue |
+                   Select-Object -First 1
+            if ($hit) { Copy-Item $hit.FullName dist/; Write-Host "Found $f -> $($hit.FullName)" }
+            else { $missing += $f }
           }
           if ($missing.Count -gt 0) {
             Write-Error "Missing expected artifacts: $($missing -join ', ')"
             exit 1
           }
-          Write-Host "All four Phase 0 binaries present."
+          Write-Host "All four binaries present."
 
       - name: Upload binaries
         uses: actions/upload-artifact@v4
         with:
           name: veyra-windows-x64
-          path: |
-            build/windows-release/bin/veyra.exe
-            build/windows-release/bin/veyra-service.exe
-            build/windows-release/bin/veyra-apo.dll
-            build/windows-release/bin/veyra-overlay.exe
+          path: dist/
           if-no-files-found: error
