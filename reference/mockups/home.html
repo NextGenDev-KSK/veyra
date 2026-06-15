@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Veyra Sounds — Home (mockup)</title>
+<style>
+/* Fonts are the exact OFL families bundled in the app (resources/fonts). */
+@font-face { font-family:'Orbitron'; src:url('../../resources/fonts/Orbitron.ttf'); font-weight:400 900; }
+@font-face { font-family:'Inter'; src:url('../../resources/fonts/Inter.ttf'); font-weight:100 900; }
+@font-face { font-family:'JBMono'; src:url('../../resources/fonts/JetBrainsMono.ttf'); font-weight:100 800; }
+
+:root{
+  --bg-app:#0A0B10; --bg-canvas:#0F1117;
+  --glass:rgba(20,22,32,.55); --glass-hover:rgba(28,30,42,.65);
+  --glass-active:rgba(36,38,52,.75); --glass-elev:rgba(32,34,48,.82);
+  --input:#07080C;
+  --s-default:rgba(255,255,255,.08); --s-hover:rgba(255,255,255,.14);
+  --s-active:rgba(124,92,255,.45); --s-focus:rgba(124,92,255,.80);
+  --s-leak:rgba(255,255,255,.06);
+  --t-primary:#F2F3F8; --t-secondary:#A8ABBD; --t-tertiary:#6B6F84; --t-disabled:#4A4D5E;
+  --accent:#7C5CFF; --accent-h:#8E72FF; --accent-a:#6A4AE8;
+  --glow:rgba(124,92,255,.40); --glow-strong:rgba(124,92,255,.65);
+  --green:#A8C64E; --warn:#FBBF24; --danger:#F87171;
+  --r-sm:8px; --r-md:10px; --r-lg:16px; --r-pill:999px;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  font-family:'Inter',system-ui,sans-serif; color:var(--t-primary);
+  background:var(--bg-app); overflow:hidden; -webkit-font-smoothing:antialiased;
+}
+/* Ambient background blobs + film grain */
+.bg{position:fixed; inset:0; z-index:-2; background:var(--bg-app);}
+.bg::before{content:''; position:absolute; inset:0;
+  background:
+    radial-gradient(40% 50% at 16% 14%, rgba(124,92,255,.20), transparent 70%),
+    radial-gradient(35% 40% at 88% 26%, rgba(168,198,78,.10), transparent 70%),
+    radial-gradient(55% 60% at 70% 96%, rgba(124,92,255,.14), transparent 70%),
+    radial-gradient(40% 45% at 4% 98%, rgba(96,165,250,.08), transparent 70%);}
+.grain{position:fixed; inset:0; z-index:-1; opacity:.05; pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+.glass{background:var(--glass); backdrop-filter:blur(24px) saturate(1.4); -webkit-backdrop-filter:blur(24px) saturate(1.4);
+  border:1px solid var(--s-default); border-radius:var(--r-lg);
+  box-shadow:0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 var(--s-leak);}
+
+.mono{font-family:'JBMono',monospace; font-variant-numeric:tabular-nums;}
+.display{font-family:'Orbitron',sans-serif; text-transform:uppercase; letter-spacing:.06em;}
+
+/* ---------- App shell ---------- */
+.app{display:grid; grid-template-rows:56px 1fr; grid-template-columns:220px 1fr;
+  grid-template-areas:"top top" "side main"; height:100vh;}
+
+/* Top utility bar */
+.topbar{grid-area:top; display:flex; align-items:center; gap:16px; padding:0 16px;
+  border-bottom:1px solid var(--s-default); background:rgba(15,17,23,.6); backdrop-filter:blur(24px);}
+.logo{width:28px; height:28px; border-radius:8px; display:grid; place-items:center; color:#fff; font-weight:700;
+  background:linear-gradient(135deg,#7C5CFF,#5B3FE4 60%,#4A2FCF); box-shadow:0 0 16px var(--glow);}
+.wordmark{font-size:15px;}
+.divider-v{width:1px; height:28px; background:var(--s-default);}
+.toggle{width:36px; height:20px; border-radius:var(--r-pill); background:var(--accent); position:relative; box-shadow:0 0 12px var(--glow); cursor:pointer;}
+.toggle::after{content:''; position:absolute; top:2px; right:2px; width:16px; height:16px; border-radius:50%; background:#fff;}
+.toggle.off{background:rgba(60,62,80,.6); box-shadow:none;}
+.toggle.off::after{left:2px; right:auto;}
+.master{display:flex; flex-direction:column; gap:2px;}
+.master .lbl{font-size:10px; letter-spacing:.1em; color:var(--t-tertiary); font-weight:700;}
+.mrow{display:flex; align-items:center; gap:8px;}
+.track{width:200px; height:4px; border-radius:var(--r-pill); background:rgba(60,62,80,.6); position:relative;}
+.track .fill{position:absolute; left:0; top:0; bottom:0; width:72%; background:var(--accent); border-radius:var(--r-pill);}
+.track .thumb{position:absolute; top:50%; left:72%; width:14px; height:14px; border-radius:50%; background:#fff; border:2px solid var(--accent); transform:translate(-50%,-50%); box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.val{font-size:12px; color:var(--t-secondary);}
+.spacer{flex:1;}
+.chip{display:flex; align-items:center; gap:8px; height:28px; padding:0 12px; border-radius:var(--r-pill);
+  background:var(--glass-hover); border:1px solid var(--s-default); font-size:12px; font-weight:500; cursor:pointer;}
+.chip .dot{width:6px; height:6px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent);}
+.iconbtn{width:32px; height:32px; border-radius:8px; display:grid; place-items:center; color:var(--t-secondary); cursor:pointer;}
+.iconbtn:hover{background:var(--glass-hover); color:var(--t-primary);}
+.iconbtn svg{width:18px; height:18px;}
+.wctrl{display:flex; gap:6px; margin-left:6px;}
+.wctrl .w{width:28px; height:28px; border-radius:8px; display:grid; place-items:center; color:var(--t-secondary); cursor:pointer;}
+.wctrl .w:hover{background:var(--glass-hover); color:var(--t-primary);}
+.wctrl .w.close:hover{background:rgba(248,113,113,.18); color:#fff;}
+
+/* Sidebar */
+.side{grid-area:side; display:flex; flex-direction:column; padding:24px 12px 8px; gap:4px;
+  border-right:1px solid var(--s-default); background:rgba(12,13,18,.5); backdrop-filter:blur(24px);}
+.nav{display:flex; align-items:center; gap:12px; height:40px; padding:0 12px; border-radius:var(--r-md);
+  color:var(--t-secondary); font-size:14px; font-weight:500; cursor:pointer; position:relative;}
+.nav svg{width:18px; height:18px;}
+.nav:hover{background:var(--glass-hover); color:var(--t-primary);}
+.nav.active{background:var(--glass-active); color:var(--t-primary);}
+.nav.active::before{content:''; position:absolute; left:0; top:8px; bottom:8px; width:3px; border-radius:2px; background:var(--accent); box-shadow:0 0 10px var(--accent);}
+.nav.active svg{color:var(--accent);}
+.side .grow{flex:1;}
+.side .div{height:1px; background:var(--s-default); margin:16px 8px;}
+.minibtn{display:flex; align-items:center; justify-content:center; gap:8px; height:32px; border-radius:var(--r-md);
+  border:1px solid var(--s-default); color:var(--t-secondary); font-size:11px; letter-spacing:.08em; cursor:pointer;}
+.minibtn:hover{background:var(--glass-hover); color:var(--t-primary);}
+.ver{text-align:center; font-size:11px; color:var(--t-tertiary); padding:8px 0 4px;}
+
+/* Main canvas */
+.main{grid-area:main; padding:24px; display:flex; flex-direction:column; gap:20px; overflow:auto;}
+
+/* Visualizer */
+.viz{position:relative; height:220px; padding:16px;}
+.viz .vu{position:absolute; top:16px; left:16px; display:flex; gap:6px; padding:8px; border-radius:10px; background:rgba(0,0,0,.25); border:1px solid var(--s-default);}
+.vu .meter{width:8px; height:56px; border-radius:4px; background:rgba(60,62,80,.4); position:relative;}
+.vu .meter span{position:absolute; left:0; right:0; bottom:0; background:linear-gradient(to top,var(--green),var(--green) 60%,var(--warn) 80%,var(--danger)); border-radius:4px;}
+.vu .cap{position:absolute; bottom:-16px; left:0; right:0; text-align:center; font-size:9px; color:var(--t-tertiary);}
+.viz .vtools{position:absolute; top:16px; right:16px; display:flex; gap:8px; align-items:center;}
+.dropdown{display:flex; align-items:center; gap:8px; height:32px; padding:0 12px; border-radius:var(--r-md); background:var(--glass); border:1px solid var(--s-default); font-size:13px; cursor:pointer;}
+.spectrum{position:absolute; left:16px; right:16px; bottom:16px; height:150px; display:flex; align-items:flex-end; gap:3px;}
+.spectrum .bar{flex:1; background:linear-gradient(to top,rgba(124,92,255,.35),var(--accent)); border-radius:2px 2px 0 0; box-shadow:0 0 8px rgba(124,92,255,.25);}
+.fps{position:absolute; left:16px; bottom:170px; font-size:11px; color:var(--t-secondary); background:rgba(0,0,0,.3); padding:3px 8px; border-radius:6px;}
+
+/* Card header */
+.card{padding:24px;}
+.chead{display:flex; align-items:center; margin-bottom:16px; gap:12px;}
+.chead h2{font-size:20px;}
+.chead .right{margin-left:auto; display:flex; align-items:center; gap:12px;}
+.seg{display:flex; padding:4px; border-radius:var(--r-pill); background:var(--glass); border:1px solid var(--s-default);}
+.seg button{border:0; background:transparent; color:var(--t-secondary); font-family:inherit; font-size:13px; font-weight:500; padding:6px 16px; border-radius:var(--r-pill); cursor:pointer;}
+.seg button.active{background:var(--glass-elev); color:var(--t-primary); border:1px solid var(--s-active);}
+.tg{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--t-secondary); cursor:pointer;}
+.tg .toggle{transform:scale(.85);}
+.link{font-size:13px; color:var(--accent); cursor:pointer;}
+
+/* Equalizer */
+.eqwrap{position:relative; padding-top:8px;}
+.eq{display:flex; justify-content:space-between; align-items:flex-end; height:240px; position:relative; z-index:2;}
+.band{display:flex; flex-direction:column; align-items:center; gap:8px; width:48px;}
+.band .db{font-size:11px; color:var(--t-secondary);}
+.band .rail{width:6px; height:180px; border-radius:var(--r-pill); background:rgba(60,62,80,.5); position:relative;}
+.band .rail .fillpos{position:absolute; left:0; right:0; background:var(--accent); border-radius:var(--r-pill);}
+.band .knobthumb{position:absolute; left:50%; width:22px; height:22px; border-radius:50%; background:#fff; border:2px solid var(--accent); transform:translate(-50%,-50%); box-shadow:0 0 12px var(--glow);}
+.band .freq{font-size:11px; color:var(--t-tertiary);}
+.eqcurve{position:absolute; left:0; right:0; top:30px; height:180px; z-index:1; pointer-events:none;}
+
+/* Effect knobs */
+.effects{display:grid; grid-template-columns:repeat(7,1fr); gap:16px;}
+.knobcard{padding:16px 8px; display:flex; flex-direction:column; align-items:center; gap:8px;}
+.knob{width:64px; height:64px; border-radius:50%; position:relative;
+  background:conic-gradient(from 225deg, var(--accent) var(--deg,0deg), rgba(60,62,80,.4) 0);
+  -webkit-mask:radial-gradient(circle 24px at 50% 50%, transparent 23px, #000 24px);
+          mask:radial-gradient(circle 24px at 50% 50%, transparent 23px, #000 24px);}
+.knobcard .inner{position:absolute; inset:8px; border-radius:50%;}
+.knobholder{position:relative; width:64px; height:64px; display:grid; place-items:center;}
+.knobholder .disc{position:absolute; inset:12px; border-radius:50%; background:var(--glass-elev); border:1px solid var(--s-default);}
+.knobholder .ind{position:absolute; width:2px; height:14px; background:#fff; top:14px; left:50%; transform-origin:50% 18px;}
+.knobholder .led{position:absolute; top:4px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:50%; background:var(--accent); box-shadow:0 0 6px var(--accent);}
+.knobcard .klbl{font-size:12px; color:var(--t-secondary); text-align:center;}
+.knobcard .kval{font-size:12px; color:var(--t-primary);}
+.morebtn{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; border:1px dashed var(--s-hover); border-radius:var(--r-lg); color:var(--t-secondary); cursor:pointer;}
+.morebtn:hover{background:var(--glass-hover); color:var(--t-primary);}
+</style>
+</head>
+<body>
+<div class="bg"></div><div class="grain"></div>
+
+<div class="app">
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="logo">V</div>
+    <div class="wordmark display">Veyra Sounds</div>
+    <div class="divider-v"></div>
+    <div class="toggle" title="Master ON/OFF"></div>
+    <div class="master">
+      <span class="lbl">MASTER</span>
+      <div class="mrow">
+        <div class="track"><div class="fill"></div><div class="thumb"></div></div>
+        <span class="val mono">100%</span>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="chip"><span class="dot"></span>FPS Footstep Boost</div>
+    <div class="chip" title="A/B compare" style="font-weight:600;">A/B</div>
+    <div class="iconbtn" title="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
+    <div class="iconbtn" title="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9a6 6 0 1112 0c0 7 3 7 3 9H3c0-2 3-2 3-9z"/></svg></div>
+    <div class="iconbtn" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4 12H1M23 12h-3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg></div>
+    <div class="wctrl">
+      <div class="w" title="Minimize"><svg viewBox="0 0 14 14" stroke="currentColor" stroke-width="1.5"><path d="M3 7h8"/></svg></div>
+      <div class="w" title="Maximize"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="8" height="8"/></svg></div>
+      <div class="w close" title="Close"><svg viewBox="0 0 14 14" stroke="currentColor" stroke-width="1.5"><path d="M3 3l8 8M11 3l-8 8"/></svg></div>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="side">
+    <div class="nav active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2v9h5v-6h4v6h5v-9l2 2"/></svg>Home</div>
+    <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4h12v16l-6-4-6 4z"/></svg>Presets</div>
+    <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Apps</div>
+    <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 8a5 5 0 010 8"/></svg>Devices</div>
+    <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v6l-5 9a2 2 0 002 3h12a2 2 0 002-3l-5-9V3"/><path d="M8 3h8"/></svg>Sound Lab</div>
+    <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="5"/><path d="M7 12h3M8.5 10.5v3"/><circle cx="16" cy="11" r="1"/><circle cx="18.5" cy="13.5" r="1"/></svg>Gamer Mode</div>
+    <div class="grow"></div>
+    <div class="div"></div>
+    <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4 12H1M23 12h-3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>Settings</div>
+    <div class="minibtn mono">▭ MINI MODE</div>
+    <div class="ver mono">v0.3.0</div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+    <!-- Visualizer -->
+    <section class="glass viz">
+      <div class="vu">
+        <div class="meter"><span style="height:55%"></span><div class="cap">L</div></div>
+        <div class="meter"><span style="height:42%"></span><div class="cap">R</div></div>
+      </div>
+      <div class="vtools">
+        <div class="dropdown">Bars
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="iconbtn" title="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></div>
+      </div>
+      <div class="fps mono">144 FPS</div>
+      <div class="spectrum" id="spectrum"></div>
+    </section>
+
+    <!-- Equalizer -->
+    <section class="glass card">
+      <div class="chead">
+        <h2 class="display">Equalizer</h2>
+        <div class="right">
+          <div class="seg"><button class="active">Graphic</button><button>Parametric</button></div>
+          <label class="tg">Show curve<span class="toggle"></span></label>
+          <label class="tg">Show spectrum<span class="toggle off"></span></label>
+          <span class="link">Reset</span>
+        </div>
+      </div>
+      <div class="eqwrap">
+        <svg class="eqcurve" id="eqcurve" preserveAspectRatio="none"></svg>
+        <div class="eq" id="eq"></div>
+      </div>
+    </section>
+
+    <!-- Effects -->
+    <section class="effects" id="effects"></section>
+  </main>
+</div>
+
+<script>
+// Spectrum bars (Monstercat-style gravity decay).
+const NB = 48, spec = document.getElementById('spectrum'), bars = [];
+for(let i=0;i<NB;i++){const b=document.createElement('div');b.className='bar';spec.appendChild(b);bars.push({el:b,h:10});}
+function tickSpec(){
+  for(let i=0;i<NB;i++){
+    const target = 10 + Math.pow(Math.random(),2)*130 * (0.4+0.6*Math.sin(i/NB*Math.PI));
+    bars[i].h = Math.max(target, bars[i].h*0.92);
+    bars[i].el.style.height = bars[i].h+'px';
+  }
+  requestAnimationFrame(tickSpec);
+}
+tickSpec();
+
+// Equalizer: 10 bands with a footstep-boost-ish curve.
+const freqs = ['32','64','125','250','500','1k','2k','4k','8k','16k'];
+const gains  = [ 1, -2,  0,   3,  -1,  -4,   1,   5,   6,  -1]; // dB, -12..+12
+const eq = document.getElementById('eq');
+const pts = [];
+gains.forEach((g,i)=>{
+  const band=document.createElement('div'); band.className='band';
+  const pct = (g+12)/24; // 0..1 bottom..top
+  const railH=180, y = railH*(1-pct);
+  band.innerHTML=`<div class="db mono">${g>0?'+':''}${g} dB</div>
+    <div class="rail">
+      <div class="fillpos" style="${g>=0?`bottom:50%;height:${railH*0.5*(g/12)}px`:`top:50%;height:${railH*0.5*(-g/12)}px`}"></div>
+      <div class="knobthumb" style="top:${y}px"></div>
+    </div>
+    <div class="freq mono">${freqs[i]}</div>`;
+  eq.appendChild(band);
+  pts.push({i,y});
+});
+// Draw the response curve through the thumbs.
+const svg=document.getElementById('eqcurve');
+function drawCurve(){
+  const w=svg.clientWidth, n=gains.length, step=w/n;
+  const coords = pts.map((p,i)=>[step*(i+0.5), p.y+11]);
+  let d='M '+coords[0][0]+' '+coords[0][1];
+  for(let i=1;i<coords.length;i++){
+    const [x0,y0]=coords[i-1],[x1,y1]=coords[i],cx=(x0+x1)/2;
+    d+=` C ${cx} ${y0}, ${cx} ${y1}, ${x1} ${y1}`;
+  }
+  svg.innerHTML=`<path d="${d}" fill="none" stroke="rgba(124,92,255,.55)" stroke-width="2"/>`;
+}
+window.addEventListener('resize',drawCurve); drawCurve();
+
+// Effect knobs.
+const knobs=[['Bass Boost','+4 dB',.33],['Treble','+2 dB',.27],['Volume Gain','100%',.33],
+             ['Stereo Width','100%',.5],['Reverb','0%',0],['Compression','0%',0]];
+const eff=document.getElementById('effects');
+knobs.forEach(([lbl,val,v])=>{
+  const deg=v*270;
+  const card=document.createElement('div'); card.className='glass knobcard';
+  card.innerHTML=`<div class="knobholder">
+      <div class="knob" style="--deg:${deg}deg"></div>
+      <div class="disc"></div>
+      <div class="led" style="${v<=0?'background:#6B6F84;box-shadow:none':''}"></div>
+      <div class="ind" style="transform:rotate(${ -135+deg }deg)"></div>
+    </div>
+    <div class="klbl">${lbl}</div><div class="kval mono">${val}</div>`;
+  eff.appendChild(card);
+});
+const more=document.createElement('div'); more.className='glass morebtn';
+more.innerHTML=`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span style="font-size:12px">More Effects</span>`;
+eff.appendChild(more);
+</script>
+</body>
+</html>
