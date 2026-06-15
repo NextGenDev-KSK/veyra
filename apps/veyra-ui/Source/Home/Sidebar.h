@@ -18,7 +18,10 @@ public:
     Sidebar();
 
     void setPalette(const Palette& p) { palette_ = p; repaint(); }
+    void setActive(int index) { active_ = index; repaint(); }
+
     std::function<void(int)> onNavigate;
+    std::function<void()>    onMiniMode;
 
     void paint(juce::Graphics&) override;
     void mouseDown(const juce::MouseEvent&) override;

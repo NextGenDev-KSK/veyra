@@ -32,7 +32,8 @@ target_sources(veyra PRIVATE
     Source/Home/Sidebar.cpp
     Source/Home/VisualizerCard.cpp
     Source/Home/EqualizerCard.cpp
-    Source/Screens/HomeScreen.cpp)
+    Source/Screens/HomeScreen.cpp
+    Source/Screens/SettingsScreen.cpp)
 
 target_include_directories(veyra PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source")
 

@@ -21,6 +21,9 @@ public:
     void resized() override;
     void paintContent(juce::Graphics&) override;
 
+    // Reduce-motion (Settings→Appearance): freeze the animation to a static frame.
+    void setReduceMotion(bool reduce);
+
 private:
     void timerCallback() override;
 

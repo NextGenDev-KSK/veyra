@@ -22,6 +22,15 @@ void VisualizerCard::setPalette(const Palette& p)
     fullscreen_.setPalette(p);
 }
 
+void VisualizerCard::setReduceMotion(bool reduce)
+{
+    if (reduce)
+        stopTimer();
+    else if (!isTimerRunning())
+        startTimerHz(60);
+    repaint();
+}
+
 void VisualizerCard::resized()
 {
     auto r = getLocalBounds().reduced(16);

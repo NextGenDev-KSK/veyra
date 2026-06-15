@@ -1,17 +1,17 @@
 #include "Screens/HomeScreen.h"
 
+#include "Graphics/GlassBackground.h"
 #include "Graphics/Icons.h"
-#include "ServiceClient.h"
 #include "Theme/Fonts.h"
 
 namespace veyra::ui {
 
 namespace {
-struct KnobSpec { const char* label; const char* value; double v; };
+struct KnobSpec { const char* label; double v; };
 const KnobSpec kKnobSpecs[] = {
-    {"Bass Boost", "+4 dB", 0.33}, {"Treble", "+2 dB", 0.27},
-    {"Volume Gain", "100%", 0.33}, {"Stereo Width", "100%", 0.5},
-    {"Reverb", "0%", 0.0},         {"Compression", "0%", 0.0},
+    {"Bass Boost", 0.33}, {"Treble", 0.27},
+    {"Volume Gain", 0.33}, {"Stereo Width", 0.5},
+    {"Reverb", 0.0},      {"Compression", 0.0},
 };
 
 juce::String dbText(float db)  { return (db >= 0 ? "+" : "") + juce::String(juce::roundToInt(db)) + " dB"; }
@@ -36,24 +36,16 @@ protected:
 
 HomeScreen::HomeScreen()
 {
-    addAndMakeVisible(background_);
-    addAndMakeVisible(topBar_);
-    addAndMakeVisible(sidebar_);
-
-    viz_.setBackdrop(&background_);
-    eq_.setBackdrop(&background_);
     addAndMakeVisible(viz_);
     addAndMakeVisible(eq_);
 
     for (int i = 0; i < kKnobs; ++i)
     {
         auto card = std::make_unique<GlassPanel>();
-        card->setBackdrop(&background_);
         card->setElevated(true); // knob cards sit a tier above the big panels
 
         auto knob = std::make_unique<Knob>();
         knob->setLabel(kKnobSpecs[i].label);
-        knob->setValueText(kKnobSpecs[i].value);
         knob->setValue(kKnobSpecs[i].v);
         if (i == 4 || i == 5) // Reverb, Compression: show an "off" look at zero
             knob->setDimWhenZero(true);
@@ -68,26 +60,21 @@ HomeScreen::HomeScreen()
     }
 
     moreCard_ = std::make_unique<MoreEffectsCard>();
-    moreCard_->setBackdrop(&background_);
     addAndMakeVisible(*moreCard_);
 
-    // Controls -> config.
     eq_.onBandChanged = [this](int i, float db)
     {
-        working_.enhancement.eqBandsDb[(size_t) i] = db;
-        pushConfig();
+        enh_.eqBandsDb[(size_t) i] = db;
+        if (onEnhancementChanged)
+            onEnhancementChanged(enh_);
     };
-    topBar_.onMasterToggle = [this](bool on) { working_.masterEnabled = on; pushConfig(); };
-    topBar_.onMasterVolume = [this](double g) { working_.masterVolumeGain = g; pushConfig(); };
 
-    seedConfigFromControls();
+    seedFromControls();
+    applyEnhancement(enh_); // normalise displayed values/text from enh_
 }
 
 void HomeScreen::setPalette(const Palette& p)
 {
-    background_.setPalette(p);
-    topBar_.setPalette(p);
-    sidebar_.setPalette(p);
     viz_.setPalette(p);
     eq_.setPalette(p);
     for (int i = 0; i < kKnobs; ++i)
@@ -98,27 +85,18 @@ void HomeScreen::setPalette(const Palette& p)
     moreCard_->setPalette(p);
 }
 
-void HomeScreen::attachService(ServiceClient* client)
+void HomeScreen::attachBackdrop(GlassBackground* bg)
 {
-    client_ = client;
-}
-
-void HomeScreen::refreshFromService()
-{
-    if (!client_)
-        return;
-
-    const auto st = client_->status();
-    topBar_.setConnection(st.state == ConnectionState::Connected,
-                          juce::String(st.serviceVersion.c_str()));
-
-    if (auto c = client_->config())
-        applyConfig(*c);
+    viz_.setBackdrop(bg);
+    eq_.setBackdrop(bg);
+    for (auto& card : knobCards_)
+        card->setBackdrop(bg);
+    moreCard_->setBackdrop(bg);
 }
 
 void HomeScreen::onKnobChanged(int index, double v01)
 {
-    auto& e = working_.enhancement;
+    auto& e = enh_;
     switch (index)
     {
     case 0: e.bassBoostDb       = (float) (v01 * 12.0); knobs_[0]->setValueText(dbText(e.bassBoostDb)); break;
@@ -129,17 +107,13 @@ void HomeScreen::onKnobChanged(int index, double v01)
     case 5: e.compressionAmount = (float) v01;          knobs_[5]->setValueText(pctText(e.compressionAmount)); break;
     default: return;
     }
-    pushConfig();
+    if (onEnhancementChanged)
+        onEnhancementChanged(enh_);
 }
 
-void HomeScreen::applyConfig(const veyra::Config& c)
+void HomeScreen::applyEnhancement(const EnhancementConfig& e)
 {
-    working_ = c;
-    const auto& e = c.enhancement;
-
-    topBar_.setMasterEnabled(c.masterEnabled);
-    topBar_.setMasterVolume(c.masterVolumeGain);
-
+    enh_ = e;
     knobs_[0]->setValue(e.bassBoostDb / 12.0);  knobs_[0]->setValueText(dbText(e.bassBoostDb));
     knobs_[1]->setValue(e.trebleDb / 12.0);     knobs_[1]->setValueText(dbText(e.trebleDb));
     knobs_[2]->setValue(e.volumeGain / 3.0);    knobs_[2]->setValueText(pctText(e.volumeGain));
@@ -151,30 +125,21 @@ void HomeScreen::applyConfig(const veyra::Config& c)
         eq_.setBandGain(i, e.eqBandsDb[(size_t) i]);
 }
 
-void HomeScreen::seedConfigFromControls()
+void HomeScreen::seedFromControls()
 {
-    working_.masterEnabled    = true;
-    working_.masterVolumeGain = 1.0;
-    for (int i = 0; i < kKnobs; ++i)
-        onKnobChanged(i, knobs_[(size_t) i]->getValue()); // client_ is null -> no push yet
+    enh_.bassBoostDb       = (float) (knobs_[0]->getValue() * 12.0);
+    enh_.trebleDb          = (float) (knobs_[1]->getValue() * 12.0);
+    enh_.volumeGain        = (float) (knobs_[2]->getValue() * 3.0);
+    enh_.stereoWidth       = (float) (knobs_[3]->getValue() * 2.0);
+    enh_.reverbAmount      = (float) knobs_[4]->getValue();
+    enh_.compressionAmount = (float) knobs_[5]->getValue();
     for (int i = 0; i < EqualizerCard::kBands; ++i)
-        working_.enhancement.eqBandsDb[(size_t) i] = eq_.bandGain(i);
-}
-
-void HomeScreen::pushConfig()
-{
-    if (client_)
-        client_->updateConfig(working_);
+        enh_.eqBandsDb[(size_t) i] = eq_.bandGain(i);
 }
 
 void HomeScreen::resized()
 {
-    auto b = getLocalBounds();
-    background_.setBounds(b);
-    topBar_.setBounds(b.removeFromTop(56));
-    sidebar_.setBounds(b.removeFromLeft(200));
-
-    auto main = b.reduced(24);
+    auto main = getLocalBounds().reduced(24);
     viz_.setBounds(main.removeFromTop(150)); // shorter — more room for controls
     main.removeFromTop(20);
 

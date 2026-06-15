@@ -1,14 +1,13 @@
 #pragma once
 
-// The Home screen: glass background + top bar + sidebar + visualizer card + 10
-// band equalizer + 6 effect knobs + More Effects. Matches the approved mockup.
+// The Home screen content: visualizer + 10-band equalizer + 6 effect knobs +
+// More Effects. Chrome (background, top bar, sidebar) is owned by the shell
+// (RootComponent); this is just the routable content area. Knob/EQ changes are
+// reported via onEnhancementChanged and reflected back via applyEnhancement.
 
 #include "Components/GlassPanel.h"
 #include "Components/Knob.h"
-#include "Graphics/GlassBackground.h"
 #include "Home/EqualizerCard.h"
-#include "Home/Sidebar.h"
-#include "Home/TopBar.h"
 #include "Home/VisualizerCard.h"
 #include "Theme/DesignTokens.h"
 #include "VeyraGui.h"
@@ -16,36 +15,34 @@
 #include "veyra/Config.h"
 
 #include <array>
+#include <functional>
 #include <memory>
 
 namespace veyra::ui {
 
-class ServiceClient;
+class GlassBackground;
 
 class HomeScreen : public juce::Component {
 public:
     HomeScreen();
 
     void setPalette(const Palette& p);
+    void attachBackdrop(GlassBackground* bg);
     void resized() override;
 
-    // Connect the screen's controls to the service. After this, control changes
-    // are pushed to the service and refreshFromService() syncs the UI back.
-    void attachService(ServiceClient* client);
+    // User changed an enhancement param (knob or EQ band).
+    std::function<void(const EnhancementConfig&)> onEnhancementChanged;
 
-    // Called on the message thread when the service connection state or config
-    // changes; updates the connection dot and (on connect) the control values.
-    void refreshFromService();
+    // Apply enhancement state from config without firing the callback.
+    void applyEnhancement(const EnhancementConfig& e);
+    const EnhancementConfig& enhancement() const noexcept { return enh_; }
+
+    void setReduceMotion(bool reduce) { viz_.setReduceMotion(reduce); }
 
 private:
-    void onKnobChanged(int index, double v01); // map a knob to its DSP param
-    void applyConfig(const veyra::Config& c);  // push config -> control state
-    void seedConfigFromControls();             // initial working_ from UI defaults
-    void pushConfig();                         // working_ -> service
+    void onKnobChanged(int index, double v01);
+    void seedFromControls();
 
-    GlassBackground background_;
-    TopBar topBar_;
-    Sidebar sidebar_;
     VisualizerCard viz_;
     EqualizerCard eq_;
 
@@ -54,8 +51,7 @@ private:
     std::array<std::unique_ptr<Knob>, kKnobs> knobs_;
     std::unique_ptr<GlassPanel> moreCard_;
 
-    ServiceClient* client_ = nullptr;
-    veyra::Config  working_;
+    EnhancementConfig enh_;
 };
 
 } // namespace veyra::ui

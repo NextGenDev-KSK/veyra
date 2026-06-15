@@ -99,6 +99,9 @@ void Sidebar::mouseDown(const juce::MouseEvent& e)
                 onNavigate(i);
             return;
         }
+
+    if (miniBounds().contains(e.getPosition()) && onMiniMode)
+        onMiniMode();
 }
 
 void Sidebar::mouseMove(const juce::MouseEvent& e)
