@@ -6,7 +6,7 @@ spec §17.
 
 **Repo:** https://github.com/NextGenDev-KSK/veyra
 **Current version:** 0.3.0
-**Last green CI:** [run 27583436154](https://github.com/NextGenDev-KSK/veyra/actions/runs/27583436154) (Phase 0–3 + 4a/4b/4c: Home wired to DSP, shell routing, Settings/Appearance, mini mode, tray; builds, tests pass)
+**Last green CI:** [run 27585319582](https://github.com/NextGenDev-KSK/veyra/actions/runs/27585319582) (Phase 0–5: + presets/per-app rules/per-device profiles engine, IPC, and Presets UI; builds, dsp_tests + common_tests pass)
 
 > Verification note: this machine has no local C++ toolchain, so every phase is
 > proven by the GitHub Actions `windows-latest` build (compile + link + the
@@ -114,9 +114,17 @@ Header-only, allocation-free, RT-safe DSP in `veyra-dsp`, with a Catch2 suite.
 - [x] System tray icon + popup menu (open / mini / toggle master / quit); themed standard menu (glass popup later)
 - [ ] **Runtime-verify by running the artifact** (routing, theme switch, mini, tray)
 
-### ⬜ Phase 5 — Presets + Per-App + Per-Device
-- [ ] `.vpreset` save/load/export/import + built-in presets
-- [ ] Per-app rule engine (rate-limited, priority resolution); per-device profile memory
+### 🟡 Phase 5 — Presets + Per-App + Per-Device (CI builds + unit tests pass; awaiting runtime check)
+- [x] `.vpreset` model (enhancement + master + metadata), JSON round-trip, atomic save/load, applyTo(Config)
+- [x] 8 built-in presets with stable UUIDs; `presetsToJsonArray`/`presetsFromJsonArray` for the wire
+- [x] Service PresetLibrary (built-ins + user dir CRUD, thread-safe); IPC list/load/save/delete
+- [x] Per-app rule engine (case-insensitive substring + priority resolution) + RateLimiter; IPC get/set + persisted to app_rules.json
+- [x] Per-device profile memory (DeviceProfiles, JSON persistence)
+- [x] Presets UI screen (grid, apply, save-current, import/export, delete) wired through ServiceClient
+- [x] `common_tests`: preset round-trip/built-ins, rule resolution/priority/disabled, rate limiter, device-profile persistence
+- [ ] Live application of per-app rules on focus change (needs foreground tracking — Phase 8)
+- [ ] Per-device recall activation (needs device-change detection — later phase)
+- [ ] **Runtime-verify by running the artifact** (apply preset, save/import/export)
 
 ### ⬜ Phase 6 — Voice / Mic chain
 - [ ] Mic APO full chain; RNNoise integrated + tunable; mic profiles; side-tone routing
