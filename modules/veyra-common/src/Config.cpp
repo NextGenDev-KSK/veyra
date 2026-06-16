@@ -24,7 +24,12 @@ std::string Config::toJson() const
     j["master_enabled"]     = masterEnabled;
     j["master_volume_gain"] = masterVolumeGain;
     j["active_preset_uuid"] = activePresetUuid;
-    j["appearance"]         = { {"theme", theme} };
+    j["appearance"]         = {
+        {"theme",           theme},
+        {"ui_opacity",      uiOpacity},
+        {"background_mode", backgroundMode},
+        {"reduce_motion",   reduceMotion},
+    };
     j["language"]           = language;
     j["telemetry_opt_in"]   = telemetryOptIn;
     j["audio_engine"]       = {
@@ -58,7 +63,12 @@ std::optional<Config> Config::fromJson(const std::string& text)
     c.telemetryOptIn   = j.value("telemetry_opt_in", c.telemetryOptIn);
 
     if (const auto it = j.find("appearance"); it != j.end() && it->is_object())
-        c.theme = it->value("theme", c.theme);
+    {
+        c.theme          = it->value("theme", c.theme);
+        c.uiOpacity      = it->value("ui_opacity", c.uiOpacity);
+        c.backgroundMode = it->value("background_mode", c.backgroundMode);
+        c.reduceMotion   = it->value("reduce_motion", c.reduceMotion);
+    }
 
     if (const auto it = j.find("audio_engine"); it != j.end() && it->is_object())
     {

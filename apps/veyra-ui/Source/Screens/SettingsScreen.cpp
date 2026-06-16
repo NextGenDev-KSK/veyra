@@ -50,6 +50,14 @@ public:
 
     void setCurrentTheme(const juce::String& id) { current_ = id; repaint(); }
 
+    void setAppearance(double opacity, int backgroundMode, bool reduceMotion)
+    {
+        opacity_.setValue(opacity, juce::dontSendNotification);
+        bgMode_.setSelectedIndex(backgroundMode, false);
+        reduceMotion_.setToggleState(reduceMotion, juce::dontSendNotification);
+        repaint();
+    }
+
     void resized() override
     {
         const Layout l = layout();
@@ -508,6 +516,10 @@ void SettingsScreen::attachBackdrop(GlassBackground* b)
 }
 
 void SettingsScreen::setCurrentTheme(const juce::String& id) { appearance_->setCurrentTheme(id); }
+void SettingsScreen::setAppearance(double opacity, int backgroundMode, bool reduceMotion)
+{
+    appearance_->setAppearance(opacity, backgroundMode, reduceMotion);
+}
 void SettingsScreen::setMicConfig(const veyra::VoiceConfig& v) { microphone_->setMicConfig(v); }
 void SettingsScreen::setSpatialConfig(const veyra::SpatialConfig& s) { spatial_->setSpatialConfig(s); }
 

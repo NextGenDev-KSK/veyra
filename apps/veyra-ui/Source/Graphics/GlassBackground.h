@@ -15,6 +15,12 @@ public:
     GlassBackground() { setInterceptsMouseClicks(false, false); }
 
     void setPalette(const Palette& p) { palette_ = p; rebuild(); repaint(); }
+
+    // Appearance settings (persisted). opacity scales the ambient intensity;
+    // mode: 0 = ambient blobs, 1 = solid fill, 2 = image (gradient fallback).
+    void setOpacity(float o) { opacity_ = juce::jlimit(0.0f, 1.0f, o); rebuild(); repaint(); }
+    void setBackgroundMode(int m) { bgMode_ = m; rebuild(); repaint(); }
+
     void paint(juce::Graphics&) override;
     void resized() override { rebuild(); }
 
@@ -26,6 +32,8 @@ private:
     void renderSharp(juce::Image&) const;
 
     Palette palette_ = paletteForTheme("midnight");
+    float opacity_ = 0.85f;
+    int   bgMode_ = 0;
     juce::Image sharp_;
     juce::Image blurred_;
     static constexpr int kDownscale = 3;

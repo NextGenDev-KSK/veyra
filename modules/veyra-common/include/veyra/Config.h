@@ -100,6 +100,9 @@ struct Config {
     double      masterVolumeGain   = 1.0;
     std::string activePresetUuid;
     std::string theme              = "midnight";
+    double      uiOpacity          = 0.85;  // glass translucency 0.3..1
+    int         backgroundMode     = 0;     // 0 ambient, 1 solid, 2 image
+    bool        reduceMotion       = false; // freeze visualizer/transitions
     std::string language           = "en";
     bool        telemetryOptIn     = false;
     AudioEngineConfig audioEngine;

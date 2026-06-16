@@ -76,16 +76,37 @@ RootComponent::RootComponent()
         working_.theme = id.toStdString();
         pushConfig();
     };
-    settings_.onReduceMotion   = [this](bool b) { home_.setReduceMotion(b); };
-    settings_.onOpacity        = [](double) { /* deep opacity wiring lands with persisted appearance config */ };
-    settings_.onBackgroundMode = [](int) { /* ditto */ };
+    settings_.onReduceMotion   = [this](bool b)
+    {
+        working_.reduceMotion = b;
+        home_.setReduceMotion(b);
+        pushConfig();
+    };
+    settings_.onOpacity        = [this](double v)
+    {
+        working_.uiOpacity = v;
+        background_.setOpacity((float) v);
+        pushConfig();
+    };
+    settings_.onBackgroundMode = [this](int m)
+    {
+        working_.backgroundMode = m;
+        background_.setBackgroundMode(m);
+        pushConfig();
+    };
     settings_.onMicChanged     = [this](const veyra::VoiceConfig& v) { working_.voice = v; pushConfig(); };
     settings_.onSpatialChanged = [this](const veyra::SpatialConfig& s) { working_.spatial = s; pushConfig(); };
 
     applyPalette();
     settings_.setCurrentTheme(themeManager_.currentId());
+    settings_.setAppearance(working_.uiOpacity, working_.backgroundMode, working_.reduceMotion);
     settings_.setMicConfig(working_.voice);
     settings_.setSpatialConfig(working_.spatial);
+
+    // Apply the initial appearance to the live background.
+    background_.setOpacity((float) working_.uiOpacity);
+    background_.setBackgroundMode(working_.backgroundMode);
+    home_.setReduceMotion(working_.reduceMotion);
 
     current_ = &home_;
     home_.setVisible(true);
@@ -167,6 +188,12 @@ void RootComponent::applyConfig(const veyra::Config& c)
     home_.applyEnhancement(c.enhancement);
     settings_.setMicConfig(c.voice);
     settings_.setSpatialConfig(c.spatial);
+
+    // Appearance: opacity / background mode / reduce-motion.
+    settings_.setAppearance(c.uiOpacity, c.backgroundMode, c.reduceMotion);
+    background_.setOpacity((float) c.uiOpacity);
+    background_.setBackgroundMode(c.backgroundMode);
+    home_.setReduceMotion(c.reduceMotion);
 
     const juce::String themeId(c.theme);
     if (themeId.isNotEmpty() && themeId != themeManager_.currentId())

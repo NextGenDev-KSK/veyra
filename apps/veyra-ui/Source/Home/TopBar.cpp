@@ -6,8 +6,8 @@ namespace veyra::ui {
 
 TopBar::TopBar()
 {
-    logoImage_ = juce::ImageCache::getFromMemory(BinaryData::Veyra_Icon_png,
-                                                 BinaryData::Veyra_Icon_pngSize);
+    logoImage_ = juce::ImageCache::getFromMemory(BinaryData::Veyra_Icon_square_png,
+                                                 BinaryData::Veyra_Icon_square_pngSize);
 
     addAndMakeVisible(master_);
     master_.setToggleState(true, juce::dontSendNotification);

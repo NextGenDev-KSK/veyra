@@ -40,6 +40,7 @@ public:
 
     // Reflect current state without firing callbacks.
     void setCurrentTheme(const juce::String& id);
+    void setAppearance(double opacity, int backgroundMode, bool reduceMotion);
     void setMicConfig(const veyra::VoiceConfig& voice);
     void setSpatialConfig(const veyra::SpatialConfig& spatial);
 
