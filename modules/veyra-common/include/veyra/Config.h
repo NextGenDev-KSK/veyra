@@ -53,6 +53,16 @@ struct GamerModeConfig {
     bool  voices      = false;
 };
 
+// Loudness / late-night settings. nightModeAmount drives the render-side Night
+// Mode compressor; the sleep timer is driven by the service, which fades the
+// output to silence over sleepFadeSeconds once sleepTimerMinutes elapses.
+struct LoudnessConfig {
+    float nightModeAmount   = 0.0f;  // 0 = off .. 1
+    bool  sleepTimerEnabled = false;
+    float sleepTimerMinutes = 30.0f; // time until the fade begins
+    float sleepFadeSeconds  = 20.0f; // fade-out tail length
+};
+
 // Microphone (capture) chain parameters; mirrors veyra::dsp::VoiceParams. The
 // service maps this onto the mic shared-memory block read by the capture APO.
 struct VoiceConfig {
@@ -79,6 +89,7 @@ struct Config {
     VoiceConfig       voice;
     SpatialConfig     spatial;
     GamerModeConfig   gamerMode;
+    LoudnessConfig    loudness;
 
     // Serialise to / from pretty-printed JSON text.
     std::string toJson() const;

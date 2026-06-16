@@ -257,6 +257,7 @@ void VeyraApoEfx::refreshParametersFromShared() noexcept
     dp.stereoWidth = p.stereoWidth;
     dp.volumeGain = p.volumeGain;
     dp.crossfeedAmount = p.crossfeedAmount;
+    dp.nightModeAmount = p.nightModeAmount;
     dp.limiterCeilingDb = p.limiterCeilingDb;
     chain_.setParameters(dp);
 }

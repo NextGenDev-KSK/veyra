@@ -112,4 +112,24 @@ inline void from_json(const nlohmann::json& j, GamerModeConfig& g)
     g.voices      = j.value("voices", g.voices);
 }
 
+inline void to_json(nlohmann::json& j, const LoudnessConfig& l)
+{
+    j = nlohmann::json{
+        {"night_mode_amount",   l.nightModeAmount},
+        {"sleep_timer_enabled", l.sleepTimerEnabled},
+        {"sleep_timer_minutes", l.sleepTimerMinutes},
+        {"sleep_fade_seconds",  l.sleepFadeSeconds},
+    };
+}
+
+inline void from_json(const nlohmann::json& j, LoudnessConfig& l)
+{
+    if (! j.is_object())
+        return;
+    l.nightModeAmount   = j.value("night_mode_amount", l.nightModeAmount);
+    l.sleepTimerEnabled = j.value("sleep_timer_enabled", l.sleepTimerEnabled);
+    l.sleepTimerMinutes = j.value("sleep_timer_minutes", l.sleepTimerMinutes);
+    l.sleepFadeSeconds  = j.value("sleep_fade_seconds", l.sleepFadeSeconds);
+}
+
 } // namespace veyra

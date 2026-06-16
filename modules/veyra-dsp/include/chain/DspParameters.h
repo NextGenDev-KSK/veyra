@@ -21,6 +21,7 @@ struct DspParameters {
     float stereoWidth = 1.0f;          // 0 (mono) .. 2 (wide)
     float volumeGain = 1.0f;           // linear, 0..3 (up to 300%)
     float crossfeedAmount = 0.0f;      // 0..1 headphone crossfeed (spatial)
+    float nightModeAmount = 0.0f;      // 0..1 late-night loudness compression
     float limiterCeilingDb = -0.3f;    // true output ceiling
 };
 

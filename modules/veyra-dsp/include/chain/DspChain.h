@@ -14,6 +14,7 @@
 #include "enhancers/StereoProcessor.h"
 #include "enhancers/ToneControls.h"
 #include "eq/GraphicEq.h"
+#include "loudness/NightMode.h"
 #include "spatial/Crossfeed.h"
 
 namespace veyra::dsp {
@@ -27,6 +28,7 @@ public:
         stereo_.prepare(sampleRate);
         comp_.prepare(sampleRate);
         crossfeed_.prepare(sampleRate);
+        nightMode_.prepare(sampleRate);
         limiter_.prepare(sampleRate);
         analyzer_.prepare(sampleRate);
         volume_.prepare(sampleRate);
@@ -45,6 +47,7 @@ public:
         stereo_.setWidth(p.stereoWidth);
         comp_.setAmount(p.compressionAmount);
         crossfeed_.setAmount(p.crossfeedAmount);
+        nightMode_.setAmount(p.nightModeAmount);
         volume_.setTarget(p.volumeGain);
         limiter_.setCeilingDb(p.limiterCeilingDb);
     }
@@ -63,6 +66,7 @@ public:
         comp_.processStereo(left, right, numSamples);
         stereo_.applyWidth(left, right, numSamples);
         crossfeed_.processStereo(left, right, numSamples); // headphone spatial
+        nightMode_.processStereo(left, right, numSamples); // late-night loudness
 
         for (int i = 0; i < numSamples; ++i)
         {
@@ -85,6 +89,7 @@ private:
     StereoProcessor  stereo_;
     Compressor       comp_;
     Crossfeed        crossfeed_;
+    NightMode        nightMode_;
     Limiter          limiter_;
     Analyzer         analyzer_;
     SmoothedValue    volume_;

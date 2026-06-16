@@ -38,6 +38,7 @@ std::string Config::toJson() const
     j["voice"]              = voice;
     j["spatial"]            = spatial;
     j["gamer_mode"]         = gamerMode;
+    j["loudness"]           = loudness;
     return j.dump(2);
 }
 
@@ -76,6 +77,8 @@ std::optional<Config> Config::fromJson(const std::string& text)
         from_json(*it, c.spatial);
     if (const auto it = j.find("gamer_mode"); it != j.end() && it->is_object())
         from_json(*it, c.gamerMode);
+    if (const auto it = j.find("loudness"); it != j.end() && it->is_object())
+        from_json(*it, c.loudness);
     return c;
 }
 
