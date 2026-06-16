@@ -39,7 +39,9 @@ inline void makeSyntheticHrir(float azimuthDeg, double sampleRate, int irLen,
     auto writeFar = [&](std::vector<float>& ir)
     {
         // A short one-pole-smoothed click at the ITD delay = head-shadow low-pass.
-        const float a = 0.5f;
+        // The shadow strength scales with how lateral the source is, so a centred
+        // source (s == 0) leaves both ears identical.
+        const float a = 0.5f * std::fabs(s);
         float v = gFar * (1.0f - a);
         for (int k = itd; k < irLen && v > 1.0e-4f; ++k)
         {
