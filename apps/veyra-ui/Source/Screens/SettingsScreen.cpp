@@ -231,7 +231,135 @@ private:
 };
 
 // ---------------------------------------------------------------------------
-// SettingsScreen: thin host that forwards to the card.
+// MicrophoneCard: the voice-chain controls (Phase 6).
+// ---------------------------------------------------------------------------
+class SettingsScreen::MicrophoneCard : public GlassPanel {
+public:
+    MicrophoneCard()
+    {
+        enable_.setToggleState(true, juce::dontSendNotification);
+        enable_.onClick = [this] { voice_.enabled = enable_.getToggleState(); emit(); };
+        addAndMakeVisible(enable_);
+
+        auto add = [this](juce::Slider& s, double lo, double hi, double def)
+        {
+            s.setSliderStyle(juce::Slider::LinearHorizontal);
+            s.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+            s.setRange(lo, hi, 0.01);
+            s.setValue(def, juce::dontSendNotification);
+            s.onValueChange = [this] { pull(); emit(); };
+            addAndMakeVisible(s);
+        };
+        add(ns_, 0.0, 1.0, 0.5);
+        add(comp_, 0.0, 1.0, 0.3);
+        add(deess_, 0.0, 1.0, 0.3);
+        add(presence_, -6.0, 9.0, 2.0);
+        add(gain_, -12.0, 12.0, 0.0);
+        add(side_, 0.0, 1.0, 0.0);
+    }
+
+    std::function<void(const veyra::VoiceConfig&)> onMicChanged;
+
+    void setPalette(const Palette& p) override
+    {
+        GlassPanel::setPalette(p);
+        enable_.setPalette(p);
+    }
+
+    void setMicConfig(const veyra::VoiceConfig& v)
+    {
+        voice_ = v;
+        enable_.setToggleState(v.enabled, juce::dontSendNotification);
+        ns_.setValue(v.noiseSuppression, juce::dontSendNotification);
+        comp_.setValue(v.compressionAmount, juce::dontSendNotification);
+        deess_.setValue(v.deEssAmount, juce::dontSendNotification);
+        presence_.setValue(v.presenceDb, juce::dontSendNotification);
+        gain_.setValue(v.outputGainDb, juce::dontSendNotification);
+        side_.setValue(v.sideToneLevel, juce::dontSendNotification);
+        repaint();
+    }
+
+    void resized() override
+    {
+        auto header = getLocalBounds().reduced(kPad).removeFromTop(28);
+        enable_.setBounds(header.removeFromRight(40).withSizeKeepingCentre(40, 20));
+
+        juce::Slider* sliders[] = {&ns_, &comp_, &deess_, &presence_, &gain_, &side_};
+        for (int i = 0; i < 6; ++i)
+        {
+            auto row = rowArea(i);
+            row.removeFromLeft(150);
+            row.removeFromRight(56);
+            sliders[i]->setBounds(row.withSizeKeepingCentre(row.getWidth(), 18));
+        }
+    }
+
+protected:
+    void paintContent(juce::Graphics& g) override
+    {
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::display(20.0f));
+        g.drawText("MICROPHONE", getLocalBounds().reduced(kPad).removeFromTop(28),
+                   juce::Justification::centredLeft, false);
+
+        struct Row { const char* label; juce::Slider* s; bool db; };
+        Row rows[] = {
+            {"Noise Suppression", &ns_, false}, {"Compression", &comp_, false},
+            {"De-ess", &deess_, false},          {"Presence", &presence_, true},
+            {"Output Gain", &gain_, true},       {"Side-tone", &side_, false},
+        };
+        for (int i = 0; i < 6; ++i)
+        {
+            auto row = rowArea(i);
+            g.setColour(enable_.getToggleState() ? palette_.textSecondary : palette_.textTertiary);
+            g.setFont(fonts::body(13.0f));
+            g.drawText(rows[i].label, row.removeFromLeft(150).withTrimmedRight(8),
+                       juce::Justification::centredLeft, false);
+
+            const double v = rows[i].s->getValue();
+            const juce::String val = rows[i].db
+                ? (v >= 0 ? "+" : "") + juce::String(juce::roundToInt(v)) + " dB"
+                : juce::String(juce::roundToInt(v * 100.0)) + "%";
+            g.setColour(palette_.textPrimary);
+            g.setFont(fonts::mono(12.0f));
+            g.drawText(val, row.removeFromRight(52), juce::Justification::centredRight, false);
+        }
+    }
+
+private:
+    juce::Rectangle<int> rowArea(int i) const
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        c.removeFromTop(kHeaderH);
+        return {c.getX(), c.getY() + i * (kRowH + kRowGap), c.getWidth(), kRowH};
+    }
+
+    void pull()
+    {
+        voice_.noiseSuppression  = (float) ns_.getValue();
+        voice_.compressionAmount = (float) comp_.getValue();
+        voice_.deEssAmount       = (float) deess_.getValue();
+        voice_.presenceDb        = (float) presence_.getValue();
+        voice_.outputGainDb      = (float) gain_.getValue();
+        voice_.sideToneLevel     = (float) side_.getValue();
+    }
+
+    void emit()
+    {
+        if (onMicChanged)
+            onMicChanged(voice_);
+        repaint();
+    }
+
+    static constexpr int kPad = 24, kHeaderH = 44, kRowH = 36, kRowGap = 10;
+
+    veyra::VoiceConfig voice_;
+    ToggleSwitch       enable_;
+    juce::Slider       ns_, comp_, deess_, presence_, gain_, side_;
+};
+
+// ---------------------------------------------------------------------------
+// SettingsScreen: thin host that forwards to the cards.
 // ---------------------------------------------------------------------------
 SettingsScreen::SettingsScreen()
 {
@@ -241,17 +369,38 @@ SettingsScreen::SettingsScreen()
     appearance_->onBackgroundMode = [this](int i) { if (onBackgroundMode) onBackgroundMode(i); };
     appearance_->onReduceMotion   = [this](bool b) { if (onReduceMotion) onReduceMotion(b); };
     addAndMakeVisible(*appearance_);
+
+    microphone_ = std::make_unique<MicrophoneCard>();
+    microphone_->onMicChanged = [this](const veyra::VoiceConfig& v) { if (onMicChanged) onMicChanged(v); };
+    addAndMakeVisible(*microphone_);
 }
 
 SettingsScreen::~SettingsScreen() = default;
 
-void SettingsScreen::setPalette(const Palette& p)       { appearance_->setPalette(p); }
-void SettingsScreen::attachBackdrop(GlassBackground* b) { appearance_->setBackdrop(b); }
+void SettingsScreen::setPalette(const Palette& p)
+{
+    appearance_->setPalette(p);
+    microphone_->setPalette(p);
+}
+
+void SettingsScreen::attachBackdrop(GlassBackground* b)
+{
+    appearance_->setBackdrop(b);
+    microphone_->setBackdrop(b);
+}
+
 void SettingsScreen::setCurrentTheme(const juce::String& id) { appearance_->setCurrentTheme(id); }
+void SettingsScreen::setMicConfig(const veyra::VoiceConfig& v) { microphone_->setMicConfig(v); }
 
 void SettingsScreen::resized()
 {
-    appearance_->setBounds(getLocalBounds());
+    auto b = getLocalBounds().reduced(24);
+    // Two columns: Appearance (wider, for the theme grid) + Microphone.
+    const int micW = juce::jlimit(300, 420, b.getWidth() / 3);
+    auto micCol = b.removeFromRight(micW);
+    b.removeFromRight(20); // gutter
+    appearance_->setBounds(b);
+    microphone_->setBounds(micCol);
 }
 
 } // namespace veyra::ui

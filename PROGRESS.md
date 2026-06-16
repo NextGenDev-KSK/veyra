@@ -132,8 +132,9 @@ Header-only, allocation-free, RT-safe DSP in `veyra-dsp`, with a Catch2 suite.
 - [x] `VoiceConfig` in Config (JSON round-trip), `VeyraMicSharedParameters` seqlock block, service `MicPublisher`
 - [x] Capture APO (`VeyraMicApo`) running the voice chain from the mic shared block; dual-CLSID DLL factory + registration
 - [x] Tests: noise-suppressor gate/pass, voice-chain passthrough/HPF/level/de-esser, voice-config round-trip
+- [x] Mic settings UI (Microphone card in Settings: enable + noise suppression/compression/de-ess/presence/gain/side-tone), wired through ServiceClient → config.voice
 - [ ] RNNoise as a learned-model backend behind a build flag (NoiseSuppressor is the default seam)
-- [ ] Mic settings UI panel; side-tone monitor routing; mic profiles
+- [ ] Side-tone monitor routing; mic profiles
 - [ ] **Runtime-verify by running the artifact** (mic capture path needs the driver INF + test-signing)
 
 ### ⬜ Phase 7 — Spatial / HRTF

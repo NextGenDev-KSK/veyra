@@ -1,12 +1,14 @@
 #pragma once
 
-// Settings screen — Phase 4c. Currently the Appearance section: an 11-theme
-// preview grid (live theme switch), a UI opacity slider, a background-mode
-// selector, and a reduce-motion toggle. Other settings sections land in later
-// phases. Content only (no chrome); the shell supplies the top bar + sidebar.
+// Settings screen — Phase 4c (Appearance) + Phase 6 (Microphone). Appearance:
+// an 11-theme preview grid (live theme switch), a UI opacity slider, a
+// background-mode selector, and a reduce-motion toggle. Microphone: the voice
+// chain controls. Content only (no chrome); the shell supplies the chrome.
 
 #include "Theme/DesignTokens.h"
 #include "VeyraGui.h"
+
+#include "veyra/Config.h"
 
 #include <functional>
 #include <memory>
@@ -30,12 +32,18 @@ public:
     std::function<void(int)>                 onBackgroundMode;  // 0 blobs, 1 solid, 2 image
     std::function<void(bool)>                onReduceMotion;
 
+    // Microphone (voice chain) interactions.
+    std::function<void(const veyra::VoiceConfig&)> onMicChanged;
+
     // Reflect current state without firing callbacks.
     void setCurrentTheme(const juce::String& id);
+    void setMicConfig(const veyra::VoiceConfig& voice);
 
 private:
     class AppearanceCard;
+    class MicrophoneCard;
     std::unique_ptr<AppearanceCard> appearance_;
+    std::unique_ptr<MicrophoneCard> microphone_;
 };
 
 } // namespace veyra::ui
