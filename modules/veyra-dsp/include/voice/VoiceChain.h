@@ -48,10 +48,12 @@ public:
     {
         hp_.reset();
         deHp_.reset();
+        deShelf_.reset();
         presence_.reset();
         ns_.reset();
-        deEnv_  = 0.0f;
-        deGain_ = 1.0f;
+        deEnv_      = 0.0f;
+        deReductDb_ = 0.0f;
+        lastShelfDb_ = -1.0f; // force a coeff refresh
     }
 
     void setParams(const VoiceParams& p) noexcept
@@ -61,7 +63,9 @@ public:
         const double fs = sampleRate_;
         hp_.setCoeffs(makeHighPass(fs, std::clamp(p.highPassHz, 20.0f, 400.0f), 0.707));
         presence_.setCoeffs(makePeaking(fs, 3500.0, 1.0, p.presenceDb));
-        deHp_.setCoeffs(makeHighPass(fs, 5500.0, 0.707));
+        deHp_.setCoeffs(makeHighPass(fs, kDeEssHz, 0.707));        // sibilance detector band
+        deShelf_.setCoeffs(makeHighShelf(fs, kDeEssHz, 0.707, 0.0)); // dynamic reducer
+        lastShelfDb_ = 0.0f;
 
         ns_.setAmount(p.noiseSuppression);
         comp_.setAmount(p.compressionAmount);
@@ -110,37 +114,45 @@ private:
     {
         for (int i = 0; i < numSamples; ++i)
         {
-            const float hb = deHp_.process(x[i]); // sibilance band
-            const float ahb = std::fabs(hb);
-            const float coeff = ahb > deEnv_ ? deEssAtk_ : deEssRel_;
-            deEnv_ = ahb + coeff * (deEnv_ - ahb);
+            // Detect sibilance energy (magnitude only — the band's phase is
+            // irrelevant for detection).
+            const float ahb = std::fabs(deHp_.process(x[i]));
+            const float ecoeff = ahb > deEnv_ ? deEssAtk_ : deEssRel_;
+            deEnv_ = ahb + ecoeff * (deEnv_ - ahb);
 
             const float envDb = 20.0f * std::log10(std::max(deEnv_, 1.0e-9f));
-            float target = 1.0f;
+            float targetReductDb = 0.0f;
             if (envDb > deThreshDb_)
-            {
-                const float reductDb = std::min((envDb - deThreshDb_) * 0.5f, 12.0f);
-                target = std::pow(10.0f, -reductDb / 20.0f);
-            }
-            const float gc = target < deGain_ ? deEssAtk_ : deEssRel_;
-            deGain_ = target + gc * (deGain_ - target);
+                targetReductDb = std::min((envDb - deThreshDb_) * 0.5f, 12.0f);
 
-            // Remove the attenuated portion of the high band.
-            x[i] = x[i] - (1.0f - deGain_) * hb;
+            const float rc = targetReductDb > deReductDb_ ? deEssAtk_ : deEssRel_;
+            deReductDb_ = targetReductDb + rc * (deReductDb_ - targetReductDb);
+
+            // Apply as a phase-correct dynamic high-shelf cut. Recompute coeffs
+            // only when the (quantised) reduction actually moves.
+            const float q = std::round(deReductDb_ * 2.0f) * 0.5f;
+            if (q != lastShelfDb_)
+            {
+                deShelf_.setCoeffs(makeHighShelf(sampleRate_, kDeEssHz, 0.707, -q));
+                lastShelfDb_ = q;
+            }
+            x[i] = deShelf_.process(x[i]);
         }
     }
+
+    static constexpr double kDeEssHz = 5500.0;
 
     double sampleRate_ = 48000.0;
     VoiceParams params_;
 
-    Biquad          hp_, presence_, deHp_;
+    Biquad          hp_, presence_, deHp_, deShelf_;
     NoiseSuppressor ns_;
     Compressor      comp_;
 
     bool  deActive_   = true;
     float deThreshDb_ = -40.0f;
     float deEssAtk_ = 0.0f, deEssRel_ = 0.0f;
-    float deEnv_ = 0.0f, deGain_ = 1.0f;
+    float deEnv_ = 0.0f, deReductDb_ = 0.0f, lastShelfDb_ = -1.0f;
     float outGain_ = 1.0f;
 };
 

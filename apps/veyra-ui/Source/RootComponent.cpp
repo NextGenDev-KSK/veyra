@@ -212,10 +212,10 @@ void RootComponent::exportPreset(const juce::String& uuid)
         "Export Preset", juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
                              .getChildFile(juce::String(found.name) + ".vpreset"),
         "*.vpreset");
-    const auto flags = juce::FileBrowserComponent::saveMode
+    const auto fbFlags = juce::FileBrowserComponent::saveMode
                      | juce::FileBrowserComponent::canSelectFiles
                      | juce::FileBrowserComponent::warnAboutOverwriting;
-    chooser_->launchAsync(flags, [found](const juce::FileChooser& fc)
+    chooser_->launchAsync(fbFlags, [found](const juce::FileChooser& fc)
     {
         const auto file = fc.getResult();
         if (file != juce::File())
@@ -228,9 +228,9 @@ void RootComponent::importPreset()
     chooser_ = std::make_unique<juce::FileChooser>(
         "Import Preset", juce::File::getSpecialLocation(juce::File::userDocumentsDirectory),
         "*.vpreset");
-    const auto flags = juce::FileBrowserComponent::openMode
+    const auto fbFlags = juce::FileBrowserComponent::openMode
                      | juce::FileBrowserComponent::canSelectFiles;
-    chooser_->launchAsync(flags, [this](const juce::FileChooser& fc)
+    chooser_->launchAsync(fbFlags, [this](const juce::FileChooser& fc)
     {
         const auto file = fc.getResult();
         if (file == juce::File())
