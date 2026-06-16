@@ -6,6 +6,9 @@ namespace veyra::ui {
 
 TopBar::TopBar()
 {
+    logoImage_ = juce::ImageCache::getFromMemory(BinaryData::Veyra_Icon_png,
+                                                 BinaryData::Veyra_Icon_pngSize);
+
     addAndMakeVisible(master_);
     master_.setToggleState(true, juce::dontSendNotification);
     master_.onClick = [this] { if (onMasterToggle) onMasterToggle(master_.getToggleState()); };
@@ -66,7 +69,8 @@ void TopBar::resized()
     const int h = getHeight();
     auto centreY = [h](int sz) { return (h - sz) / 2; };
 
-    int x = 16 + 28 + 8 + 150 + 16 + 1 + 16; // logo + wordmark + divider (painted)
+    // Past the brand block: logo(14+36) + gap + wordmark(180) + divider, then a gap.
+    int x = 256; // matches the painted divider at wordX(62)+178 plus a 16 px gap
     master_.setBounds(x, centreY(20), 36, 20);
     x += 36 + 16;
     volume_.setBounds(x, centreY(16) + 4, 200, 16); // nudged down; MASTER label painted above
@@ -94,34 +98,43 @@ void TopBar::paint(juce::Graphics& g)
     g.setColour(palette_.strokeDefault);
     g.drawLine(0.0f, h, (float) getWidth(), h, 1.0f);
 
-    // Logo.
-    juce::Rectangle<float> logo(16.0f, (h - 28.0f) * 0.5f, 28.0f, 28.0f);
-    juce::ColourGradient lg(palette_.accentPrimary, logo.getX(), logo.getY(),
-                            palette_.accentPrimaryActive, logo.getRight(), logo.getBottom(), false);
-    g.setGradientFill(lg);
-    g.fillRoundedRectangle(logo, 8.0f);
-    g.setColour(juce::Colours::white);
-    g.setFont(fonts::display(14.0f));
-    g.drawText("V", logo, juce::Justification::centred, false);
+    // Brand mark — the real Veyra icon, vertically centred in the bar.
+    const float logoSz = 36.0f;
+    juce::Rectangle<float> logo(14.0f, (h - logoSz) * 0.5f, logoSz, logoSz);
+    if (logoImage_.isValid())
+    {
+        g.drawImage(logoImage_, logo, juce::RectanglePlacement::centred);
+    }
+    else // fallback if the asset failed to load
+    {
+        juce::ColourGradient lg(palette_.accentPrimary, logo.getX(), logo.getY(),
+                                palette_.accentPrimaryActive, logo.getRight(), logo.getBottom(), false);
+        g.setGradientFill(lg);
+        g.fillRoundedRectangle(logo, 9.0f);
+        g.setColour(juce::Colours::white);
+        g.setFont(fonts::display(16.0f));
+        g.drawText("V", logo, juce::Justification::centred, false);
+    }
 
-    // Connection status LED on the brand mark (green = service connected).
+    // Connection status LED, tucked at the mark's top-right (green = connected).
     const juce::Colour dot = connected_ ? juce::Colour(0xff37D67A) : palette_.warning;
-    const float dx = logo.getRight() - 3.0f, dy = logo.getY() - 1.0f;
-    juce::DropShadow(dot.withAlpha(0.7f), 6, {}).drawForRectangle(
-        g, juce::Rectangle<float>(dx - 4.0f, dy - 4.0f, 8.0f, 8.0f).toNearestInt());
+    const float dx = logo.getRight() - 4.0f, dy = logo.getY() + 4.0f;
+    juce::DropShadow(dot.withAlpha(0.7f), 7, {}).drawForRectangle(
+        g, juce::Rectangle<float>(dx - 5.0f, dy - 5.0f, 10.0f, 10.0f).toNearestInt());
     g.setColour(palette_.bgCanvas);
-    g.fillEllipse(dx - 4.0f, dy - 4.0f, 8.0f, 8.0f);
+    g.fillEllipse(dx - 5.0f, dy - 5.0f, 10.0f, 10.0f);
     g.setColour(dot);
-    g.fillEllipse(dx - 3.0f, dy - 3.0f, 6.0f, 6.0f);
+    g.fillEllipse(dx - 3.5f, dy - 3.5f, 7.0f, 7.0f);
 
-    // Wordmark.
+    // Wordmark, baseline-aligned with the mark.
+    const float wordX = logo.getRight() + 12.0f;
     g.setColour(palette_.textPrimary);
-    g.setFont(fonts::display(15.0f));
-    g.drawText("VEYRA SOUNDS", juce::Rectangle<int>(52, 0, 150, getHeight()),
+    g.setFont(fonts::display(17.0f));
+    g.drawText("VEYRA SOUNDS", juce::Rectangle<float>(wordX, 0.0f, 180.0f, h),
                juce::Justification::centredLeft, false);
 
-    // Divider before master toggle.
-    const float divX = (float) (52 + 150 + 8);
+    // Divider before the master cluster.
+    const float divX = wordX + 178.0f;
     g.setColour(palette_.strokeDefault);
     g.drawLine(divX, h * 0.25f, divX, h * 0.75f, 1.0f);
 

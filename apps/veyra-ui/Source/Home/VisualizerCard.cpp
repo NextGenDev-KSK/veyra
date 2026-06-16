@@ -52,11 +52,14 @@ void VisualizerCard::timerCallback()
     for (int i = 0; i < kBars; ++i)
         bars_[(size_t) i] += (targets_[(size_t) i] - bars_[(size_t) i]) * 0.10f;
 
-    vuL_ = juce::jlimit(0.0f, 1.0f, vuL_ + (rng_.nextFloat() - 0.5f) * 0.08f);
-    vuR_ = juce::jlimit(0.0f, 1.0f, vuR_ + (rng_.nextFloat() - 0.5f) * 0.08f);
+    // Placeholder animation until the live analyzer feed (APO tap) is wired to
+    // the UI. Cap the random walk below the clip threshold so CLIP never trips
+    // on fake data — real clip detection lights up once metering is live.
+    vuL_ = juce::jlimit(0.0f, 0.85f, vuL_ + (rng_.nextFloat() - 0.5f) * 0.08f);
+    vuR_ = juce::jlimit(0.0f, 0.85f, vuR_ + (rng_.nextFloat() - 0.5f) * 0.08f);
     peakL_ = juce::jmax(vuL_, peakL_ - 0.01f); // peak-hold with slow decay
     peakR_ = juce::jmax(vuR_, peakR_ - 0.01f);
-    clip_ = (vuL_ > 0.96f || vuR_ > 0.96f);
+    clip_ = (vuL_ > 0.96f || vuR_ > 0.96f); // stays false on placeholder data
     repaint();
 }
 

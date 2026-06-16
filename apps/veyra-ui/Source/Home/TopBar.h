@@ -43,6 +43,7 @@ private:
 
     bool         connected_ = false;
     juce::String version_;
+    juce::Image  logoImage_; // brand mark (resources/icons/Veyra_Icon.png)
 
     ToggleSwitch master_;
     juce::Slider volume_;
