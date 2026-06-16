@@ -17,8 +17,10 @@ class Logger {
 public:
     // Opens (or rotates into) the given log file, creating parent directories.
     // If the sink cannot be created, logging degrades to a silent no-op so it is
-    // never fatal to the host process.
-    explicit Logger(std::filesystem::path file);
+    // never fatal to the host process. When 'alsoConsole' is set, messages are
+    // additionally echoed to stdout (used by the service's --console mode so
+    // activity is visible while debugging).
+    explicit Logger(std::filesystem::path file, bool alsoConsole = false);
     ~Logger();
 
     Logger(const Logger&) = delete;

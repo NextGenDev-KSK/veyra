@@ -81,7 +81,7 @@ Check, in order:
 
 - ✅ Borderless **glass window** opens (ambient blobs, frosted cards) — not flat/black.
 - ✅ The brand LED next to the "V" logo in the top bar turns **green** (= connected to the service). Amber means it can't reach the service — check Terminal 1 is still running.
-- ✅ Drag the **EQ band sliders** and **knobs**, toggle **master**, move **master volume** → Terminal 1 logs config being applied/saved (watch `%APPDATA%\Veyra\logs\veyra-service.log`).
+- ✅ Drag the **EQ band sliders** and **knobs**, toggle **master**, move **master volume** → Terminal 1 prints `... ConfigManager: applied + saved config` on each change (console mode echoes the log to stdout). The same lines are in `%APPDATA%\Veyra\logs\veyra-service.log`, and `%APPDATA%\Veyra\config.json` updates live.
 - ✅ **Settings → Appearance**: click theme tiles → the whole UI recolors live. Move opacity, toggle reduce-motion (visualizer should freeze).
 - ✅ **Sidebar → Mini Mode** → compact always-on-top bar appears; its expand button returns to full.
 - ✅ **System tray** icon + its menu (if present in the build).

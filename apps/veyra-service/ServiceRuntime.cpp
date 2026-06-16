@@ -5,8 +5,8 @@
 
 namespace veyra::service {
 
-ServiceRuntime::ServiceRuntime()
-    : log_(paths::logsDir() / "veyra-service.log"),
+ServiceRuntime::ServiceRuntime(bool consoleLogging)
+    : log_(paths::logsDir() / "veyra-service.log", consoleLogging),
       publisher_(&log_),
       micPublisher_(&log_),
       tracker_(&log_),

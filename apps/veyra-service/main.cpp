@@ -55,7 +55,7 @@ int runConsole()
 {
     wprintf(L"Veyra Audio Service v%hs (console mode)\n", veyra::kVersionString);
 
-    veyra::service::ServiceRuntime runtime;
+    veyra::service::ServiceRuntime runtime(/*consoleLogging=*/true);
     if (!runtime.start())
     {
         wprintf(L"Failed to start runtime. See the log for details.\n");

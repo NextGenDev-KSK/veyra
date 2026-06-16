@@ -15,7 +15,8 @@ namespace veyra::service {
 // the runtime logic is written once.
 class ServiceRuntime {
 public:
-    ServiceRuntime();
+    // consoleLogging echoes the log to stdout (the --console debug mode).
+    explicit ServiceRuntime(bool consoleLogging = false);
 
     bool start(); // load config + start the control server
     void stop();
