@@ -33,7 +33,8 @@ add_executable(common_tests
     common_tests/test_tracker_data.cpp
     common_tests/test_spatial_config.cpp
     common_tests/test_gamer_config.cpp
-    common_tests/test_loudness_config.cpp)
+    common_tests/test_loudness_config.cpp
+    common_tests/test_sharing_config.cpp)
 
 target_link_libraries(common_tests PRIVATE veyra::common veyra::catch2)
 

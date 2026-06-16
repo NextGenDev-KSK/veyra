@@ -132,4 +132,52 @@ inline void from_json(const nlohmann::json& j, LoudnessConfig& l)
     l.sleepFadeSeconds  = j.value("sleep_fade_seconds", l.sleepFadeSeconds);
 }
 
+inline void to_json(nlohmann::json& j, const OutputRoute& r)
+{
+    j = nlohmann::json{
+        {"device_id", r.deviceId},
+        {"name",      r.name},
+        {"enabled",   r.enabled},
+        {"gain_db",   r.gainDb},
+        {"delay_ms",  r.delayMs},
+        {"primary",   r.primary},
+    };
+}
+
+inline void from_json(const nlohmann::json& j, OutputRoute& r)
+{
+    if (! j.is_object())
+        return;
+    r.deviceId = j.value("device_id", r.deviceId);
+    r.name     = j.value("name", r.name);
+    r.enabled  = j.value("enabled", r.enabled);
+    r.gainDb   = j.value("gain_db", r.gainDb);
+    r.delayMs  = j.value("delay_ms", r.delayMs);
+    r.primary  = j.value("primary", r.primary);
+}
+
+inline void to_json(nlohmann::json& j, const SharingConfig& s)
+{
+    j = nlohmann::json{
+        {"enabled", s.enabled},
+        {"routes",  s.routes},
+    };
+}
+
+inline void from_json(const nlohmann::json& j, SharingConfig& s)
+{
+    if (! j.is_object())
+        return;
+    s.enabled = j.value("enabled", s.enabled);
+    s.routes.clear();
+    if (const auto it = j.find("routes"); it != j.end() && it->is_array())
+        for (const auto& e : *it)
+        {
+            OutputRoute r;
+            from_json(e, r);
+            if (! r.deviceId.empty())
+                s.routes.push_back(std::move(r));
+        }
+}
+
 } // namespace veyra

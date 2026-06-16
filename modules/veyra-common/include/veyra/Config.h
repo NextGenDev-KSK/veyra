@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace veyra {
 
@@ -63,6 +64,23 @@ struct LoudnessConfig {
     float sleepFadeSeconds  = 20.0f; // fade-out tail length
 };
 
+// One destination in Sound Sharing (multi-output). The service opens each
+// enabled route's endpoint, applies the per-output trim, and delays it by
+// delayMs so all routes stay in sync with the primary (the reference endpoint).
+struct OutputRoute {
+    std::string deviceId;          // endpoint id
+    std::string name;              // friendly name (for the UI)
+    bool        enabled = true;
+    float       gainDb  = 0.0f;    // per-output trim
+    float       delayMs = 0.0f;    // latency compensation
+    bool        primary = false;   // the reference others align to
+};
+
+struct SharingConfig {
+    bool                     enabled = false;
+    std::vector<OutputRoute> routes;
+};
+
 // Microphone (capture) chain parameters; mirrors veyra::dsp::VoiceParams. The
 // service maps this onto the mic shared-memory block read by the capture APO.
 struct VoiceConfig {
@@ -90,6 +108,7 @@ struct Config {
     SpatialConfig     spatial;
     GamerModeConfig   gamerMode;
     LoudnessConfig    loudness;
+    SharingConfig     sharing;
 
     // Serialise to / from pretty-printed JSON text.
     std::string toJson() const;
