@@ -42,4 +42,32 @@ inline void from_json(const nlohmann::json& j, EnhancementConfig& e)
     e.reverbAmount      = j.value("reverb_amount", e.reverbAmount);
 }
 
+inline void to_json(nlohmann::json& j, const VoiceConfig& v)
+{
+    j = nlohmann::json{
+        {"enabled",            v.enabled},
+        {"high_pass_hz",       v.highPassHz},
+        {"noise_suppression",  v.noiseSuppression},
+        {"compression_amount", v.compressionAmount},
+        {"de_ess_amount",      v.deEssAmount},
+        {"presence_db",        v.presenceDb},
+        {"output_gain_db",     v.outputGainDb},
+        {"side_tone_level",    v.sideToneLevel},
+    };
+}
+
+inline void from_json(const nlohmann::json& j, VoiceConfig& v)
+{
+    if (! j.is_object())
+        return;
+    v.enabled           = j.value("enabled", v.enabled);
+    v.highPassHz        = j.value("high_pass_hz", v.highPassHz);
+    v.noiseSuppression  = j.value("noise_suppression", v.noiseSuppression);
+    v.compressionAmount = j.value("compression_amount", v.compressionAmount);
+    v.deEssAmount       = j.value("de_ess_amount", v.deEssAmount);
+    v.presenceDb        = j.value("presence_db", v.presenceDb);
+    v.outputGainDb      = j.value("output_gain_db", v.outputGainDb);
+    v.sideToneLevel     = j.value("side_tone_level", v.sideToneLevel);
+}
+
 } // namespace veyra

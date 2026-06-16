@@ -47,6 +47,18 @@ public:
         makeupDb_    = a * (-thresholdDb_) * 0.3f; // partial gain make-up
     }
 
+    void processMono(float* x, int numSamples) noexcept
+    {
+        for (int i = 0; i < numSamples; ++i)
+        {
+            const float lvlDb = 20.0f * std::log10(std::max(std::fabs(x[i]), 1.0e-9f));
+            const float targetGainDb = computeGainDb(lvlDb);
+            const float coeff = targetGainDb < envDb_ ? attackCoeff_ : releaseCoeff_;
+            envDb_ = targetGainDb + coeff * (envDb_ - targetGainDb);
+            x[i] *= std::pow(10.0f, (envDb_ + makeupDb_) / 20.0f);
+        }
+    }
+
     void processStereo(float* left, float* right, int numSamples) noexcept
     {
         for (int i = 0; i < numSamples; ++i)

@@ -33,6 +33,19 @@ struct EnhancementConfig {
     float reverbAmount      = 0.0f; // 0..1 — no DSP stage yet, persisted for the UI
 };
 
+// Microphone (capture) chain parameters; mirrors veyra::dsp::VoiceParams. The
+// service maps this onto the mic shared-memory block read by the capture APO.
+struct VoiceConfig {
+    bool  enabled          = true;
+    float highPassHz       = 80.0f;
+    float noiseSuppression = 0.5f; // 0..1
+    float compressionAmount = 0.3f; // 0..1
+    float deEssAmount      = 0.3f;  // 0..1
+    float presenceDb       = 2.0f;
+    float outputGainDb     = 0.0f;
+    float sideToneLevel    = 0.0f;  // 0..1
+};
+
 struct Config {
     int         version            = 1;
     bool        masterEnabled      = true;
@@ -43,6 +56,7 @@ struct Config {
     bool        telemetryOptIn     = false;
     AudioEngineConfig audioEngine;
     EnhancementConfig enhancement;
+    VoiceConfig       voice;
 
     // Serialise to / from pretty-printed JSON text.
     std::string toJson() const;

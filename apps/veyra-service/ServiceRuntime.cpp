@@ -8,6 +8,7 @@ namespace veyra::service {
 ServiceRuntime::ServiceRuntime()
     : log_(paths::logsDir() / "veyra-service.log"),
       publisher_(&log_),
+      micPublisher_(&log_),
       config_(paths::configFile(), &log_),
       presets_(paths::presetsDir(), &log_),
       control_(config_, presets_, paths::appDataDir() / "app_rules.json", &log_)
@@ -21,7 +22,12 @@ bool ServiceRuntime::start()
     // Stand up the APO shared-memory parameter block, then republish whenever
     // the config changes so the APO always reflects current settings.
     publisher_.start();
-    config_.setOnChanged([this](const Config& c) { publisher_.publish(c); });
+    micPublisher_.start();
+    config_.setOnChanged([this](const Config& c)
+    {
+        publisher_.publish(c);
+        micPublisher_.publish(c); // mic chain params for the capture APO
+    });
 
     presets_.load();        // built-ins + user .vpreset files
     control_.loadAppRules(); // persisted per-app rules

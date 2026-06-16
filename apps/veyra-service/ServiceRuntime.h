@@ -3,6 +3,7 @@
 #include "ApoPublisher.h"
 #include "ConfigManager.h"
 #include "ControlServer.h"
+#include "MicPublisher.h"
 #include "PresetLibrary.h"
 #include "veyra/Logging.h"
 
@@ -23,6 +24,7 @@ public:
 private:
     Logger         log_;
     ApoPublisher   publisher_;
+    MicPublisher   micPublisher_;
     ConfigManager  config_;
     PresetLibrary  presets_;
     ControlServer  control_;

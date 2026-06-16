@@ -35,6 +35,7 @@ std::string Config::toJson() const
         {"dsp_precision", audioEngine.dspPrecision},
     };
     j["enhancement"]        = enhancement;
+    j["voice"]              = voice;
     return j.dump(2);
 }
 
@@ -67,6 +68,8 @@ std::optional<Config> Config::fromJson(const std::string& text)
 
     if (const auto it = j.find("enhancement"); it != j.end() && it->is_object())
         from_json(*it, c.enhancement);
+    if (const auto it = j.find("voice"); it != j.end() && it->is_object())
+        from_json(*it, c.voice);
     return c;
 }
 

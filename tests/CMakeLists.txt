@@ -9,7 +9,8 @@ add_executable(dsp_tests
     dsp_tests/test_dynamics.cpp
     dsp_tests/test_analyzer.cpp
     dsp_tests/test_chain.cpp
-    dsp_tests/test_shared_params.cpp)
+    dsp_tests/test_shared_params.cpp
+    dsp_tests/test_voice.cpp)
 
 target_include_directories(dsp_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/dsp_tests")
 # veyra::common for the header-only shared-parameter seqlock contract.
@@ -22,7 +23,8 @@ add_executable(common_tests
     dsp_tests/main.cpp
     common_tests/test_presets.cpp
     common_tests/test_app_rules.cpp
-    common_tests/test_device_profiles.cpp)
+    common_tests/test_device_profiles.cpp
+    common_tests/test_voice_config.cpp)
 
 target_link_libraries(common_tests PRIVATE veyra::common veyra::catch2)
 

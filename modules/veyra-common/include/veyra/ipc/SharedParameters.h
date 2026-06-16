@@ -75,4 +75,58 @@ inline bool readParameters(const VeyraSharedParameters* shm, VeyraParamsPayload&
     return false;
 }
 
+// --- Microphone (capture) chain ---------------------------------------------
+// Separate shared block written by the service and read by the capture APO.
+
+inline constexpr wchar_t kSharedMicParametersName[] = L"Local\\VeyraMicParameters_v1";
+
+struct VeyraMicParamsPayload {
+    uint32_t enabled = 1;
+    float    highPassHz = 80.0f;
+    float    noiseSuppression = 0.5f;
+    float    compressionAmount = 0.3f;
+    float    deEssAmount = 0.3f;
+    float    presenceDb = 2.0f;
+    float    outputGainDb = 0.0f;
+    float    sideToneLevel = 0.0f;
+};
+
+struct alignas(64) VeyraMicSharedParameters {
+    std::atomic<uint64_t> generation;
+    VeyraMicParamsPayload  payload;
+    char _reserved[64 - (sizeof(std::atomic<uint64_t>) + sizeof(VeyraMicParamsPayload)) % 64];
+};
+
+inline void publishMicParameters(VeyraMicSharedParameters* shm,
+                                 const VeyraMicParamsPayload& values) noexcept
+{
+    const uint64_t g = shm->generation.load(std::memory_order_relaxed);
+    shm->generation.store(g + 1, std::memory_order_release);
+    std::atomic_thread_fence(std::memory_order_release);
+    shm->payload = values;
+    std::atomic_thread_fence(std::memory_order_release);
+    shm->generation.store(g + 2, std::memory_order_release);
+}
+
+inline bool readMicParameters(const VeyraMicSharedParameters* shm,
+                              VeyraMicParamsPayload& out, int maxTries = 8) noexcept
+{
+    for (int attempt = 0; attempt < maxTries; ++attempt)
+    {
+        const uint64_t g1 = shm->generation.load(std::memory_order_acquire);
+        if (g1 & 1u)
+            continue;
+        std::atomic_thread_fence(std::memory_order_acquire);
+        VeyraMicParamsPayload snapshot = shm->payload;
+        std::atomic_thread_fence(std::memory_order_acquire);
+        const uint64_t g2 = shm->generation.load(std::memory_order_acquire);
+        if (g1 == g2)
+        {
+            out = snapshot;
+            return true;
+        }
+    }
+    return false;
+}
+
 } // namespace veyra::ipc
