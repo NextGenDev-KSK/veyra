@@ -8,7 +8,8 @@
 
 add_library(veyra-apo SHARED
     dllmain.cpp
-    VeyraApo.cpp)
+    VeyraApo.cpp
+    VeyraMicApo.cpp)
 
 set_target_properties(veyra-apo PROPERTIES
     OUTPUT_NAME "veyra-apo"

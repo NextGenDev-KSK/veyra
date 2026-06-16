@@ -126,8 +126,15 @@ Header-only, allocation-free, RT-safe DSP in `veyra-dsp`, with a Catch2 suite.
 - [ ] Per-device recall activation (needs device-change detection — later phase)
 - [ ] **Runtime-verify by running the artifact** (apply preset, save/import/export)
 
-### ⬜ Phase 6 — Voice / Mic chain
-- [ ] Mic APO full chain; RNNoise integrated + tunable; mic profiles; side-tone routing
+### 🟡 Phase 6 — Voice / Mic chain (CI builds + unit tests pass; awaiting runtime check)
+- [x] Voice DSP chain (HPF → noise suppression → leveling comp → de-esser → presence EQ → output gain), header-only/RT-safe
+- [x] NoiseSuppressor (amount-driven downward-expanding gate); phase-correct dynamic high-shelf de-esser; Biquad HPF/BPF + mono compressor
+- [x] `VoiceConfig` in Config (JSON round-trip), `VeyraMicSharedParameters` seqlock block, service `MicPublisher`
+- [x] Capture APO (`VeyraMicApo`) running the voice chain from the mic shared block; dual-CLSID DLL factory + registration
+- [x] Tests: noise-suppressor gate/pass, voice-chain passthrough/HPF/level/de-esser, voice-config round-trip
+- [ ] RNNoise as a learned-model backend behind a build flag (NoiseSuppressor is the default seam)
+- [ ] Mic settings UI panel; side-tone monitor routing; mic profiles
+- [ ] **Runtime-verify by running the artifact** (mic capture path needs the driver INF + test-signing)
 
 ### ⬜ Phase 7 — Spatial / HRTF
 - [ ] Partitioned convolution with MIT KEMAR; Cinematic + Competitive presets; virtual headset + crossfeed
