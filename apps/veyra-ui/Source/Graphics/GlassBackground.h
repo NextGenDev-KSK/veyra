@@ -16,9 +16,11 @@ public:
 
     void setPalette(const Palette& p) { palette_ = p; rebuild(); repaint(); }
 
-    // Appearance settings (persisted). opacity scales the ambient intensity;
-    // mode: 0 = ambient blobs, 1 = solid fill, 2 = image (gradient fallback).
-    void setOpacity(float o) { opacity_ = juce::jlimit(0.0f, 1.0f, o); rebuild(); repaint(); }
+    // Appearance settings (persisted). opacity is the alpha of the base fill:
+    // lower = more of the window's acrylic backdrop (the blurred desktop) shows
+    // through. It's applied at paint time, so dragging the slider is cheap (no
+    // image rebuild — fixes the lag). mode: 0 ambient blobs, 1 solid, 2 image.
+    void setOpacity(float o) { opacity_ = juce::jlimit(0.0f, 1.0f, o); repaint(); }
     void setBackgroundMode(int m) { bgMode_ = m; rebuild(); repaint(); }
 
     void paint(juce::Graphics&) override;

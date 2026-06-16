@@ -7,19 +7,20 @@ void GlassBackground::renderSharp(juce::Image& img) const
     juce::Graphics g(img);
     const auto b = juce::Rectangle<float>(0.0f, 0.0f, (float) img.getWidth(), (float) img.getHeight());
 
-    g.fillAll(palette_.bgApp);
+    // Transparent base here — the translucent base fill is applied in paint()
+    // (opacity-controlled) so the acrylic backdrop shows through. This image
+    // holds only the accent ambiance.
 
-    // Solid mode: just the flat base — no ambient blobs.
+    // Solid mode: no ambient blobs.
     if (bgMode_ == 1)
         return;
 
-    // Image mode (2) has no user image yet: a subtle diagonal accent wash stands
-    // in. Ambient mode (0) draws the full set of accent blobs.
+    // Image mode (2): subtle diagonal accent wash stands in until a user image.
     if (bgMode_ == 2)
     {
-        juce::ColourGradient wash(palette_.accentPrimary.withAlpha(0.18f * opacity_),
-                                  0.0f, 0.0f,
-                                  palette_.bgApp.withAlpha(0.0f), b.getWidth(), b.getHeight(), false);
+        juce::ColourGradient wash(palette_.accentPrimary.withAlpha(0.18f), 0.0f, 0.0f,
+                                  palette_.accentPrimary.withAlpha(0.0f),
+                                  b.getWidth(), b.getHeight(), false);
         g.setGradientFill(wash);
         g.fillRect(b);
         return;
@@ -37,7 +38,7 @@ void GlassBackground::renderSharp(juce::Image& img) const
         const float cx = b.getWidth() * blob.rx;
         const float cy = b.getHeight() * blob.ry;
         const float rad = juce::jmax(b.getWidth(), b.getHeight()) * blob.rr;
-        const juce::Colour c = blob.c.withAlpha(blob.a * opacity_); // opacity scales intensity
+        const juce::Colour c = blob.c.withAlpha(blob.a);
         juce::ColourGradient grad(c, cx, cy, c.withAlpha(0.0f), cx + rad, cy, true);
         g.setGradientFill(grad);
         g.fillEllipse(cx - rad, cy - rad, rad * 2.0f, rad * 2.0f);
@@ -65,10 +66,11 @@ void GlassBackground::rebuild()
 
 void GlassBackground::paint(juce::Graphics& g)
 {
+    // Translucent base — opacity_ < 1 lets the window's acrylic backdrop (the
+    // blurred desktop behind) show through. Cheap: just an alpha fill + blit.
+    g.fillAll(palette_.bgApp.withAlpha(opacity_));
     if (sharp_.isValid())
         g.drawImageAt(sharp_, 0, 0);
-    else
-        g.fillAll(palette_.bgApp);
 }
 
 } // namespace veyra::ui

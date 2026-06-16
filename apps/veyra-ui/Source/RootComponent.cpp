@@ -12,6 +12,7 @@ const char* kScreenNames[] = {"Home", "Presets", "Apps", "Devices",
 RootComponent::RootComponent()
 {
     setLookAndFeel(&laf_);
+    setOpaque(false); // let the window's acrylic backdrop show through the glass
     themeManager_.addChangeListener(this);
 
     addAndMakeVisible(background_);
