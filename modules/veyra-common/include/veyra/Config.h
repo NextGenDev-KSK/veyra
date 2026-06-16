@@ -33,6 +33,15 @@ struct EnhancementConfig {
     float reverbAmount      = 0.0f; // 0..1 — no DSP stage yet, persisted for the UI
 };
 
+// Spatial / headphone parameters. crossfeed is the realtime render-side effect;
+// mode is remembered for the UI (0 off, 1 cinematic, 2 competitive). Full HRTF
+// virtual surround arrives with a multichannel virtual endpoint in a later pass.
+struct SpatialConfig {
+    bool  enabled   = false;
+    float crossfeed = 0.0f; // 0..1
+    int   mode      = 0;    // 0 off, 1 cinematic, 2 competitive
+};
+
 // Microphone (capture) chain parameters; mirrors veyra::dsp::VoiceParams. The
 // service maps this onto the mic shared-memory block read by the capture APO.
 struct VoiceConfig {
@@ -57,6 +66,7 @@ struct Config {
     AudioEngineConfig audioEngine;
     EnhancementConfig enhancement;
     VoiceConfig       voice;
+    SpatialConfig     spatial;
 
     // Serialise to / from pretty-printed JSON text.
     std::string toJson() const;

@@ -36,6 +36,7 @@ std::string Config::toJson() const
     };
     j["enhancement"]        = enhancement;
     j["voice"]              = voice;
+    j["spatial"]            = spatial;
     return j.dump(2);
 }
 
@@ -70,6 +71,8 @@ std::optional<Config> Config::fromJson(const std::string& text)
         from_json(*it, c.enhancement);
     if (const auto it = j.find("voice"); it != j.end() && it->is_object())
         from_json(*it, c.voice);
+    if (const auto it = j.find("spatial"); it != j.end() && it->is_object())
+        from_json(*it, c.spatial);
     return c;
 }
 

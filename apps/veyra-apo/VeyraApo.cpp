@@ -256,6 +256,7 @@ void VeyraApoEfx::refreshParametersFromShared() noexcept
     dp.compressionAmount = p.compressionAmount;
     dp.stereoWidth = p.stereoWidth;
     dp.volumeGain = p.volumeGain;
+    dp.crossfeedAmount = p.crossfeedAmount;
     dp.limiterCeilingDb = p.limiterCeilingDb;
     chain_.setParameters(dp);
 }

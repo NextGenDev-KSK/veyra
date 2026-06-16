@@ -29,6 +29,7 @@ struct VeyraParamsPayload {
     float    compressionAmount = 0.0f;
     float    stereoWidth = 1.0f;
     float    volumeGain = 1.0f;
+    float    crossfeedAmount = 0.0f;
     float    limiterCeilingDb = -0.3f;
 };
 

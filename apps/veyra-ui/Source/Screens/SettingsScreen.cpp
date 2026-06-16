@@ -359,6 +359,118 @@ private:
 };
 
 // ---------------------------------------------------------------------------
+// SpatialCard: headphone spatial controls (Phase 7).
+// ---------------------------------------------------------------------------
+class SettingsScreen::SpatialCard : public GlassPanel {
+public:
+    SpatialCard()
+    {
+        enable_.setToggleState(false, juce::dontSendNotification);
+        enable_.onClick = [this] { spatial_.enabled = enable_.getToggleState(); emit(); };
+        addAndMakeVisible(enable_);
+
+        mode_.setItems({"Off", "Cinematic", "Competitive"});
+        mode_.setSelectedIndex(0, false);
+        mode_.onChange = [this](int i) { applyMode(i); };
+        addAndMakeVisible(mode_);
+
+        cf_.setSliderStyle(juce::Slider::LinearHorizontal);
+        cf_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        cf_.setRange(0.0, 1.0, 0.01);
+        cf_.setValue(0.0, juce::dontSendNotification);
+        cf_.onValueChange = [this] { spatial_.crossfeed = (float) cf_.getValue(); emit(); };
+        addAndMakeVisible(cf_);
+    }
+
+    std::function<void(const veyra::SpatialConfig&)> onSpatialChanged;
+
+    void setPalette(const Palette& p) override
+    {
+        GlassPanel::setPalette(p);
+        enable_.setPalette(p);
+        mode_.setPalette(p);
+    }
+
+    void setSpatialConfig(const veyra::SpatialConfig& s)
+    {
+        spatial_ = s;
+        enable_.setToggleState(s.enabled, juce::dontSendNotification);
+        mode_.setSelectedIndex(juce::jlimit(0, 2, s.mode), false);
+        cf_.setValue(s.crossfeed, juce::dontSendNotification);
+        repaint();
+    }
+
+    void resized() override
+    {
+        auto header = getLocalBounds().reduced(kPad).removeFromTop(28);
+        enable_.setBounds(header.removeFromRight(40).withSizeKeepingCentre(40, 20));
+        mode_.setBounds(modeRow());
+        auto row = crossfeedRow();
+        row.removeFromLeft(110);
+        row.removeFromRight(52);
+        cf_.setBounds(row.withSizeKeepingCentre(row.getWidth(), 18));
+    }
+
+protected:
+    void paintContent(juce::Graphics& g) override
+    {
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::display(20.0f));
+        g.drawText("SPATIAL", getLocalBounds().reduced(kPad).removeFromTop(28),
+                   juce::Justification::centredLeft, false);
+
+        auto row = crossfeedRow();
+        g.setColour(spatial_.enabled ? palette_.textSecondary : palette_.textTertiary);
+        g.setFont(fonts::body(13.0f));
+        g.drawText("Crossfeed", row.removeFromLeft(110).withTrimmedRight(8),
+                   juce::Justification::centredLeft, false);
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::mono(12.0f));
+        g.drawText(juce::String(juce::roundToInt(cf_.getValue() * 100.0)) + "%",
+                   row.removeFromRight(52), juce::Justification::centredRight, false);
+    }
+
+private:
+    juce::Rectangle<int> modeRow() const
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        c.removeFromTop(28 + 8);
+        return c.removeFromTop(34);
+    }
+    juce::Rectangle<int> crossfeedRow() const
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        c.removeFromTop(28 + 8 + 34 + 12);
+        return c.removeFromTop(36);
+    }
+
+    void applyMode(int i)
+    {
+        spatial_.mode = i;
+        if (i == 1)      { spatial_.enabled = true;  spatial_.crossfeed = 0.70f; } // Cinematic
+        else if (i == 2) { spatial_.enabled = true;  spatial_.crossfeed = 0.25f; } // Competitive
+        else             { spatial_.enabled = false; spatial_.crossfeed = 0.0f;  } // Off
+        enable_.setToggleState(spatial_.enabled, juce::dontSendNotification);
+        cf_.setValue(spatial_.crossfeed, juce::dontSendNotification);
+        emit();
+    }
+
+    void emit()
+    {
+        if (onSpatialChanged)
+            onSpatialChanged(spatial_);
+        repaint();
+    }
+
+    static constexpr int kPad = 24;
+
+    veyra::SpatialConfig spatial_;
+    ToggleSwitch         enable_;
+    SegmentedControl     mode_;
+    juce::Slider         cf_;
+};
+
+// ---------------------------------------------------------------------------
 // SettingsScreen: thin host that forwards to the cards.
 // ---------------------------------------------------------------------------
 SettingsScreen::SettingsScreen()
@@ -373,6 +485,10 @@ SettingsScreen::SettingsScreen()
     microphone_ = std::make_unique<MicrophoneCard>();
     microphone_->onMicChanged = [this](const veyra::VoiceConfig& v) { if (onMicChanged) onMicChanged(v); };
     addAndMakeVisible(*microphone_);
+
+    spatial_ = std::make_unique<SpatialCard>();
+    spatial_->onSpatialChanged = [this](const veyra::SpatialConfig& s) { if (onSpatialChanged) onSpatialChanged(s); };
+    addAndMakeVisible(*spatial_);
 }
 
 SettingsScreen::~SettingsScreen() = default;
@@ -381,26 +497,33 @@ void SettingsScreen::setPalette(const Palette& p)
 {
     appearance_->setPalette(p);
     microphone_->setPalette(p);
+    spatial_->setPalette(p);
 }
 
 void SettingsScreen::attachBackdrop(GlassBackground* b)
 {
     appearance_->setBackdrop(b);
     microphone_->setBackdrop(b);
+    spatial_->setBackdrop(b);
 }
 
 void SettingsScreen::setCurrentTheme(const juce::String& id) { appearance_->setCurrentTheme(id); }
 void SettingsScreen::setMicConfig(const veyra::VoiceConfig& v) { microphone_->setMicConfig(v); }
+void SettingsScreen::setSpatialConfig(const veyra::SpatialConfig& s) { spatial_->setSpatialConfig(s); }
 
 void SettingsScreen::resized()
 {
     auto b = getLocalBounds().reduced(24);
-    // Two columns: Appearance (wider, for the theme grid) + Microphone.
-    const int micW = juce::jlimit(300, 420, b.getWidth() / 3);
-    auto micCol = b.removeFromRight(micW);
+    // Left: Appearance (wider, for the theme grid). Right column: Microphone over Spatial.
+    const int rightW = juce::jlimit(300, 420, b.getWidth() / 3);
+    auto rightCol = b.removeFromRight(rightW);
     b.removeFromRight(20); // gutter
     appearance_->setBounds(b);
-    microphone_->setBounds(micCol);
+
+    auto spatialArea = rightCol.removeFromBottom(juce::jlimit(180, 240, rightCol.getHeight() / 3));
+    rightCol.removeFromBottom(20);
+    microphone_->setBounds(rightCol);
+    spatial_->setBounds(spatialArea);
 }
 
 } // namespace veyra::ui

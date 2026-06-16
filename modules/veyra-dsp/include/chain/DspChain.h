@@ -14,6 +14,7 @@
 #include "enhancers/StereoProcessor.h"
 #include "enhancers/ToneControls.h"
 #include "eq/GraphicEq.h"
+#include "spatial/Crossfeed.h"
 
 namespace veyra::dsp {
 
@@ -25,6 +26,7 @@ public:
         tone_.prepare(sampleRate);
         stereo_.prepare(sampleRate);
         comp_.prepare(sampleRate);
+        crossfeed_.prepare(sampleRate);
         limiter_.prepare(sampleRate);
         analyzer_.prepare(sampleRate);
         volume_.prepare(sampleRate);
@@ -42,6 +44,7 @@ public:
         stereo_.setBalance(p.balance);
         stereo_.setWidth(p.stereoWidth);
         comp_.setAmount(p.compressionAmount);
+        crossfeed_.setAmount(p.crossfeedAmount);
         volume_.setTarget(p.volumeGain);
         limiter_.setCeilingDb(p.limiterCeilingDb);
     }
@@ -59,6 +62,7 @@ public:
         tone_.processStereo(left, right, numSamples);
         comp_.processStereo(left, right, numSamples);
         stereo_.applyWidth(left, right, numSamples);
+        crossfeed_.processStereo(left, right, numSamples); // headphone spatial
 
         for (int i = 0; i < numSamples; ++i)
         {
@@ -80,6 +84,7 @@ private:
     ToneControls     tone_;
     StereoProcessor  stereo_;
     Compressor       comp_;
+    Crossfeed        crossfeed_;
     Limiter          limiter_;
     Analyzer         analyzer_;
     SmoothedValue    volume_;

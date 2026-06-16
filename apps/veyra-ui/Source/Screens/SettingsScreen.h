@@ -35,15 +35,21 @@ public:
     // Microphone (voice chain) interactions.
     std::function<void(const veyra::VoiceConfig&)> onMicChanged;
 
+    // Spatial (headphone) interactions.
+    std::function<void(const veyra::SpatialConfig&)> onSpatialChanged;
+
     // Reflect current state without firing callbacks.
     void setCurrentTheme(const juce::String& id);
     void setMicConfig(const veyra::VoiceConfig& voice);
+    void setSpatialConfig(const veyra::SpatialConfig& spatial);
 
 private:
     class AppearanceCard;
     class MicrophoneCard;
+    class SpatialCard;
     std::unique_ptr<AppearanceCard> appearance_;
     std::unique_ptr<MicrophoneCard> microphone_;
+    std::unique_ptr<SpatialCard>    spatial_;
 };
 
 } // namespace veyra::ui

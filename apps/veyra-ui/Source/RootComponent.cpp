@@ -80,10 +80,12 @@ RootComponent::RootComponent()
     settings_.onOpacity        = [](double) { /* deep opacity wiring lands with persisted appearance config */ };
     settings_.onBackgroundMode = [](int) { /* ditto */ };
     settings_.onMicChanged     = [this](const veyra::VoiceConfig& v) { working_.voice = v; pushConfig(); };
+    settings_.onSpatialChanged = [this](const veyra::SpatialConfig& s) { working_.spatial = s; pushConfig(); };
 
     applyPalette();
     settings_.setCurrentTheme(themeManager_.currentId());
     settings_.setMicConfig(working_.voice);
+    settings_.setSpatialConfig(working_.spatial);
 
     current_ = &home_;
     home_.setVisible(true);
@@ -164,6 +166,7 @@ void RootComponent::applyConfig(const veyra::Config& c)
     mini_->content().setMasterVolume(c.masterVolumeGain);
     home_.applyEnhancement(c.enhancement);
     settings_.setMicConfig(c.voice);
+    settings_.setSpatialConfig(c.spatial);
 
     const juce::String themeId(c.theme);
     if (themeId.isNotEmpty() && themeId != themeManager_.currentId())

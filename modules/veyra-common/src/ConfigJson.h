@@ -42,6 +42,24 @@ inline void from_json(const nlohmann::json& j, EnhancementConfig& e)
     e.reverbAmount      = j.value("reverb_amount", e.reverbAmount);
 }
 
+inline void to_json(nlohmann::json& j, const SpatialConfig& s)
+{
+    j = nlohmann::json{
+        {"enabled",   s.enabled},
+        {"crossfeed", s.crossfeed},
+        {"mode",      s.mode},
+    };
+}
+
+inline void from_json(const nlohmann::json& j, SpatialConfig& s)
+{
+    if (! j.is_object())
+        return;
+    s.enabled   = j.value("enabled", s.enabled);
+    s.crossfeed = j.value("crossfeed", s.crossfeed);
+    s.mode      = j.value("mode", s.mode);
+}
+
 inline void to_json(nlohmann::json& j, const VoiceConfig& v)
 {
     j = nlohmann::json{

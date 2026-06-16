@@ -25,7 +25,8 @@ add_executable(common_tests
     common_tests/test_presets.cpp
     common_tests/test_app_rules.cpp
     common_tests/test_device_profiles.cpp
-    common_tests/test_voice_config.cpp)
+    common_tests/test_voice_config.cpp
+    common_tests/test_spatial_config.cpp)
 
 target_link_libraries(common_tests PRIVATE veyra::common veyra::catch2)
 

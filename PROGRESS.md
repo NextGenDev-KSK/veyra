@@ -137,8 +137,15 @@ Header-only, allocation-free, RT-safe DSP in `veyra-dsp`, with a Catch2 suite.
 - [ ] Side-tone monitor routing; mic profiles
 - [ ] **Runtime-verify by running the artifact** (mic capture path needs the driver INF + test-signing)
 
-### ⬜ Phase 7 — Spatial / HRTF
-- [ ] Partitioned convolution with MIT KEMAR; Cinematic + Competitive presets; virtual headset + crossfeed
+### 🟡 Phase 7 — Spatial / HRTF (CI builds + unit tests pass; awaiting runtime check)
+- [x] PartitionedConvolver (UPOLS overlap-save FFT convolution, own complex FFT), header-only/RT-safe
+- [x] Crossfeed (Bauer-style ITD + head-shadow LPF); wired into the render DspChain + shared params + APO
+- [x] HRTF: synthetic HRIR generator (ITD/ILD/shadow) + BinauralPanner; MIT KEMAR drops into the same IR path
+- [x] SpatialConfig in Config (JSON round-trip); ApoPublisher maps crossfeed to the payload
+- [x] Settings → Spatial card (enable + Off/Cinematic/Competitive modes + crossfeed); presets set crossfeed depth
+- [x] Tests: convolver identity/impulse, crossfeed bypass/bleed, binaural L/R bias, spatial-config round-trip
+- [ ] Real MIT KEMAR dataset load (needs the IR files vendored); full multichannel virtual surround (needs a virtual endpoint)
+- [ ] **Runtime-verify by running the artifact** (crossfeed audible on the headphone path)
 
 ### ⬜ Phase 8 — Gamer Mode + Sound Tracker
 - [ ] Loopback capture; feature extraction + DSP classifier + direction estimator
