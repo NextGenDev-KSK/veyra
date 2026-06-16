@@ -20,14 +20,14 @@ TopBar::TopBar()
     volume_.onValueChange = [this] { repaint(); if (onMasterVolume) onMasterVolume(volume_.getValue()); };
     addAndMakeVisible(volume_);
 
-    ab_.getProperties().set("variant", "ghost");
-    addAndMakeVisible(ab_);
-
-    for (auto* b : {&search_, &bell_, &gear_, &min_, &max_, &close_})
+    // A/B, search and bell aren't wired yet — hide them rather than show dead
+    // controls. The gear opens Settings; the window buttons work.
+    for (auto* b : {&gear_, &min_, &max_, &close_})
         addAndMakeVisible(b);
 
-    min_.onClick = [this] { if (auto* p = getPeer()) p->setMinimised(true); };
-    max_.onClick = [this] { toggleMaximise(); };
+    gear_.onClick  = [this] { if (onOpenSettings) onOpenSettings(); };
+    min_.onClick   = [this] { if (auto* p = getPeer()) p->setMinimised(true); };
+    max_.onClick   = [this] { toggleMaximise(); };
     close_.onClick = [] { juce::JUCEApplication::getInstance()->systemRequestedQuit(); };
 }
 
@@ -81,11 +81,7 @@ void TopBar::resized()
     place(max_, 28);
     place(min_, 28);
     rx -= 10;
-    place(gear_, 32);
-    place(bell_, 32);
-    place(search_, 32);
-    rx -= 6;
-    rx -= 44; ab_.setBounds(rx, centreY(28), 44, 28);
+    place(gear_, 32); // opens Settings (A/B, search, bell hidden until wired)
 }
 
 void TopBar::paint(juce::Graphics& g)

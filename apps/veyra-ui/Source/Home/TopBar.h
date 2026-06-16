@@ -28,6 +28,7 @@ public:
     // Master controls — emitted on user interaction.
     std::function<void(bool)>   onMasterToggle;  // enabled
     std::function<void(double)> onMasterVolume;  // linear gain (0..slider max)
+    std::function<void()>       onOpenSettings;  // gear button
 
     // Refresh control state from config without firing the callbacks above.
     void setMasterEnabled(bool on);

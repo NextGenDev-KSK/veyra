@@ -19,6 +19,21 @@ project(Veyra
     HOMEPAGE_URL "https://github.com/NextGenDev-KSK/veyra"
     LANGUAGES C CXX RC)   # C is required by JUCE
 
+# Short git commit (captured at configure time) for the About page / diagnostics.
+find_package(Git QUIET)
+set(VEYRA_GIT_COMMIT "unknown")
+if(GIT_FOUND)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE _veyra_git_commit
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET)
+    if(_veyra_git_commit)
+        set(VEYRA_GIT_COMMIT "${_veyra_git_commit}")
+    endif()
+endif()
+
 # ---- Global language settings ----------------------------------------------
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

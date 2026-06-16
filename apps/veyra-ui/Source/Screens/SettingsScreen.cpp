@@ -6,6 +6,9 @@
 #include "Graphics/GlassBackground.h"
 #include "Theme/Fonts.h"
 
+#include "veyra/Paths.h"
+#include "veyra/version.h"
+
 #include <cmath>
 #include <vector>
 
@@ -479,6 +482,89 @@ private:
 };
 
 // ---------------------------------------------------------------------------
+// AboutCard: build info, service status, licenses + maintenance actions.
+// ---------------------------------------------------------------------------
+class SettingsScreen::AboutCard : public GlassPanel {
+public:
+    AboutCard()
+    {
+        openLogs_.setButtonText("Open Logs");
+        openLogs_.onClick = [] {
+            const juce::File dir(juce::String(veyra::paths::logsDir().wstring().c_str()));
+            dir.createDirectory();
+            dir.revealToUser();
+        };
+        addAndMakeVisible(openLogs_);
+
+        reset_.setButtonText("Reset Settings");
+        reset_.onClick = [this] { if (onResetSettings) onResetSettings(); };
+        addAndMakeVisible(reset_);
+    }
+
+    std::function<void()> onResetSettings;
+
+    void setPalette(const Palette& p) override { GlassPanel::setPalette(p); repaint(); }
+
+    void setServiceStatus(bool connected, juce::String version)
+    {
+        connected_ = connected;
+        version_ = std::move(version);
+        repaint();
+    }
+
+    void resized() override
+    {
+        auto b = getLocalBounds().reduced(kPad);
+        auto buttons = b.removeFromRight(160);
+        reset_.setBounds(buttons.removeFromBottom(34));
+        buttons.removeFromBottom(10);
+        openLogs_.setBounds(buttons.removeFromBottom(34));
+    }
+
+protected:
+    void paintContent(juce::Graphics& g) override
+    {
+        auto b = getLocalBounds().reduced(kPad);
+
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::display(20.0f));
+        g.drawText("ABOUT", b.removeFromTop(28), juce::Justification::centredLeft, false);
+
+        auto line = [&](const juce::String& label, const juce::String& value, juce::Colour vc)
+        {
+            auto row = b.removeFromTop(20);
+            g.setColour(palette_.textTertiary);
+            g.setFont(fonts::body(12.0f));
+            g.drawText(label, row.removeFromLeft(130), juce::Justification::centredLeft, false);
+            g.setColour(vc);
+            g.setFont(fonts::mono(12.0f));
+            g.drawText(value, row, juce::Justification::centredLeft, false);
+        };
+
+        line("Version", juce::String("Veyra Sounds ") + veyra::kVersionString, palette_.textPrimary);
+        line("Build", juce::String(veyra::kGitCommit), palette_.textSecondary);
+        line("Audio engine", juce::String("v") + veyra::kVersionString, palette_.textSecondary);
+        line("Service",
+             connected_ ? juce::String("connected (") + version_ + ")" : juce::String("disconnected"),
+             connected_ ? palette_.success : palette_.warning);
+
+        b.removeFromTop(8);
+        g.setColour(palette_.textTertiary);
+        g.setFont(fonts::body(11.0f));
+        g.drawText(juce::String::fromUTF8("\xc2\xa9 2026 Krithik S \xc2\xb7 GPLv3 \xc2\xb7 NextGenDev-KSK"),
+                   b.removeFromTop(16), juce::Justification::centredLeft, false);
+        g.drawText("JUCE  \xc2\xb7  spdlog  \xc2\xb7  nlohmann/json  \xc2\xb7  Catch2  \xc2\xb7  Orbitron/Inter/JetBrains Mono (OFL)",
+                   b.removeFromTop(16), juce::Justification::centredLeft, false);
+    }
+
+private:
+    static constexpr int kPad = 24;
+    juce::TextButton openLogs_, reset_;
+    bool         connected_ = false;
+    juce::String version_;
+};
+
+// ---------------------------------------------------------------------------
 // SettingsScreen: thin host that forwards to the cards.
 // ---------------------------------------------------------------------------
 SettingsScreen::SettingsScreen()
@@ -497,6 +583,10 @@ SettingsScreen::SettingsScreen()
     spatial_ = std::make_unique<SpatialCard>();
     spatial_->onSpatialChanged = [this](const veyra::SpatialConfig& s) { if (onSpatialChanged) onSpatialChanged(s); };
     addAndMakeVisible(*spatial_);
+
+    about_ = std::make_unique<AboutCard>();
+    about_->onResetSettings = [this] { if (onResetSettings) onResetSettings(); };
+    addAndMakeVisible(*about_);
 }
 
 SettingsScreen::~SettingsScreen() = default;
@@ -506,6 +596,7 @@ void SettingsScreen::setPalette(const Palette& p)
     appearance_->setPalette(p);
     microphone_->setPalette(p);
     spatial_->setPalette(p);
+    about_->setPalette(p);
 }
 
 void SettingsScreen::attachBackdrop(GlassBackground* b)
@@ -513,6 +604,7 @@ void SettingsScreen::attachBackdrop(GlassBackground* b)
     appearance_->setBackdrop(b);
     microphone_->setBackdrop(b);
     spatial_->setBackdrop(b);
+    about_->setBackdrop(b);
 }
 
 void SettingsScreen::setCurrentTheme(const juce::String& id) { appearance_->setCurrentTheme(id); }
@@ -522,17 +614,27 @@ void SettingsScreen::setAppearance(double opacity, int backgroundMode, bool redu
 }
 void SettingsScreen::setMicConfig(const veyra::VoiceConfig& v) { microphone_->setMicConfig(v); }
 void SettingsScreen::setSpatialConfig(const veyra::SpatialConfig& s) { spatial_->setSpatialConfig(s); }
+void SettingsScreen::setServiceStatus(bool connected, juce::String version)
+{
+    about_->setServiceStatus(connected, std::move(version));
+}
 
 void SettingsScreen::resized()
 {
     auto b = getLocalBounds().reduced(24);
-    // Left: Appearance (wider, for the theme grid). Right column: Microphone over Spatial.
+
+    // Full-width About strip along the bottom.
+    auto aboutArea = b.removeFromBottom(132);
+    b.removeFromBottom(20);
+    about_->setBounds(aboutArea);
+
+    // Above it: Appearance (wide, theme grid) left; Microphone over Spatial right.
     const int rightW = juce::jlimit(300, 420, b.getWidth() / 3);
     auto rightCol = b.removeFromRight(rightW);
     b.removeFromRight(20); // gutter
     appearance_->setBounds(b);
 
-    auto spatialArea = rightCol.removeFromBottom(juce::jlimit(180, 240, rightCol.getHeight() / 3));
+    auto spatialArea = rightCol.removeFromBottom(juce::jlimit(160, 220, rightCol.getHeight() / 3));
     rightCol.removeFromBottom(20);
     microphone_->setBounds(rightCol);
     spatial_->setBounds(spatialArea);

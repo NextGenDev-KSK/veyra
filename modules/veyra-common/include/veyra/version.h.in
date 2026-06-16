@@ -10,5 +10,6 @@ inline constexpr int kVersionMinor = @PROJECT_VERSION_MINOR@;
 inline constexpr int kVersionPatch = @PROJECT_VERSION_PATCH@;
 
 inline constexpr const char* kVersionString = "@VEYRA_VERSION@";
+inline constexpr const char* kGitCommit = "@VEYRA_GIT_COMMIT@";
 
 } // namespace veyra

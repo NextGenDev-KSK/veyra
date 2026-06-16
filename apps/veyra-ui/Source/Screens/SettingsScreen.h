@@ -38,19 +38,25 @@ public:
     // Spatial (headphone) interactions.
     std::function<void(const veyra::SpatialConfig&)> onSpatialChanged;
 
+    // About: reset all settings to defaults.
+    std::function<void()> onResetSettings;
+
     // Reflect current state without firing callbacks.
     void setCurrentTheme(const juce::String& id);
     void setAppearance(double opacity, int backgroundMode, bool reduceMotion);
     void setMicConfig(const veyra::VoiceConfig& voice);
     void setSpatialConfig(const veyra::SpatialConfig& spatial);
+    void setServiceStatus(bool connected, juce::String version);
 
 private:
     class AppearanceCard;
     class MicrophoneCard;
     class SpatialCard;
+    class AboutCard;
     std::unique_ptr<AppearanceCard> appearance_;
     std::unique_ptr<MicrophoneCard> microphone_;
     std::unique_ptr<SpatialCard>    spatial_;
+    std::unique_ptr<AboutCard>      about_;
 };
 
 } // namespace veyra::ui

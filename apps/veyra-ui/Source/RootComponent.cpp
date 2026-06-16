@@ -61,6 +61,7 @@ RootComponent::RootComponent()
     // Master controls (top bar).
     topBar_.onMasterToggle = [this](bool on) { setMasterEnabled(on); };
     topBar_.onMasterVolume = [this](double g) { setMasterVolume(g); };
+    topBar_.onOpenSettings = [this] { sidebar_.setActive(6); showScreen(6); };
 
     // Enhancement params (home knobs + EQ).
     home_.onEnhancementChanged = [this](const EnhancementConfig& e)
@@ -96,6 +97,11 @@ RootComponent::RootComponent()
     };
     settings_.onMicChanged     = [this](const veyra::VoiceConfig& v) { working_.voice = v; pushConfig(); };
     settings_.onSpatialChanged = [this](const veyra::SpatialConfig& s) { working_.spatial = s; pushConfig(); };
+    settings_.onResetSettings  = [this]
+    {
+        applyConfig(veyra::Config{}); // restore all defaults across the UI
+        pushConfig();                 // persist the reset
+    };
 
     applyPalette();
     settings_.setCurrentTheme(themeManager_.currentId());
@@ -214,6 +220,7 @@ void RootComponent::refreshFromService()
     const bool connected = st.state == ConnectionState::Connected;
     topBar_.setConnection(connected, juce::String(st.serviceVersion.c_str()));
     mini_->content().setConnection(connected);
+    settings_.setServiceStatus(connected, juce::String(st.serviceVersion.c_str()));
     if (auto c = client_.config())
         applyConfig(*c);
     presets_.setPresets(client_.presets(), juce::String(working_.activePresetUuid));
