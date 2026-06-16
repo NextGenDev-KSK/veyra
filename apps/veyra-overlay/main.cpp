@@ -11,12 +11,17 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
-#include <gdiplus.h>
+#include <objidl.h> // IStream / PROPID — required by the GDI+ headers
 
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <vector>
+
+// The project defines NOMINMAX globally, but the GDI+ headers use unqualified
+// min/max; bring them into the Gdiplus namespace before including it.
+namespace Gdiplus { using std::min; using std::max; }
+#include <gdiplus.h>
 
 #include "veyra/Config.h"
 #include "veyra/Paths.h"
