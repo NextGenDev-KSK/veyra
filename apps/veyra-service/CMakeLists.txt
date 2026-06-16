@@ -13,6 +13,7 @@ add_executable(veyra-service
     ServiceRuntime.cpp
     ConfigManager.cpp
     ControlServer.cpp
+    PresetLibrary.cpp
     ApoPublisher.cpp
     veyra-service.rc)
 

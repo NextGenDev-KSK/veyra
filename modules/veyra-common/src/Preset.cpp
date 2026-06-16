@@ -122,6 +122,27 @@ Preset makeBuiltIn(const char* uuid, const char* name, const char* category,
 
 } // namespace
 
+std::string presetsToJsonArray(const std::vector<Preset>& presets)
+{
+    json arr = json::array();
+    for (const auto& p : presets)
+        arr.push_back(json::parse(p.toJson(), nullptr, /*allow_exceptions=*/false));
+    return arr.dump(2);
+}
+
+std::vector<Preset> presetsFromJsonArray(const std::string& text)
+{
+    std::vector<Preset> out;
+    json j = json::parse(text, nullptr, /*allow_exceptions=*/false);
+    if (j.is_discarded() || !j.is_array())
+        return out;
+    for (const auto& e : j)
+        if (e.is_object())
+            if (auto p = Preset::fromJson(e.dump()))
+                out.push_back(std::move(*p));
+    return out;
+}
+
 const std::vector<Preset>& builtInPresets()
 {
     static const std::vector<Preset> kPresets = {

@@ -38,4 +38,8 @@ struct Preset {
 // The curated set shipped with the app (stable UUIDs, in display order).
 const std::vector<Preset>& builtInPresets();
 
+// Serialise / parse a list of presets as a JSON array (used over IPC).
+std::string         presetsToJsonArray(const std::vector<Preset>& presets);
+std::vector<Preset> presetsFromJsonArray(const std::string& text);
+
 } // namespace veyra

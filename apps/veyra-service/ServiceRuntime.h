@@ -3,6 +3,7 @@
 #include "ApoPublisher.h"
 #include "ConfigManager.h"
 #include "ControlServer.h"
+#include "PresetLibrary.h"
 #include "veyra/Logging.h"
 
 namespace veyra::service {
@@ -20,10 +21,11 @@ public:
     Logger& log() { return log_; }
 
 private:
-    Logger        log_;
-    ApoPublisher  publisher_;
-    ConfigManager config_;
-    ControlServer control_;
+    Logger         log_;
+    ApoPublisher   publisher_;
+    ConfigManager  config_;
+    PresetLibrary  presets_;
+    ControlServer  control_;
 };
 
 } // namespace veyra::service

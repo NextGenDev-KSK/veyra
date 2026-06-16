@@ -6,6 +6,7 @@
 #include <string>
 
 #include "veyra/Config.h"
+#include "veyra/Preset.h"
 
 namespace veyra {
 class Logger;
@@ -24,6 +25,10 @@ public:
 
     std::string getJson();                  // snapshot as JSON
     bool        setJson(const std::string&); // parse, store, persist
+    Config      current();                   // snapshot as a Config
+
+    // Apply a preset onto the current config, then persist + notify.
+    bool        applyPreset(const Preset& preset);
 
     // Invoked (with the current Config) after the config is loaded or changed.
     // Used by the service to republish DSP parameters to the APO.

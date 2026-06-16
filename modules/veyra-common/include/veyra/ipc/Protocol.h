@@ -32,6 +32,21 @@ enum class MessageType : uint16_t {
     ConfigReply  = 6,
     SetConfig    = 7,   // payload: UTF-8 JSON -> SetConfigAck
     SetConfigAck = 8,
+
+    // Presets (Phase 5).
+    ListPresets  = 9,   // -> PresetsReply (payload: JSON array of presets)
+    PresetsReply = 10,
+    LoadPreset   = 11,  // payload: preset uuid -> PresetAck
+    SavePreset   = 12,  // payload: preset JSON   -> PresetAck
+    DeletePreset = 13,  // payload: preset uuid   -> PresetAck
+    PresetAck    = 14,
+
+    // Per-app rules (Phase 5).
+    GetAppRules   = 15, // -> AppRulesReply (payload: JSON array of rules)
+    AppRulesReply = 16,
+    SetAppRules   = 17, // payload: JSON array of rules -> AppRulesAck
+    AppRulesAck   = 18,
+
     Error        = 0xFFFF, // payload: UTF-8 human-readable reason
 };
 

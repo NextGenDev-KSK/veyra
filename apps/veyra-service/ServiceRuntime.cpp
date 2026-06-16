@@ -9,7 +9,8 @@ ServiceRuntime::ServiceRuntime()
     : log_(paths::logsDir() / "veyra-service.log"),
       publisher_(&log_),
       config_(paths::configFile(), &log_),
-      control_(config_, &log_)
+      presets_(paths::presetsDir(), &log_),
+      control_(config_, presets_, paths::appDataDir() / "app_rules.json", &log_)
 {
 }
 
@@ -21,6 +22,9 @@ bool ServiceRuntime::start()
     // the config changes so the APO always reflects current settings.
     publisher_.start();
     config_.setOnChanged([this](const Config& c) { publisher_.publish(c); });
+
+    presets_.load();        // built-ins + user .vpreset files
+    control_.loadAppRules(); // persisted per-app rules
 
     config_.loadOrCreateDefault(); // triggers the first publish
 

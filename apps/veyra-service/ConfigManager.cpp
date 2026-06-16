@@ -73,6 +73,28 @@ bool ConfigManager::setJson(const std::string& json)
     return saved;
 }
 
+Config ConfigManager::current()
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    return config_;
+}
+
+bool ConfigManager::applyPreset(const Preset& preset)
+{
+    bool saved = false;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        preset.applyTo(config_);
+        saved = config_.save(file_);
+        if (log_)
+            log_->log(saved ? LogLevel::Info : LogLevel::Error,
+                      saved ? "ConfigManager: applied preset + saved"
+                            : "ConfigManager: applied preset but save FAILED");
+    }
+    notifyChanged();
+    return saved;
+}
+
 void ConfigManager::notifyChanged()
 {
     Config snapshot;
