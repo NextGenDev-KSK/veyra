@@ -225,6 +225,13 @@ void RootComponent::refreshFromService()
     if (auto c = client_.config())
         applyConfig(*c);
     presets_.setPresets(client_.presets(), juce::String(working_.activePresetUuid));
+
+    // Reflect the active preset name in the mini widget.
+    juce::String presetName = "Custom";
+    for (const auto& p : client_.presets())
+        if (p.uuid == working_.activePresetUuid)
+            presetName = juce::String(p.name);
+    mini_->content().setPreset(presetName);
 }
 
 void RootComponent::saveCurrentAsPreset(const juce::String& name)

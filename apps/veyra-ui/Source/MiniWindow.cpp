@@ -2,10 +2,30 @@
 
 #include "Theme/Fonts.h"
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <dwmapi.h>
+
 namespace veyra::ui {
+
+namespace {
+void enableAcrylicBackdrop(HWND hwnd)
+{
+    BOOL dark = TRUE;
+    DwmSetWindowAttribute(hwnd, 20 /*DWMWA_USE_IMMERSIVE_DARK_MODE*/, &dark, sizeof(dark));
+    int backdrop = 3; // DWMSBT_TRANSIENTWINDOW (acrylic)
+    DwmSetWindowAttribute(hwnd, 38 /*DWMWA_SYSTEMBACKDROP_TYPE*/, &backdrop, sizeof(backdrop));
+}
+} // namespace
 
 MiniContent::MiniContent()
 {
+    setOpaque(false);
+    logoImage_ = juce::ImageCache::getFromMemory(BinaryData::Veyra_Icon_square_png,
+                                                 BinaryData::Veyra_Icon_square_pngSize);
+
     master_.setToggleState(true, juce::dontSendNotification);
     master_.onClick = [this] { if (onMasterToggle) onMasterToggle(master_.getToggleState()); };
     addAndMakeVisible(master_);
@@ -21,7 +41,11 @@ MiniContent::MiniContent()
     close_.onClick  = [this] { if (onClose) onClose(); };
     addAndMakeVisible(expand_);
     addAndMakeVisible(close_);
+
+    startTimerHz(30);
 }
+
+MiniContent::~MiniContent() { stopTimer(); }
 
 void MiniContent::setPalette(const Palette& p)
 {
@@ -32,20 +56,18 @@ void MiniContent::setPalette(const Palette& p)
     repaint();
 }
 
-void MiniContent::setMasterEnabled(bool on)
-{
-    master_.setToggleState(on, juce::dontSendNotification);
-}
+void MiniContent::setMasterEnabled(bool on) { master_.setToggleState(on, juce::dontSendNotification); }
+void MiniContent::setMasterVolume(double gain) { volume_.setValue(gain, juce::dontSendNotification); repaint(); }
+void MiniContent::setConnection(bool connected) { connected_ = connected; repaint(); }
+void MiniContent::setPreset(juce::String name) { preset_ = std::move(name); repaint(); }
 
-void MiniContent::setMasterVolume(double gain)
+void MiniContent::timerCallback()
 {
-    volume_.setValue(gain, juce::dontSendNotification);
-    repaint();
-}
-
-void MiniContent::setConnection(bool connected)
-{
-    connected_ = connected;
+    if (++frame_ % 6 == 0)
+        for (auto& t : peakTarget_)
+            t = 0.15f + 0.7f * rng_.nextFloat();
+    for (size_t i = 0; i < peak_.size(); ++i)
+        peak_[i] += (peakTarget_[i] - peak_[i]) * 0.2f;
     repaint();
 }
 
@@ -54,49 +76,68 @@ void MiniContent::resized()
     const int h = getHeight();
     auto centreY = [h](int sz) { return (h - sz) / 2; };
 
-    int rx = getWidth() - 10;
+    // Right: close, expand.
+    int rx = getWidth() - 12;
     auto place = [&](IconButton& b, int sz) { rx -= sz; b.setBounds(rx, centreY(sz), sz, sz); rx -= 4; };
-    place(close_, 28);
-    place(expand_, 28);
+    place(close_, 26);
+    place(expand_, 26);
+    rx -= 8;
+    rx -= 24; // peak meters column (painted)
 
-    int x = 14 + 30 + 12;          // logo + gap
-    master_.setBounds(x, centreY(20), 36, 20);
-    x += 36 + 14;
-    volume_.setBounds(x, centreY(16), rx - x - 12, 16);
+    // Bottom row: mute + volume under the preset label.
+    const int left = 12 + 32 + 12; // logo + gap
+    master_.setBounds(left, h - 30, 36, 20);
+    const int volX = left + 44;
+    volume_.setBounds(volX, h - 28, rx - volX - 44, 16);
 }
 
 void MiniContent::paint(juce::Graphics& g)
 {
     auto b = getLocalBounds().toFloat();
 
-    // Solid glass bar (no ambient backdrop in this small window).
-    g.setColour(palette_.bgCanvas);
-    g.fillRoundedRectangle(b, 14.0f);
+    // Translucent acrylic base + hairline border.
+    g.setColour(palette_.bgCanvas.withAlpha(0.55f));
+    g.fillRoundedRectangle(b, 16.0f);
     g.setColour(palette_.strokeDefault);
-    g.drawRoundedRectangle(b.reduced(0.5f), 14.0f, 1.0f);
+    g.drawRoundedRectangle(b.reduced(0.5f), 16.0f, 1.0f);
 
-    // Logo + connection LED.
-    juce::Rectangle<float> logo(14.0f, (b.getHeight() - 28.0f) * 0.5f, 28.0f, 28.0f);
-    juce::ColourGradient lg(palette_.accentPrimary, logo.getX(), logo.getY(),
-                            palette_.accentPrimaryActive, logo.getRight(), logo.getBottom(), false);
-    g.setGradientFill(lg);
-    g.fillRoundedRectangle(logo, 8.0f);
-    g.setColour(juce::Colours::white);
-    g.setFont(fonts::display(14.0f));
-    g.drawText("V", logo, juce::Justification::centred, false);
-
+    // Brand mark + connection LED.
+    juce::Rectangle<float> logo(12.0f, 12.0f, 32.0f, 32.0f);
+    if (logoImage_.isValid())
+        g.drawImage(logoImage_, logo, juce::RectanglePlacement::centred);
     const juce::Colour dot = connected_ ? juce::Colour(0xff37D67A) : palette_.warning;
     g.setColour(palette_.bgCanvas);
-    g.fillEllipse(logo.getRight() - 7.0f, logo.getY() - 5.0f, 8.0f, 8.0f);
+    g.fillEllipse(logo.getRight() - 8.0f, logo.getY() - 3.0f, 9.0f, 9.0f);
     g.setColour(dot);
-    g.fillEllipse(logo.getRight() - 6.0f, logo.getY() - 4.0f, 6.0f, 6.0f);
+    g.fillEllipse(logo.getRight() - 6.5f, logo.getY() - 1.5f, 6.0f, 6.0f);
 
-    // Master volume percentage above the slider.
+    const float left = 12.0f + 32.0f + 12.0f;
+
+    // Current preset (top) + master % (right of it).
+    g.setColour(palette_.textPrimary);
+    g.setFont(fonts::display(13.0f));
+    g.drawText(preset_, juce::Rectangle<float>(left, 9.0f, (float) getWidth() - left - 150.0f, 18.0f),
+               juce::Justification::centredLeft, true);
+
     g.setColour(palette_.textSecondary);
     g.setFont(fonts::mono(11.0f, true));
     g.drawText(juce::String(juce::roundToInt(volume_.getValue() * 100.0)) + "%",
-               juce::Rectangle<int>(volume_.getRight() - 48, 4, 48, 12),
-               juce::Justification::centredRight, false);
+               juce::Rectangle<int>(volume_.getRight() + 6, getHeight() - 30, 40, 20),
+               juce::Justification::centredLeft, false);
+
+    // Slim peak meters between the volume readout and the buttons.
+    const float mx = (float) (getWidth() - 12 - 26 - 4 - 26 - 8 - 24);
+    const float my = 14.0f, mh = (float) getHeight() - 28.0f;
+    for (int i = 0; i < 2; ++i)
+    {
+        const float x = mx + i * 9.0f;
+        g.setColour(juce::Colour(60, 62, 80).withAlpha(0.5f));
+        g.fillRoundedRectangle(x, my, 5.0f, mh, 2.5f);
+        const float fh = mh * peak_[(size_t) i];
+        juce::ColourGradient grad(palette_.accentSecondary, 0, my + mh, palette_.accentPrimary, 0, my, false);
+        g.setGradientFill(grad);
+        g.fillRoundedRectangle(x, my + mh - fh, 5.0f, fh, 2.5f);
+    }
 }
 
 void MiniContent::mouseDown(const juce::MouseEvent& e)
@@ -117,18 +158,22 @@ void MiniContent::mouseDrag(const juce::MouseEvent& e)
 // ---------------------------------------------------------------------------
 
 MiniWindow::MiniWindow()
-    : juce::DocumentWindow("Veyra Mini", juce::Colour(0xff0A0B10), 0)
+    : juce::DocumentWindow("Veyra Mini", juce::Colours::transparentBlack, 0)
 {
     setUsingNativeTitleBar(false);
     setTitleBarHeight(0);
+    setBackgroundColour(juce::Colours::transparentBlack);
     setAlwaysOnTop(true);
     setResizable(false, false);
 
     auto content = std::make_unique<MiniContent>();
     content_ = content.get();
     setContentOwned(content.release(), false);
-    setSize(420, 64);
+    setSize(420, 72);
     setVisible(false);
+
+    if (auto* peer = getPeer())
+        enableAcrylicBackdrop(static_cast<HWND>(peer->getNativeHandle()));
 }
 
 } // namespace veyra::ui

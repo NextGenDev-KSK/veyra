@@ -40,7 +40,7 @@ void Knob::paint(juce::Graphics& g)
     };
 
     // Background track (+ faint danger zone marker if applicable).
-    strokeArc(start, end, juce::Colour(60, 62, 80).withAlpha(0.4f), arcW);
+    strokeArc(start, end, juce::Colour(70, 73, 96).withAlpha(0.6f), arcW);
     if (dangerThreshold_ <= 1.0f)
         strokeArc(dangerAngle, end, palette_.danger.withAlpha(0.20f), arcW);
 
@@ -76,9 +76,10 @@ void Knob::paint(juce::Graphics& g)
     g.setColour(led);
     g.fillEllipse(cx - 2.5f, knob.getY() + 1.0f, 5.0f, 5.0f);
 
-    // Value text.
-    g.setColour(off ? palette_.textTertiary : palette_.textPrimary);
-    g.setFont(fonts::mono(12.0f));
+    // Value text — bold + brighter for readability; warning tint past danger.
+    g.setColour(off ? palette_.textTertiary
+                    : (angle > dangerAngle ? palette_.warning : palette_.textPrimary));
+    g.setFont(fonts::mono(13.0f, true));
     g.drawText(valueText_, valueArea, juce::Justification::centred, false);
 }
 

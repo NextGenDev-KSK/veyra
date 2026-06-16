@@ -30,6 +30,9 @@ public:
     void paint(juce::Graphics&) override;
     void mouseDown(const juce::MouseEvent&) override;
     void mouseDrag(const juce::MouseEvent&) override;
+    void mouseUp(const juce::MouseEvent&) override;
+    void mouseEnter(const juce::MouseEvent&) override;
+    void mouseExit(const juce::MouseEvent&) override;
 
 private:
     juce::Rectangle<int> railArea() const;
@@ -37,6 +40,8 @@ private:
 
     juce::String freq_;
     float gain_ = 0.0f;
+    bool  hover_ = false;
+    bool  dragging_ = false;
     Palette palette_ = paletteForTheme("midnight");
 };
 
