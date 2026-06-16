@@ -8,7 +8,8 @@
 juce_add_gui_app(veyra
     PRODUCT_NAME "Veyra Sounds"
     COMPANY_NAME "Veyra Sounds"
-    BUNDLE_ID "com.veyra.sounds")
+    BUNDLE_ID "com.veyra.sounds"
+    ICON_BIG "${CMAKE_SOURCE_DIR}/resources/icons/Veyra_Icon.png")
 
 # Embed fonts (OFL). BinaryData::Orbitron_ttf / Inter_ttf / JetBrainsMono_ttf.
 juce_add_binary_data(veyra_assets SOURCES

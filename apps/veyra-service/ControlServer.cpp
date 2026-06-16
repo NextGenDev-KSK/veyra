@@ -49,6 +49,13 @@ void ControlServer::persistAppRules()
 
 Message ControlServer::handle(const Message& request)
 {
+    // Trace every request (Ping is noisy, so skip it) so --console shows the
+    // live IPC flow when diagnosing the UI connection.
+    if (log_ && request.type != MessageType::Ping)
+        log_->info("ControlServer: request type=" +
+                   std::to_string(static_cast<unsigned>(request.type)) +
+                   " (" + std::to_string(request.payload.size()) + " bytes)");
+
     switch (request.type)
     {
     case MessageType::Ping:

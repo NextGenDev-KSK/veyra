@@ -129,14 +129,6 @@ void VisualizerCard::paintContent(juce::Graphics& g)
         g.setGradientFill(grad);
         g.fillRoundedRectangle(x, baseY - hgt, bw, hgt, 2.0f);
     }
-
-    // FPS badge (bottom-left of spectrum).
-    auto fps = juce::Rectangle<float>((float) area.getX(), (float) area.getBottom() - 18.0f, 60.0f, 18.0f);
-    g.setColour(palette_.bgApp.withAlpha(0.45f));
-    g.fillRoundedRectangle(fps, 6.0f);
-    g.setColour(palette_.textSecondary);
-    g.setFont(fonts::mono(10.0f));
-    g.drawText("144 FPS", fps, juce::Justification::centred, false);
 }
 
 } // namespace veyra::ui
