@@ -88,4 +88,28 @@ inline void from_json(const nlohmann::json& j, VoiceConfig& v)
     v.sideToneLevel     = j.value("side_tone_level", v.sideToneLevel);
 }
 
+inline void to_json(nlohmann::json& j, const GamerModeConfig& g)
+{
+    j = nlohmann::json{
+        {"enabled",     g.enabled},
+        {"sensitivity", g.sensitivity},
+        {"radar_mode",  g.radarMode},
+        {"footsteps",   g.footsteps},
+        {"gunshots",    g.gunshots},
+        {"voices",      g.voices},
+    };
+}
+
+inline void from_json(const nlohmann::json& j, GamerModeConfig& g)
+{
+    if (! j.is_object())
+        return;
+    g.enabled     = j.value("enabled", g.enabled);
+    g.sensitivity = j.value("sensitivity", g.sensitivity);
+    g.radarMode   = j.value("radar_mode", g.radarMode);
+    g.footsteps   = j.value("footsteps", g.footsteps);
+    g.gunshots    = j.value("gunshots", g.gunshots);
+    g.voices      = j.value("voices", g.voices);
+}
+
 } // namespace veyra

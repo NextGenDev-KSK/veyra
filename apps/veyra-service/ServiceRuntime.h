@@ -5,6 +5,7 @@
 #include "ControlServer.h"
 #include "MicPublisher.h"
 #include "PresetLibrary.h"
+#include "TrackerService.h"
 #include "veyra/Logging.h"
 
 namespace veyra::service {
@@ -25,6 +26,7 @@ private:
     Logger         log_;
     ApoPublisher   publisher_;
     MicPublisher   micPublisher_;
+    TrackerService tracker_;
     ConfigManager  config_;
     PresetLibrary  presets_;
     ControlServer  control_;

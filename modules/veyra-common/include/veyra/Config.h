@@ -42,6 +42,17 @@ struct SpatialConfig {
     int   mode      = 0;    // 0 off, 1 cinematic, 2 competitive
 };
 
+// Gamer Mode (Sound Tracker) settings. The service runs the tracker over a
+// loopback capture when enabled; the overlay reads these to choose its radar.
+struct GamerModeConfig {
+    bool  enabled     = false;
+    float sensitivity = 0.6f; // 0..1
+    int   radarMode   = 0;    // 0 competitive, 1 rich, 2 compass
+    bool  footsteps   = true;
+    bool  gunshots    = true;
+    bool  voices      = false;
+};
+
 // Microphone (capture) chain parameters; mirrors veyra::dsp::VoiceParams. The
 // service maps this onto the mic shared-memory block read by the capture APO.
 struct VoiceConfig {
@@ -67,6 +78,7 @@ struct Config {
     EnhancementConfig enhancement;
     VoiceConfig       voice;
     SpatialConfig     spatial;
+    GamerModeConfig   gamerMode;
 
     // Serialise to / from pretty-printed JSON text.
     std::string toJson() const;
