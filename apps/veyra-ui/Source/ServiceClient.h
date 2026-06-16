@@ -18,8 +18,10 @@
 #include <optional>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "veyra/Config.h"
+#include "veyra/Preset.h"
 
 namespace veyra::ui {
 
@@ -52,10 +54,21 @@ public:
     // most recent value is sent. Safe to call before a connection exists.
     void updateConfig(const veyra::Config& config);
 
+    // Presets (cached; refreshed on connect and after any mutation).
+    std::vector<veyra::Preset> presets();
+
+    void loadPreset(const std::string& uuid);   // apply a preset to the live config
+    void savePreset(const veyra::Preset& preset); // save/replace a user preset
+    void deletePreset(const std::string& uuid);   // delete a user preset
+
 private:
+    enum class CmdKind { LoadPreset, SavePreset, DeletePreset };
+    struct Command { CmdKind kind; std::string payload; };
+
     void run();
     void setStatus(ConnectionState state, std::wstring version);
     bool waitForWork(unsigned ms); // false if stop requested
+    void enqueue(Command cmd);
 
     ChangeCallback onChange_;
 
@@ -69,6 +82,8 @@ private:
     std::optional<veyra::Config> config_;        // last fetched from service
     veyra::Config                desiredConfig_;  // latest UI intent
     bool                         configDirty_ = false;
+    std::vector<veyra::Preset>   presets_;        // cached preset list
+    std::vector<Command>         queue_;          // pending preset commands
 
     std::mutex              waitMutex_;
     std::condition_variable wait_;

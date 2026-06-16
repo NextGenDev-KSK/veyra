@@ -84,6 +84,29 @@ void ServiceClient::updateConfig(const veyra::Config& config)
     wait_.notify_all();
 }
 
+std::vector<veyra::Preset> ServiceClient::presets()
+{
+    std::lock_guard<std::mutex> lock(stateMutex_);
+    return presets_;
+}
+
+void ServiceClient::enqueue(Command cmd)
+{
+    {
+        std::lock_guard<std::mutex> lock(stateMutex_);
+        queue_.push_back(std::move(cmd));
+    }
+    {
+        std::lock_guard<std::mutex> lock(waitMutex_);
+        workPending_ = true;
+    }
+    wait_.notify_all();
+}
+
+void ServiceClient::loadPreset(const std::string& uuid)   { enqueue({CmdKind::LoadPreset, uuid}); }
+void ServiceClient::savePreset(const veyra::Preset& p)     { enqueue({CmdKind::SavePreset, p.toJson()}); }
+void ServiceClient::deletePreset(const std::string& uuid)  { enqueue({CmdKind::DeletePreset, uuid}); }
+
 void ServiceClient::setStatus(ConnectionState state, std::wstring version)
 {
     {
@@ -128,24 +151,43 @@ void ServiceClient::run()
                 backoff = kBackoffStartMs;
                 firstAttempt = false;
 
-                // Adopt the service's persisted config as our baseline so we
-                // don't immediately overwrite it with a default on connect.
-                Message cfg;
-                if (client.request({MessageType::GetConfig, {}}, cfg) &&
-                    cfg.type == MessageType::ConfigReply)
+                // Fetch the service's persisted config + preset list so the UI
+                // starts from the real state instead of local defaults.
+                auto fetchConfig = [&]
                 {
-                    if (auto parsed = veyra::Config::fromJson(cfg.payload))
+                    Message cfg;
+                    if (client.request({MessageType::GetConfig, {}}, cfg) &&
+                        cfg.type == MessageType::ConfigReply)
+                        if (auto parsed = veyra::Config::fromJson(cfg.payload))
+                        {
+                            std::lock_guard<std::mutex> lock(stateMutex_);
+                            config_ = *parsed;
+                            if (!configDirty_) // keep any unsent user changes
+                                desiredConfig_ = *parsed;
+                            return true;
+                        }
+                    return false;
+                };
+                auto fetchPresets = [&]
+                {
+                    Message rep;
+                    if (client.request({MessageType::ListPresets, {}}, rep) &&
+                        rep.type == MessageType::PresetsReply)
                     {
+                        auto list = veyra::presetsFromJsonArray(rep.payload);
                         std::lock_guard<std::mutex> lock(stateMutex_);
-                        config_ = *parsed;
-                        if (!configDirty_) // keep any unsent user changes
-                            desiredConfig_ = *parsed;
+                        presets_ = std::move(list);
+                        return true;
                     }
-                    if (onChange_)
-                        onChange_();
-                }
+                    return false;
+                };
 
-                // Keepalive: send coalesced config changes, otherwise ping.
+                fetchConfig();
+                fetchPresets();
+                if (onChange_)
+                    onChange_();
+
+                // Keepalive: config push, queued preset commands, otherwise ping.
                 bool ok = true;
                 while (running_.load() && ok)
                 {
@@ -153,12 +195,18 @@ void ServiceClient::run()
                         break; // stop requested
 
                     std::optional<veyra::Config> toSend;
+                    std::optional<Command>       cmd;
                     {
                         std::lock_guard<std::mutex> lock(stateMutex_);
                         if (configDirty_)
                         {
                             toSend       = desiredConfig_;
                             configDirty_ = false;
+                        }
+                        else if (!queue_.empty())
+                        {
+                            cmd = queue_.front();
+                            queue_.erase(queue_.begin());
                         }
                     }
 
@@ -171,6 +219,25 @@ void ServiceClient::run()
                         {
                             std::lock_guard<std::mutex> lock(stateMutex_);
                             config_ = *toSend;
+                        }
+                    }
+                    else if (cmd)
+                    {
+                        const MessageType type =
+                            cmd->kind == CmdKind::LoadPreset   ? MessageType::LoadPreset :
+                            cmd->kind == CmdKind::SavePreset   ? MessageType::SavePreset :
+                                                                 MessageType::DeletePreset;
+                        Message ack;
+                        ok = client.request({type, cmd->payload}, ack) &&
+                             ack.type == MessageType::PresetAck;
+                        if (ok)
+                        {
+                            if (cmd->kind == CmdKind::LoadPreset)
+                                fetchConfig(); // applying a preset changed the live config
+                            else
+                                fetchPresets(); // the user preset set changed
+                            if (onChange_)
+                                onChange_();
                         }
                     }
                     else

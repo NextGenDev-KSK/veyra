@@ -1,5 +1,7 @@
 #include "RootComponent.h"
 
+#include "veyra/Preset.h"
+
 namespace veyra::ui {
 
 namespace {
@@ -16,12 +18,21 @@ RootComponent::RootComponent()
     addAndMakeVisible(topBar_);
     addAndMakeVisible(sidebar_);
     addChildComponent(home_);
+    addChildComponent(presets_);
     addChildComponent(settings_);
     addChildComponent(placeholder_);
 
     home_.attachBackdrop(&background_);
+    presets_.attachBackdrop(&background_);
     settings_.attachBackdrop(&background_);
     placeholder_.attachBackdrop(&background_);
+
+    // Presets screen actions.
+    presets_.onApply       = [this](juce::String uuid) { client_.loadPreset(uuid.toStdString()); };
+    presets_.onDelete      = [this](juce::String uuid) { client_.deletePreset(uuid.toStdString()); };
+    presets_.onSaveCurrent = [this](juce::String name) { saveCurrentAsPreset(name); };
+    presets_.onExport      = [this](juce::String uuid) { exportPreset(uuid); };
+    presets_.onImport      = [this] { importPreset(); };
 
     // Seed the working config from the initial control state.
     working_.enhancement = home_.enhancement();
@@ -109,6 +120,7 @@ void RootComponent::applyPalette()
     topBar_.setPalette(p);
     sidebar_.setPalette(p);
     home_.setPalette(p);
+    presets_.setPalette(p);
     settings_.setPalette(p);
     placeholder_.setPalette(p);
     if (mini_ != nullptr)
@@ -122,6 +134,8 @@ void RootComponent::showScreen(int navIndex)
     juce::Component* next = nullptr;
     if (navIndex == 0)
         next = &home_;
+    else if (navIndex == 1)
+        next = &presets_;
     else if (navIndex == 6)
         next = &settings_;
     else
@@ -169,6 +183,66 @@ void RootComponent::refreshFromService()
     mini_->content().setConnection(connected);
     if (auto c = client_.config())
         applyConfig(*c);
+    presets_.setPresets(client_.presets(), juce::String(working_.activePresetUuid));
+}
+
+void RootComponent::saveCurrentAsPreset(const juce::String& name)
+{
+    veyra::Preset p;
+    p.uuid             = ("u-" + juce::Uuid().toDashedString()).toStdString();
+    p.name             = name.toStdString();
+    p.category         = "Custom";
+    p.author           = "User";
+    p.builtIn          = false;
+    p.masterVolumeGain = working_.masterVolumeGain;
+    p.enhancement      = working_.enhancement;
+    client_.savePreset(p);
+}
+
+void RootComponent::exportPreset(const juce::String& uuid)
+{
+    veyra::Preset found;
+    bool ok = false;
+    for (const auto& p : client_.presets())
+        if (juce::String(p.uuid) == uuid) { found = p; ok = true; break; }
+    if (!ok)
+        return;
+
+    chooser_ = std::make_unique<juce::FileChooser>(
+        "Export Preset", juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
+                             .getChildFile(juce::String(found.name) + ".vpreset"),
+        "*.vpreset");
+    const auto flags = juce::FileBrowserComponent::saveMode
+                     | juce::FileBrowserComponent::canSelectFiles
+                     | juce::FileBrowserComponent::warnAboutOverwriting;
+    chooser_->launchAsync(flags, [found](const juce::FileChooser& fc)
+    {
+        const auto file = fc.getResult();
+        if (file != juce::File())
+            file.replaceWithText(juce::String(found.toJson()));
+    });
+}
+
+void RootComponent::importPreset()
+{
+    chooser_ = std::make_unique<juce::FileChooser>(
+        "Import Preset", juce::File::getSpecialLocation(juce::File::userDocumentsDirectory),
+        "*.vpreset");
+    const auto flags = juce::FileBrowserComponent::openMode
+                     | juce::FileBrowserComponent::canSelectFiles;
+    chooser_->launchAsync(flags, [this](const juce::FileChooser& fc)
+    {
+        const auto file = fc.getResult();
+        if (file == juce::File())
+            return;
+        if (auto p = veyra::Preset::fromJson(file.loadFileAsString().toStdString()))
+        {
+            // Import as a fresh user preset so it can't clash with a built-in id.
+            p->uuid    = ("u-" + juce::Uuid().toDashedString()).toStdString();
+            p->builtIn = false;
+            client_.savePreset(*p);
+        }
+    });
 }
 
 void RootComponent::setMasterEnabled(bool on)
@@ -221,6 +295,7 @@ void RootComponent::resized()
 
     // All screens share the content rect; only the current one is visible.
     home_.setBounds(b);
+    presets_.setBounds(b);
     settings_.setBounds(b);
     placeholder_.setBounds(b);
 }

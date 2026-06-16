@@ -11,6 +11,7 @@
 #include "MiniWindow.h"
 #include "Screens/HomeScreen.h"
 #include "Screens/PlaceholderScreen.h"
+#include "Screens/PresetsScreen.h"
 #include "Screens/SettingsScreen.h"
 #include "ServiceClient.h"
 #include "Theme/ThemeManager.h"
@@ -44,6 +45,10 @@ private:
     void enterMiniMode();
     void enterFullMode();
 
+    void saveCurrentAsPreset(const juce::String& name);
+    void exportPreset(const juce::String& uuid);
+    void importPreset();
+
     VeyraLookAndFeel laf_;
     ThemeManager     themeManager_;
     GlassBackground  background_;
@@ -51,12 +56,14 @@ private:
     Sidebar          sidebar_;
 
     HomeScreen        home_;
+    PresetsScreen     presets_;
     SettingsScreen    settings_;
     PlaceholderScreen placeholder_;
     juce::Component*  current_ = nullptr;
 
-    std::unique_ptr<MiniWindow> mini_;
-    TrayIcon                    tray_;
+    std::unique_ptr<MiniWindow>      mini_;
+    TrayIcon                         tray_;
+    std::unique_ptr<juce::FileChooser> chooser_;
 
     veyra::Config working_;
 
