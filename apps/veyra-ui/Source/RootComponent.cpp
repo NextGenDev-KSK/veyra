@@ -1,5 +1,6 @@
 #include "RootComponent.h"
 
+#include "veyra/Paths.h"
 #include "veyra/Preset.h"
 
 namespace veyra::ui {
@@ -40,6 +41,9 @@ RootComponent::RootComponent()
         resized();
     };
     effects_.onBack = [this] { sidebar_.setActive(0); showScreen(0); };
+
+    // Per-app rules: auto-apply a preset when the foreground app matches a rule.
+    appRules_.setRulesFile(veyra::paths::appDataDir() / "app_rules.json");
 
     // Presets screen actions.
     presets_.onApply       = [this](juce::String uuid) { client_.loadPreset(uuid.toStdString()); };
@@ -164,6 +168,14 @@ void RootComponent::changeListenerCallback(juce::ChangeBroadcaster*)
 
 void RootComponent::timerCallback()
 {
+    // ~1 Hz: apply a per-app rule when the foreground app changes (timer is 30 Hz).
+    if (++ruleTick_ >= 30)
+    {
+        ruleTick_ = 0;
+        if (auto uuid = appRules_.poll())
+            client_.loadPreset(*uuid);
+    }
+
     // Open the analyzer block lazily (the service may start after the UI).
     if (analyzerData_ == nullptr)
     {

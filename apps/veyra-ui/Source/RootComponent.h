@@ -5,6 +5,7 @@
 // sidebar navigation, owns the single working Config, and bridges the service
 // client (connection LED + config sync + parameter push).
 
+#include "AppRuleWatcher.h"
 #include "Graphics/GlassBackground.h"
 #include "Home/Sidebar.h"
 #include "Home/TopBar.h"
@@ -77,6 +78,10 @@ private:
     // Live metering (read-only view of the service's analyzer block).
     ipc::SharedMemoryRegion              analyzerRegion_;
     const ipc::VeyraAnalyzerData*        analyzerData_ = nullptr;
+
+    // Per-app rule watcher (user-session foreground tracking).
+    AppRuleWatcher appRules_;
+    int            ruleTick_ = 0;
 
     ServiceClient client_; // declared last -> destroyed first (thread joins early)
 };

@@ -25,6 +25,7 @@ target_sources(veyra PRIVATE
     Source/RootComponent.cpp
     Source/MiniWindow.cpp
     Source/ServiceClient.cpp
+    Source/AppRuleWatcher.cpp
     Source/Theme/DesignTokens.cpp
     Source/Theme/Fonts.cpp
     Source/Theme/VeyraLookAndFeel.cpp
