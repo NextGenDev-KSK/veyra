@@ -17,6 +17,7 @@ add_executable(veyra-service
     ApoPublisher.cpp
     MicPublisher.cpp
     TrackerService.cpp
+    SleepTimerService.cpp
     veyra-service.rc)
 
 # advapi32: SCM APIs; veyra::dsp: the Sound Tracker engine; ole32: WASAPI/COM.

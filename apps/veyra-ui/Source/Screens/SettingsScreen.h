@@ -38,6 +38,9 @@ public:
     // Spatial (headphone) interactions.
     std::function<void(const veyra::SpatialConfig&)> onSpatialChanged;
 
+    // Loudness (Night Mode + Sleep Timer) interactions.
+    std::function<void(const veyra::LoudnessConfig&)> onLoudnessChanged;
+
     // About: reset all settings to defaults.
     std::function<void()> onResetSettings;
 
@@ -46,16 +49,19 @@ public:
     void setAppearance(double opacity, int backgroundMode, bool reduceMotion);
     void setMicConfig(const veyra::VoiceConfig& voice);
     void setSpatialConfig(const veyra::SpatialConfig& spatial);
+    void setLoudnessConfig(const veyra::LoudnessConfig& loud);
     void setServiceStatus(bool connected, juce::String version);
 
 private:
     class AppearanceCard;
     class MicrophoneCard;
     class SpatialCard;
+    class LoudnessCard;
     class AboutCard;
     std::unique_ptr<AppearanceCard> appearance_;
     std::unique_ptr<MicrophoneCard> microphone_;
     std::unique_ptr<SpatialCard>    spatial_;
+    std::unique_ptr<LoudnessCard>   loudness_;
     std::unique_ptr<AboutCard>      about_;
 };
 

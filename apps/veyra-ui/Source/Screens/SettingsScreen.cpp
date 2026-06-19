@@ -482,6 +482,137 @@ private:
 };
 
 // ---------------------------------------------------------------------------
+// LoudnessCard: Night Mode (dynamic-range compression) + Sleep Timer.
+// ---------------------------------------------------------------------------
+class SettingsScreen::LoudnessCard : public GlassPanel {
+public:
+    LoudnessCard()
+    {
+        night_.setSliderStyle(juce::Slider::LinearHorizontal);
+        night_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        night_.setRange(0.0, 1.0, 0.01);
+        night_.onValueChange = [this] { loud_.nightModeAmount = (float) night_.getValue(); emit(); };
+        addAndMakeVisible(night_);
+
+        sleepEnable_.onClick = [this] { loud_.sleepTimerEnabled = sleepEnable_.getToggleState(); emit(); };
+        addAndMakeVisible(sleepEnable_);
+
+        minutes_.setSliderStyle(juce::Slider::LinearHorizontal);
+        minutes_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        minutes_.setRange(5.0, 120.0, 1.0);
+        minutes_.setValue(30.0, juce::dontSendNotification);
+        minutes_.onValueChange = [this] { loud_.sleepTimerMinutes = (float) minutes_.getValue(); emit(); };
+        addAndMakeVisible(minutes_);
+    }
+
+    std::function<void(const veyra::LoudnessConfig&)> onLoudnessChanged;
+
+    void setPalette(const Palette& p) override
+    {
+        GlassPanel::setPalette(p);
+        sleepEnable_.setPalette(p);
+    }
+
+    void setLoudnessConfig(const veyra::LoudnessConfig& l)
+    {
+        loud_ = l;
+        night_.setValue(l.nightModeAmount, juce::dontSendNotification);
+        sleepEnable_.setToggleState(l.sleepTimerEnabled, juce::dontSendNotification);
+        minutes_.setValue(l.sleepTimerMinutes, juce::dontSendNotification);
+        repaint();
+    }
+
+    void resized() override
+    {
+        auto header = getLocalBounds().reduced(kPad).removeFromTop(28);
+        juce::ignoreUnused(header);
+        auto nr = nightRow();
+        nr.removeFromLeft(110);
+        nr.removeFromRight(52);
+        night_.setBounds(nr.withSizeKeepingCentre(nr.getWidth(), 18));
+
+        auto sr = sleepRow();
+        sleepEnable_.setBounds(sr.removeFromRight(40).withSizeKeepingCentre(40, 20));
+
+        auto mr = minutesRow();
+        mr.removeFromLeft(110);
+        mr.removeFromRight(64);
+        minutes_.setBounds(mr.withSizeKeepingCentre(mr.getWidth(), 18));
+    }
+
+protected:
+    void paintContent(juce::Graphics& g) override
+    {
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::display(20.0f));
+        g.drawText("LOUDNESS", getLocalBounds().reduced(kPad).removeFromTop(28),
+                   juce::Justification::centredLeft, false);
+
+        // Night Mode row.
+        auto nr = nightRow();
+        g.setColour(palette_.textSecondary);
+        g.setFont(fonts::body(13.0f));
+        g.drawText("Night Mode", nr.removeFromLeft(110).withTrimmedRight(8),
+                   juce::Justification::centredLeft, false);
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::mono(12.0f));
+        g.drawText(juce::String(juce::roundToInt(night_.getValue() * 100.0)) + "%",
+                   nr.removeFromRight(52), juce::Justification::centredRight, false);
+
+        // Sleep Timer label.
+        auto sr = sleepRow();
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::body(14.0f, true));
+        g.drawText("Sleep Timer", sr.removeFromLeft(160), juce::Justification::centredLeft, false);
+
+        // Minutes row.
+        auto mr = minutesRow();
+        g.setColour(loud_.sleepTimerEnabled ? palette_.textSecondary : palette_.textTertiary);
+        g.setFont(fonts::body(13.0f));
+        g.drawText("Fade after", mr.removeFromLeft(110).withTrimmedRight(8),
+                   juce::Justification::centredLeft, false);
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::mono(12.0f));
+        g.drawText(juce::String(juce::roundToInt(minutes_.getValue())) + " min",
+                   mr.removeFromRight(64), juce::Justification::centredRight, false);
+    }
+
+private:
+    juce::Rectangle<int> nightRow() const
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        c.removeFromTop(28 + 10);
+        return c.removeFromTop(36);
+    }
+    juce::Rectangle<int> sleepRow() const
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        c.removeFromTop(28 + 10 + 36 + 14);
+        return c.removeFromTop(24);
+    }
+    juce::Rectangle<int> minutesRow() const
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        c.removeFromTop(28 + 10 + 36 + 14 + 24 + 6);
+        return c.removeFromTop(36);
+    }
+
+    void emit()
+    {
+        if (onLoudnessChanged)
+            onLoudnessChanged(loud_);
+        repaint();
+    }
+
+    static constexpr int kPad = 24;
+
+    veyra::LoudnessConfig loud_;
+    juce::Slider          night_;
+    ToggleSwitch          sleepEnable_;
+    juce::Slider          minutes_;
+};
+
+// ---------------------------------------------------------------------------
 // AboutCard: build info, service status, licenses + maintenance actions.
 // ---------------------------------------------------------------------------
 class SettingsScreen::AboutCard : public GlassPanel {
@@ -584,6 +715,10 @@ SettingsScreen::SettingsScreen()
     spatial_->onSpatialChanged = [this](const veyra::SpatialConfig& s) { if (onSpatialChanged) onSpatialChanged(s); };
     addAndMakeVisible(*spatial_);
 
+    loudness_ = std::make_unique<LoudnessCard>();
+    loudness_->onLoudnessChanged = [this](const veyra::LoudnessConfig& l) { if (onLoudnessChanged) onLoudnessChanged(l); };
+    addAndMakeVisible(*loudness_);
+
     about_ = std::make_unique<AboutCard>();
     about_->onResetSettings = [this] { if (onResetSettings) onResetSettings(); };
     addAndMakeVisible(*about_);
@@ -596,6 +731,7 @@ void SettingsScreen::setPalette(const Palette& p)
     appearance_->setPalette(p);
     microphone_->setPalette(p);
     spatial_->setPalette(p);
+    loudness_->setPalette(p);
     about_->setPalette(p);
 }
 
@@ -604,6 +740,7 @@ void SettingsScreen::attachBackdrop(GlassBackground* b)
     appearance_->setBackdrop(b);
     microphone_->setBackdrop(b);
     spatial_->setBackdrop(b);
+    loudness_->setBackdrop(b);
     about_->setBackdrop(b);
 }
 
@@ -614,6 +751,7 @@ void SettingsScreen::setAppearance(double opacity, int backgroundMode, bool redu
 }
 void SettingsScreen::setMicConfig(const veyra::VoiceConfig& v) { microphone_->setMicConfig(v); }
 void SettingsScreen::setSpatialConfig(const veyra::SpatialConfig& s) { spatial_->setSpatialConfig(s); }
+void SettingsScreen::setLoudnessConfig(const veyra::LoudnessConfig& l) { loudness_->setLoudnessConfig(l); }
 void SettingsScreen::setServiceStatus(bool connected, juce::String version)
 {
     about_->setServiceStatus(connected, std::move(version));
@@ -623,10 +761,13 @@ void SettingsScreen::resized()
 {
     auto b = getLocalBounds().reduced(24);
 
-    // Full-width About strip along the bottom.
-    auto aboutArea = b.removeFromBottom(132);
+    // Bottom strip: Loudness (left) + About (right).
+    auto bottom = b.removeFromBottom(176);
     b.removeFromBottom(20);
-    about_->setBounds(aboutArea);
+    auto loudnessArea = bottom.removeFromLeft(juce::jlimit(300, 460, bottom.getWidth() * 2 / 5));
+    bottom.removeFromLeft(20);
+    loudness_->setBounds(loudnessArea);
+    about_->setBounds(bottom);
 
     // Above it: Appearance (wide, theme grid) left; Microphone over Spatial right.
     const int rightW = juce::jlimit(300, 420, b.getWidth() / 3);

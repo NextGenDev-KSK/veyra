@@ -10,6 +10,7 @@ ServiceRuntime::ServiceRuntime(bool consoleLogging)
       publisher_(&log_),
       micPublisher_(&log_),
       tracker_(&log_),
+      sleepTimer_(&log_),
       config_(paths::configFile(), &log_),
       presets_(paths::presetsDir(), &log_),
       control_(config_, presets_, paths::appDataDir() / "app_rules.json", &log_)
@@ -24,12 +25,14 @@ bool ServiceRuntime::start()
     // the config changes so the APO always reflects current settings.
     publisher_.start();
     micPublisher_.start();
-    tracker_.start(); // Gamer Mode loopback capture + Sound Tracker producer
+    tracker_.start();     // Gamer Mode loopback capture + Sound Tracker producer
+    sleepTimer_.start();  // sleep-timer endpoint-volume fade
     config_.setOnChanged([this](const Config& c)
     {
         publisher_.publish(c);
-        micPublisher_.publish(c); // mic chain params for the capture APO
+        micPublisher_.publish(c);        // mic chain params for the capture APO
         tracker_.setConfig(c.gamerMode); // enable/sensitivity for the tracker
+        sleepTimer_.setConfig(c.loudness); // sleep timer enable/duration
     });
 
     presets_.load();        // built-ins + user .vpreset files
@@ -50,6 +53,7 @@ void ServiceRuntime::stop()
 {
     control_.stop();
     tracker_.stop();
+    sleepTimer_.stop(); // restores the endpoint volume if a fade was in progress
     log_.info("Veyra service stopped");
 }
 

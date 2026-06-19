@@ -5,6 +5,7 @@
 #include "ControlServer.h"
 #include "MicPublisher.h"
 #include "PresetLibrary.h"
+#include "SleepTimerService.h"
 #include "TrackerService.h"
 #include "veyra/Logging.h"
 
@@ -24,13 +25,14 @@ public:
     Logger& log() { return log_; }
 
 private:
-    Logger         log_;
-    ApoPublisher   publisher_;
-    MicPublisher   micPublisher_;
-    TrackerService tracker_;
-    ConfigManager  config_;
-    PresetLibrary  presets_;
-    ControlServer  control_;
+    Logger            log_;
+    ApoPublisher      publisher_;
+    MicPublisher      micPublisher_;
+    TrackerService    tracker_;
+    SleepTimerService sleepTimer_;
+    ConfigManager     config_;
+    PresetLibrary     presets_;
+    ControlServer     control_;
 };
 
 } // namespace veyra::service
