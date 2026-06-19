@@ -391,6 +391,13 @@ public:
         cf_.setValue(0.0, juce::dontSendNotification);
         cf_.onValueChange = [this] { spatial_.crossfeed = (float) cf_.getValue(); emit(); };
         addAndMakeVisible(cf_);
+
+        vs_.setSliderStyle(juce::Slider::LinearHorizontal);
+        vs_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        vs_.setRange(0.0, 1.0, 0.01);
+        vs_.setValue(0.0, juce::dontSendNotification);
+        vs_.onValueChange = [this] { spatial_.virtualization = (float) vs_.getValue(); emit(); };
+        addAndMakeVisible(vs_);
     }
 
     std::function<void(const veyra::SpatialConfig&)> onSpatialChanged;
@@ -408,6 +415,7 @@ public:
         enable_.setToggleState(s.enabled, juce::dontSendNotification);
         mode_.setSelectedIndex(juce::jlimit(0, 2, s.mode), false);
         cf_.setValue(s.crossfeed, juce::dontSendNotification);
+        vs_.setValue(s.virtualization, juce::dontSendNotification);
         repaint();
     }
 
@@ -420,6 +428,10 @@ public:
         row.removeFromLeft(110);
         row.removeFromRight(52);
         cf_.setBounds(row.withSizeKeepingCentre(row.getWidth(), 18));
+        auto vrow = virtualizationRow();
+        vrow.removeFromLeft(110);
+        vrow.removeFromRight(52);
+        vs_.setBounds(vrow.withSizeKeepingCentre(vrow.getWidth(), 18));
     }
 
 protected:
@@ -439,6 +451,16 @@ protected:
         g.setFont(fonts::mono(12.0f));
         g.drawText(juce::String(juce::roundToInt(cf_.getValue() * 100.0)) + "%",
                    row.removeFromRight(52), juce::Justification::centredRight, false);
+
+        auto vrow = virtualizationRow();
+        g.setColour(spatial_.enabled ? palette_.textSecondary : palette_.textTertiary);
+        g.setFont(fonts::body(13.0f));
+        g.drawText("Virtualization", vrow.removeFromLeft(110).withTrimmedRight(8),
+                   juce::Justification::centredLeft, false);
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::mono(12.0f));
+        g.drawText(juce::String(juce::roundToInt(vs_.getValue() * 100.0)) + "%",
+                   vrow.removeFromRight(52), juce::Justification::centredRight, false);
     }
 
 private:
@@ -454,15 +476,22 @@ private:
         c.removeFromTop(28 + 8 + 34 + 12);
         return c.removeFromTop(36);
     }
+    juce::Rectangle<int> virtualizationRow() const
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        c.removeFromTop(28 + 8 + 34 + 12 + 36 + 10);
+        return c.removeFromTop(36);
+    }
 
     void applyMode(int i)
     {
         spatial_.mode = i;
-        if (i == 1)      { spatial_.enabled = true;  spatial_.crossfeed = 0.70f; } // Cinematic
-        else if (i == 2) { spatial_.enabled = true;  spatial_.crossfeed = 0.25f; } // Competitive
-        else             { spatial_.enabled = false; spatial_.crossfeed = 0.0f;  } // Off
+        if (i == 1)      { spatial_.enabled = true;  spatial_.crossfeed = 0.55f; spatial_.virtualization = 0.70f; } // Cinematic
+        else if (i == 2) { spatial_.enabled = true;  spatial_.crossfeed = 0.25f; spatial_.virtualization = 0.0f;  } // Competitive
+        else             { spatial_.enabled = false; spatial_.crossfeed = 0.0f;  spatial_.virtualization = 0.0f;  } // Off
         enable_.setToggleState(spatial_.enabled, juce::dontSendNotification);
         cf_.setValue(spatial_.crossfeed, juce::dontSendNotification);
+        vs_.setValue(spatial_.virtualization, juce::dontSendNotification);
         emit();
     }
 
@@ -479,6 +508,7 @@ private:
     ToggleSwitch         enable_;
     SegmentedControl     mode_;
     juce::Slider         cf_;
+    juce::Slider         vs_;
 };
 
 // ---------------------------------------------------------------------------

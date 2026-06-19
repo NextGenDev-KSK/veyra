@@ -12,6 +12,7 @@ add_executable(dsp_tests
     dsp_tests/test_shared_params.cpp
     dsp_tests/test_voice.cpp
     dsp_tests/test_spatial.cpp
+    dsp_tests/test_virtual_surround.cpp
     dsp_tests/test_tracker.cpp
     dsp_tests/test_lab_loudness.cpp
     dsp_tests/test_delayline.cpp

@@ -30,6 +30,7 @@ struct VeyraParamsPayload {
     float    stereoWidth = 1.0f;
     float    volumeGain = 1.0f;
     float    crossfeedAmount = 0.0f;
+    float    virtualizationAmount = 0.0f;
     float    nightModeAmount = 0.0f;
     float    limiterCeilingDb = -0.3f;
 };

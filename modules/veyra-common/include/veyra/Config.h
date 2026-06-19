@@ -38,9 +38,10 @@ struct EnhancementConfig {
 // mode is remembered for the UI (0 off, 1 cinematic, 2 competitive). Full HRTF
 // virtual surround arrives with a multichannel virtual endpoint in a later pass.
 struct SpatialConfig {
-    bool  enabled   = false;
-    float crossfeed = 0.0f; // 0..1
-    int   mode      = 0;    // 0 off, 1 cinematic, 2 competitive
+    bool  enabled        = false;
+    float crossfeed      = 0.0f; // 0..1 headphone crossfeed
+    float virtualization = 0.0f; // 0..1 HRTF out-of-head virtualisation
+    int   mode           = 0;    // 0 off, 1 cinematic, 2 competitive
 };
 
 // Gamer Mode (Sound Tracker) settings. The service runs the tracker over a

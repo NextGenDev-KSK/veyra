@@ -45,9 +45,10 @@ inline void from_json(const nlohmann::json& j, EnhancementConfig& e)
 inline void to_json(nlohmann::json& j, const SpatialConfig& s)
 {
     j = nlohmann::json{
-        {"enabled",   s.enabled},
-        {"crossfeed", s.crossfeed},
-        {"mode",      s.mode},
+        {"enabled",        s.enabled},
+        {"crossfeed",      s.crossfeed},
+        {"virtualization", s.virtualization},
+        {"mode",           s.mode},
     };
 }
 
@@ -55,9 +56,10 @@ inline void from_json(const nlohmann::json& j, SpatialConfig& s)
 {
     if (! j.is_object())
         return;
-    s.enabled   = j.value("enabled", s.enabled);
-    s.crossfeed = j.value("crossfeed", s.crossfeed);
-    s.mode      = j.value("mode", s.mode);
+    s.enabled        = j.value("enabled", s.enabled);
+    s.crossfeed      = j.value("crossfeed", s.crossfeed);
+    s.virtualization = j.value("virtualization", s.virtualization);
+    s.mode           = j.value("mode", s.mode);
 }
 
 inline void to_json(nlohmann::json& j, const VoiceConfig& v)

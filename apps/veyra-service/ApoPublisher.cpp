@@ -48,8 +48,9 @@ void ApoPublisher::publish(const Config& config)
     p.trebleDb          = e.trebleDb;
     p.stereoWidth       = e.stereoWidth;
     p.compressionAmount = e.compressionAmount;
-    p.crossfeedAmount   = config.spatial.enabled ? config.spatial.crossfeed : 0.0f;
-    p.nightModeAmount   = config.loudness.nightModeAmount;
+    p.crossfeedAmount     = config.spatial.enabled ? config.spatial.crossfeed : 0.0f;
+    p.virtualizationAmount = config.spatial.enabled ? config.spatial.virtualization : 0.0f;
+    p.nightModeAmount     = config.loudness.nightModeAmount;
     // Reverb has no DSP stage yet; e.reverbAmount is carried in Config for the UI.
 
     ipc::publishParameters(params_, p);
