@@ -39,6 +39,13 @@ public:
 
     void setReduceMotion(bool reduce) { viz_.setReduceMotion(reduce); }
 
+    // Feed the visualizer a live metering frame from the service analyzer.
+    void pushVisualizerFrame(const float* bars, int n,
+                             float vuL, float vuR, float peakL, float peakR, bool clip)
+    {
+        viz_.setLiveFrame(bars, n, vuL, vuR, peakL, peakR, clip);
+    }
+
 private:
     void onKnobChanged(int index, double v01);
     void seedFromControls();

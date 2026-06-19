@@ -1,8 +1,8 @@
 #pragma once
 
-// Visualizer glass card: animated spectrum bars (placeholder data until wired to
-// the APO analyzer ring buffer), L/R VU meters, mode dropdown, fullscreen button
-// and an FPS badge.
+// Visualizer glass card: spectrum bars + L/R VU/peak meters fed live from the
+// service's loopback analyzer (idle animation when the service isn't running),
+// plus a mode dropdown and fullscreen button.
 
 #include "Components/GlassPanel.h"
 #include "Components/IconButton.h"
@@ -24,6 +24,11 @@ public:
     // Reduce-motion (Settings→Appearance): freeze the animation to a static frame.
     void setReduceMotion(bool reduce);
 
+    // Live metering from the service's loopback analyzer. While fresh frames keep
+    // arriving the card shows real audio; otherwise it falls back to idle motion.
+    void setLiveFrame(const float* bars, int n,
+                      float vuL, float vuR, float peakL, float peakR, bool clip);
+
 private:
     void timerCallback() override;
 
@@ -34,6 +39,7 @@ private:
     float peakL_ = 0.4f, peakR_ = 0.3f;
     bool clip_ = false;
     int frame_ = 0;
+    int liveTtl_ = 0; // frames remaining to treat as live before idle fallback
     juce::Random rng_;
 
     juce::ComboBox mode_;

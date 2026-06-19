@@ -8,7 +8,9 @@
 #include <atomic>
 #include <thread>
 
+#include "analyzer/Analyzer.h"
 #include "veyra/Config.h"
+#include "veyra/ipc/AnalyzerData.h"
 #include "veyra/ipc/SharedMemory.h"
 #include "veyra/ipc/TrackerData.h"
 
@@ -32,14 +34,18 @@ public:
 private:
     void run();             // capture thread
     bool captureSession();  // one WASAPI session; returns false to retry later
+    void publishAnalyzerFrame(const dsp::AnalyzerFrame& frame); // -> analyzer block
 
     Logger*                        log_;
     ipc::SharedMemoryRegion        region_;
     ipc::VeyraTrackerData*         data_ = nullptr;
+    ipc::SharedMemoryRegion        analyzerRegion_;
+    ipc::VeyraAnalyzerData*        analyzerData_ = nullptr;
+    float                          specMax_ = 1.0e-6f; // auto-gain reference
 
     std::thread        thread_;
     std::atomic<bool>  running_{false};
-    std::atomic<bool>  enabled_{false};
+    std::atomic<bool>  enabled_{false};   // Gamer Mode: gates tracker events only
     std::atomic<float> sensitivity_{0.6f};
 };
 

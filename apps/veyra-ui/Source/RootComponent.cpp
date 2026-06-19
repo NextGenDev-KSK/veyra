@@ -130,10 +130,13 @@ RootComponent::RootComponent()
                 safe->refreshFromService();
         });
     });
+
+    startTimerHz(30); // poll the service's live metering block for the visualizer
 }
 
 RootComponent::~RootComponent()
 {
+    stopTimer();
     client_.stop(); // join the background thread before the rest tears down
     themeManager_.removeChangeListener(this);
     setLookAndFeel(nullptr);
@@ -142,6 +145,23 @@ RootComponent::~RootComponent()
 void RootComponent::changeListenerCallback(juce::ChangeBroadcaster*)
 {
     applyPalette();
+}
+
+void RootComponent::timerCallback()
+{
+    // Open the analyzer block lazily (the service may start after the UI).
+    if (analyzerData_ == nullptr)
+    {
+        if (analyzerRegion_.open(veyra::ipc::kSharedAnalyzerName, sizeof(veyra::ipc::VeyraAnalyzerData)))
+            analyzerData_ = static_cast<const veyra::ipc::VeyraAnalyzerData*>(analyzerRegion_.data());
+        else
+            return;
+    }
+
+    veyra::ipc::VeyraAnalyzerPayload p;
+    if (veyra::ipc::readAnalyzer(analyzerData_, p))
+        home_.pushVisualizerFrame(p.bars, veyra::ipc::kAnalyzerBars,
+                                  p.vuL, p.vuR, p.peakL, p.peakR, p.clip != 0);
 }
 
 void RootComponent::applyPalette()

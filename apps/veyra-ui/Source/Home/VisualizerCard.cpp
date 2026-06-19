@@ -31,6 +31,20 @@ void VisualizerCard::setReduceMotion(bool reduce)
     repaint();
 }
 
+void VisualizerCard::setLiveFrame(const float* bars, int n,
+                                  float vuL, float vuR, float peakL, float peakR, bool clip)
+{
+    const int m = juce::jmin(n, kBars);
+    for (int i = 0; i < m; ++i)
+        targets_[(size_t) i] = juce::jlimit(0.0f, 1.0f, bars[i]);
+    vuL_ = juce::jlimit(0.0f, 1.0f, vuL);
+    vuR_ = juce::jlimit(0.0f, 1.0f, vuR);
+    peakL_ = juce::jmax(peakL_, juce::jlimit(0.0f, 1.0f, peakL));
+    peakR_ = juce::jmax(peakR_, juce::jlimit(0.0f, 1.0f, peakR));
+    clip_ = clip;
+    liveTtl_ = 30; // ~0.5 s of live priority before idle fallback (at 60 Hz)
+}
+
 void VisualizerCard::resized()
 {
     auto r = getLocalBounds().reduced(16);
@@ -41,25 +55,32 @@ void VisualizerCard::resized()
 
 void VisualizerCard::timerCallback()
 {
-    // Regenerate targets only ~every 9th frame, then ease toward them: this is
-    // roughly 40% slower / calmer than per-frame target changes.
-    if (++frame_ % 9 == 0)
-        for (int i = 0; i < kBars; ++i)
-        {
-            const float shape = 0.35f + 0.6f * std::sin((float) i / kBars * juce::MathConstants<float>::pi);
-            targets_[(size_t) i] = std::pow(rng_.nextFloat(), 2.0f) * shape;
-        }
+    if (liveTtl_ > 0)
+    {
+        // Live audio: targets_/VU set by setLiveFrame(); just ease + decay peaks.
+        --liveTtl_;
+    }
+    else
+    {
+        // Idle animation when no service feed. Regenerate targets ~every 9th
+        // frame, then ease toward them (calm, ~40% slower than per-frame).
+        if (++frame_ % 9 == 0)
+            for (int i = 0; i < kBars; ++i)
+            {
+                const float shape = 0.35f + 0.6f * std::sin((float) i / kBars * juce::MathConstants<float>::pi);
+                targets_[(size_t) i] = std::pow(rng_.nextFloat(), 2.0f) * shape;
+            }
+        // Cap the random walk below the clip threshold so CLIP never trips on
+        // idle data.
+        vuL_ = juce::jlimit(0.0f, 0.85f, vuL_ + (rng_.nextFloat() - 0.5f) * 0.08f);
+        vuR_ = juce::jlimit(0.0f, 0.85f, vuR_ + (rng_.nextFloat() - 0.5f) * 0.08f);
+        clip_ = false;
+    }
+
     for (int i = 0; i < kBars; ++i)
         bars_[(size_t) i] += (targets_[(size_t) i] - bars_[(size_t) i]) * 0.10f;
-
-    // Placeholder animation until the live analyzer feed (APO tap) is wired to
-    // the UI. Cap the random walk below the clip threshold so CLIP never trips
-    // on fake data — real clip detection lights up once metering is live.
-    vuL_ = juce::jlimit(0.0f, 0.85f, vuL_ + (rng_.nextFloat() - 0.5f) * 0.08f);
-    vuR_ = juce::jlimit(0.0f, 0.85f, vuR_ + (rng_.nextFloat() - 0.5f) * 0.08f);
     peakL_ = juce::jmax(vuL_, peakL_ - 0.01f); // peak-hold with slow decay
     peakR_ = juce::jmax(vuR_, peakR_ - 0.01f);
-    clip_ = (vuL_ > 0.96f || vuR_ > 0.96f); // stays false on placeholder data
     repaint();
 }
 

@@ -1,6 +1,8 @@
 #include "TrackerService.h"
 
+#include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <vector>
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -10,6 +12,7 @@
 #include <audioclient.h>
 #include <mmdeviceapi.h>
 
+#include "analyzer/Analyzer.h"
 #include "tracker/SoundTracker.h"
 #include "veyra/Logging.h"
 
@@ -58,6 +61,14 @@ bool TrackerService::start()
     if (region_.createdNew())
         data_->writeCount.store(0, std::memory_order_release);
 
+    // Live metering block (best-effort; the visualizer just stays idle without it).
+    if (analyzerRegion_.create(ipc::kSharedAnalyzerName, sizeof(ipc::VeyraAnalyzerData)))
+    {
+        analyzerData_ = static_cast<ipc::VeyraAnalyzerData*>(analyzerRegion_.data());
+        if (analyzerRegion_.createdNew())
+            ipc::publishAnalyzer(analyzerData_, ipc::VeyraAnalyzerPayload{});
+    }
+
     running_.store(true);
     thread_ = std::thread(&TrackerService::run, this);
     if (log_)
@@ -79,18 +90,50 @@ void TrackerService::setConfig(const GamerModeConfig& gm)
     sensitivity_.store(gm.sensitivity, std::memory_order_relaxed);
 }
 
+void TrackerService::publishAnalyzerFrame(const dsp::AnalyzerFrame& fr)
+{
+    ipc::VeyraAnalyzerPayload p;
+    p.vuL = fr.rmsL; p.vuR = fr.rmsR;
+    p.peakL = fr.peakL; p.peakR = fr.peakR;
+    p.clip = fr.clipped ? 1u : 0u;
+
+    // Log-spaced downsample of the 256-bin spectrum to the visualizer's 48 bars,
+    // taking the peak magnitude per band.
+    const int nbins = dsp::kAnalyzerBins;
+    float raw[ipc::kAnalyzerBars] = {};
+    float frameMax = 1.0e-6f;
+    for (int b = 0; b < ipc::kAnalyzerBars; ++b)
+    {
+        const float f0 = (float) b / ipc::kAnalyzerBars;
+        const float f1 = (float) (b + 1) / ipc::kAnalyzerBars;
+        int lo = (int) std::pow((float) (nbins - 1), f0);
+        int hi = std::max(lo + 1, (int) std::pow((float) (nbins - 1), f1));
+        hi = std::min(hi, nbins);
+        float m = 0.0f;
+        for (int k = lo; k < hi; ++k)
+            m = std::max(m, fr.spectrum[k]);
+        raw[b] = m;
+        frameMax = std::max(frameMax, m);
+    }
+
+    // Auto-gain: normalise to a slowly-decaying running max so the spectrum
+    // fills the meter regardless of absolute level.
+    specMax_ = std::max(frameMax, specMax_ * 0.995f);
+    for (int b = 0; b < ipc::kAnalyzerBars; ++b)
+        p.bars[b] = std::min(1.0f, raw[b] / (specMax_ + 1.0e-6f));
+
+    ipc::publishAnalyzer(analyzerData_, p);
+}
+
 void TrackerService::run()
 {
     // The capture thread is its own COM apartment.
     const HRESULT comInit = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
+    // Capture runs continuously so the visualizer always has live metering; the
+    // Gamer Mode flag only gates whether tracker detections are emitted.
     while (running_.load())
     {
-        if (!enabled_.load(std::memory_order_relaxed))
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(150));
-            continue;
-        }
         if (!captureSession())
             std::this_thread::sleep_for(std::chrono::milliseconds(500)); // back off, then retry
     }
@@ -154,13 +197,16 @@ bool TrackerService::captureSession()
     tracker.prepare(fmt->nSamplesPerSec);
     tracker.setSensitivity(sensitivity_.load(std::memory_order_relaxed));
 
+    dsp::Analyzer analyzer;
+    analyzer.prepare(fmt->nSamplesPerSec);
+
     if (FAILED(client->Start()))
     { cleanup(); return false; }
 
     std::vector<float> left, right;
     float lastSensitivity = sensitivity_.load(std::memory_order_relaxed);
 
-    while (running_.load() && enabled_.load(std::memory_order_relaxed))
+    while (running_.load())
     {
         const float sens = sensitivity_.load(std::memory_order_relaxed);
         if (sens != lastSensitivity)
@@ -200,18 +246,30 @@ bool TrackerService::captureSession()
                 }
             }
 
-            tracker.processStereo(left.data(), right.data(), static_cast<int>(frames));
-
-            dsp::TrackerEvent ev;
-            while (tracker.popEvent(ev))
+            // Live metering — always published for the UI visualizer.
+            if (analyzerData_)
             {
-                ipc::TrackerEventRecord rec;
-                rec.type = static_cast<int32_t>(toWire(ev.type));
-                rec.azimuthDeg = ev.azimuthDeg;
-                rec.intensity = ev.intensity;
-                rec.confidence = ev.confidence;
-                rec.timestampSec = nowSeconds();
-                ipc::writeTrackerEvent(data_, rec);
+                analyzer.processStereo(left.data(), right.data(), static_cast<int>(frames));
+                dsp::AnalyzerFrame fr;
+                while (analyzer.popFrame(fr))
+                    publishAnalyzerFrame(fr);
+            }
+
+            // Tracker detections — only while Gamer Mode is on.
+            if (enabled_.load(std::memory_order_relaxed))
+            {
+                tracker.processStereo(left.data(), right.data(), static_cast<int>(frames));
+                dsp::TrackerEvent ev;
+                while (tracker.popEvent(ev))
+                {
+                    ipc::TrackerEventRecord rec;
+                    rec.type = static_cast<int32_t>(toWire(ev.type));
+                    rec.azimuthDeg = ev.azimuthDeg;
+                    rec.intensity = ev.intensity;
+                    rec.confidence = ev.confidence;
+                    rec.timestampSec = nowSeconds();
+                    ipc::writeTrackerEvent(data_, rec);
+                }
             }
 
             capture->ReleaseBuffer(frames);

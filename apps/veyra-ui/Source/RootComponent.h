@@ -20,12 +20,16 @@
 #include "VeyraGui.h"
 
 #include "veyra/Config.h"
+#include "veyra/ipc/AnalyzerData.h"
+#include "veyra/ipc/SharedMemory.h"
 
 #include <memory>
 
 namespace veyra::ui {
 
-class RootComponent : public juce::Component, private juce::ChangeListener {
+class RootComponent : public juce::Component,
+                      private juce::ChangeListener,
+                      private juce::Timer {
 public:
     RootComponent();
     ~RootComponent() override;
@@ -34,6 +38,7 @@ public:
 
 private:
     void changeListenerCallback(juce::ChangeBroadcaster*) override; // theme change
+    void timerCallback() override;                                  // poll live metering
     void showScreen(int navIndex);
     void applyPalette();
     void applyConfig(const veyra::Config& c);
@@ -66,6 +71,10 @@ private:
     std::unique_ptr<juce::FileChooser> chooser_;
 
     veyra::Config working_;
+
+    // Live metering (read-only view of the service's analyzer block).
+    ipc::SharedMemoryRegion              analyzerRegion_;
+    const ipc::VeyraAnalyzerData*        analyzerData_ = nullptr;
 
     ServiceClient client_; // declared last -> destroyed first (thread joins early)
 };
