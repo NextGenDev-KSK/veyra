@@ -9,6 +9,7 @@
 #include "Home/Sidebar.h"
 #include "Home/TopBar.h"
 #include "MiniWindow.h"
+#include "Screens/EffectsScreen.h"
 #include "Screens/HomeScreen.h"
 #include "Screens/PlaceholderScreen.h"
 #include "Screens/PresetsScreen.h"
@@ -63,6 +64,7 @@ private:
     HomeScreen        home_;
     PresetsScreen     presets_;
     SettingsScreen    settings_;
+    EffectsScreen     effects_;
     PlaceholderScreen placeholder_;
     juce::Component*  current_ = nullptr;
 

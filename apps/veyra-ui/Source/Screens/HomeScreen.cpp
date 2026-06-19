@@ -17,20 +17,34 @@ const KnobSpec kKnobSpecs[] = {
 juce::String dbText(float db)  { return (db >= 0 ? "+" : "") + juce::String(juce::roundToInt(db)) + " dB"; }
 juce::String pctText(float fr) { return juce::String(juce::roundToInt(fr * 100.0f)) + "%"; }
 
-// "More Effects" tile.
+// "More Effects" tile — opens the effects rack overview.
 class MoreEffectsCard : public GlassPanel {
+public:
+    std::function<void()> onClick;
+    void mouseUp(const juce::MouseEvent& e) override
+    {
+        if (onClick && getLocalBounds().contains(e.getPosition()))
+            onClick();
+    }
+    void mouseEnter(const juce::MouseEvent&) override { hover_ = true; repaint(); }
+    void mouseExit(const juce::MouseEvent&) override { hover_ = false; repaint(); }
+
 protected:
     void paintContent(juce::Graphics& g) override
     {
+        const juce::Colour tint = hover_ ? palette_.accentPrimary : palette_.textSecondary;
         auto b = getLocalBounds();
         auto top = b.removeFromTop(b.getHeight() / 2);
         icons::plus(g, juce::Rectangle<float>(0, 0, 26, 26)
                             .withCentre(top.toFloat().getCentre().translated(0, 8)),
-                    palette_.textSecondary);
-        g.setColour(palette_.textSecondary);
+                    tint);
+        g.setColour(tint);
         g.setFont(fonts::body(12.0f));
         g.drawText("More Effects", b, juce::Justification::centred, false);
     }
+
+private:
+    bool hover_ = false;
 };
 } // namespace
 
@@ -59,7 +73,11 @@ HomeScreen::HomeScreen()
         knobs_[(size_t) i] = std::move(knob);
     }
 
-    moreCard_ = std::make_unique<MoreEffectsCard>();
+    {
+        auto more = std::make_unique<MoreEffectsCard>();
+        more->onClick = [this] { if (onMoreEffects) onMoreEffects(); };
+        moreCard_ = std::move(more);
+    }
     addAndMakeVisible(*moreCard_);
 
     eq_.onBandChanged = [this](int i, float db)

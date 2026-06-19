@@ -33,6 +33,9 @@ public:
     // User changed an enhancement param (knob or EQ band).
     std::function<void(const EnhancementConfig&)> onEnhancementChanged;
 
+    // "More Effects" tile clicked — opens the effects rack.
+    std::function<void()> onMoreEffects;
+
     // Apply enhancement state from config without firing the callback.
     void applyEnhancement(const EnhancementConfig& e);
     const EnhancementConfig& enhancement() const noexcept { return enh_; }

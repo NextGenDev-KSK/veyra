@@ -21,12 +21,25 @@ RootComponent::RootComponent()
     addChildComponent(home_);
     addChildComponent(presets_);
     addChildComponent(settings_);
+    addChildComponent(effects_);
     addChildComponent(placeholder_);
 
     home_.attachBackdrop(&background_);
     presets_.attachBackdrop(&background_);
     settings_.attachBackdrop(&background_);
+    effects_.attachBackdrop(&background_);
     placeholder_.attachBackdrop(&background_);
+
+    // Home "More Effects" tile -> effects rack overview; back returns Home.
+    home_.onMoreEffects = [this]
+    {
+        effects_.setConfig(working_);
+        if (current_ != nullptr) current_->setVisible(false);
+        current_ = &effects_;
+        effects_.setVisible(true);
+        resized();
+    };
+    effects_.onBack = [this] { sidebar_.setActive(0); showScreen(0); };
 
     // Presets screen actions.
     presets_.onApply       = [this](juce::String uuid) { client_.loadPreset(uuid.toStdString()); };
@@ -176,6 +189,7 @@ void RootComponent::applyPalette()
     home_.setPalette(p);
     presets_.setPalette(p);
     settings_.setPalette(p);
+    effects_.setPalette(p);
     placeholder_.setPalette(p);
     if (mini_ != nullptr)
         mini_->content().setPalette(p);
@@ -218,6 +232,7 @@ void RootComponent::applyConfig(const veyra::Config& c)
     settings_.setMicConfig(c.voice);
     settings_.setSpatialConfig(c.spatial);
     settings_.setLoudnessConfig(c.loudness);
+    effects_.setConfig(c);
 
     // Appearance: opacity / background mode / reduce-motion.
     settings_.setAppearance(c.uiOpacity, c.backgroundMode, c.reduceMotion);
@@ -368,6 +383,7 @@ void RootComponent::resized()
     home_.setBounds(b);
     presets_.setBounds(b);
     settings_.setBounds(b);
+    effects_.setBounds(b);
     placeholder_.setBounds(b);
 }
 
