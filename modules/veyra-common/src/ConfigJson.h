@@ -156,6 +156,24 @@ inline void from_json(const nlohmann::json& j, OutputRoute& r)
     r.primary  = j.value("primary", r.primary);
 }
 
+inline void to_json(nlohmann::json& j, const BridgeConfig& b)
+{
+    j = nlohmann::json{
+        {"enabled",          b.enabled},
+        {"source_device_id", b.sourceDeviceId},
+        {"target_device_id", b.targetDeviceId},
+    };
+}
+
+inline void from_json(const nlohmann::json& j, BridgeConfig& b)
+{
+    if (! j.is_object())
+        return;
+    b.enabled        = j.value("enabled", b.enabled);
+    b.sourceDeviceId = j.value("source_device_id", b.sourceDeviceId);
+    b.targetDeviceId = j.value("target_device_id", b.targetDeviceId);
+}
+
 inline void to_json(nlohmann::json& j, const SharingConfig& s)
 {
     j = nlohmann::json{

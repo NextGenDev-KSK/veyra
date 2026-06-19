@@ -64,6 +64,16 @@ struct LoudnessConfig {
     float sleepFadeSeconds  = 20.0f; // fade-out tail length
 };
 
+// Audio bridge (no-driver processing path): when enabled, the service loopback-
+// captures 'sourceDeviceId' (set this as the Windows default so apps play into
+// it — typically a virtual sink), runs the DSP, and renders to 'targetDeviceId'
+// (your real headphones). Empty ids = use the system default endpoint.
+struct BridgeConfig {
+    bool        enabled = false;
+    std::string sourceDeviceId; // captured (loopback)
+    std::string targetDeviceId; // processed output is rendered here
+};
+
 // One destination in Sound Sharing (multi-output). The service opens each
 // enabled route's endpoint, applies the per-output trim, and delays it by
 // delayMs so all routes stay in sync with the primary (the reference endpoint).
@@ -112,6 +122,7 @@ struct Config {
     GamerModeConfig   gamerMode;
     LoudnessConfig    loudness;
     SharingConfig     sharing;
+    BridgeConfig      bridge;
 
     // Serialise to / from pretty-printed JSON text.
     std::string toJson() const;

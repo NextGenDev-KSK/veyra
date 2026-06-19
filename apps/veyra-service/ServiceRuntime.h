@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ApoPublisher.h"
+#include "AudioBridge.h"
 #include "ConfigManager.h"
 #include "ControlServer.h"
 #include "MicPublisher.h"
@@ -30,6 +31,7 @@ private:
     MicPublisher      micPublisher_;
     TrackerService    tracker_;
     SleepTimerService sleepTimer_;
+    AudioBridge       bridge_;
     ConfigManager     config_;
     PresetLibrary     presets_;
     ControlServer     control_;
