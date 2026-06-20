@@ -44,7 +44,8 @@ target_sources(veyra PRIVATE
     Source/Screens/PresetsScreen.cpp
     Source/Screens/SettingsScreen.cpp
     Source/Screens/EffectsScreen.cpp
-    Source/Screens/DevicesScreen.cpp)
+    Source/Screens/DevicesScreen.cpp
+    Source/Screens/OnboardingOverlay.cpp)
 
 target_include_directories(veyra PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source")
 

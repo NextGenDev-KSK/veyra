@@ -32,6 +32,7 @@ std::string Config::toJson() const
     };
     j["language"]           = language;
     j["telemetry_opt_in"]   = telemetryOptIn;
+    j["onboarding_complete"] = onboardingComplete;
     j["audio_engine"]       = {
         {"sample_rate",   audioEngine.sampleRate},
         {"bit_depth",     audioEngine.bitDepth},
@@ -63,6 +64,7 @@ std::optional<Config> Config::fromJson(const std::string& text)
     c.activePresetUuid = j.value("active_preset_uuid", c.activePresetUuid);
     c.language         = j.value("language", c.language);
     c.telemetryOptIn   = j.value("telemetry_opt_in", c.telemetryOptIn);
+    c.onboardingComplete = j.value("onboarding_complete", c.onboardingComplete);
 
     if (const auto it = j.find("appearance"); it != j.end() && it->is_object())
     {

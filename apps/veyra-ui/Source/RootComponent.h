@@ -14,6 +14,7 @@
 #include "Screens/DevicesScreen.h"
 #include "Screens/EffectsScreen.h"
 #include "Screens/HomeScreen.h"
+#include "Screens/OnboardingOverlay.h"
 #include "Screens/PlaceholderScreen.h"
 #include "Screens/PresetsScreen.h"
 #include "Screens/SettingsScreen.h"
@@ -73,6 +74,8 @@ private:
     DevicesScreen     devices_;
     PlaceholderScreen placeholder_;
     juce::Component*  current_ = nullptr;
+
+    OnboardingOverlay onboarding_;
 
     std::unique_ptr<MiniWindow>      mini_;
     TrayIcon                         tray_;

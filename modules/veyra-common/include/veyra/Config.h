@@ -120,6 +120,7 @@ struct Config {
     bool        reduceMotion       = false; // freeze visualizer/transitions
     std::string language           = "en";
     bool        telemetryOptIn     = false;
+    bool        onboardingComplete = false; // first-run wizard shown + dismissed
     AudioEngineConfig audioEngine;
     EnhancementConfig enhancement;
     VoiceConfig       voice;

@@ -36,6 +36,16 @@ RootComponent::RootComponent()
     devices_.onBridgeChanged = [this](const veyra::BridgeConfig& b) { working_.bridge = b; pushConfig(); };
     devices_.setBridge(working_.bridge);
 
+    // First-run onboarding overlay (on top; shown until finished/skipped).
+    addAndMakeVisible(onboarding_);
+    onboarding_.onFinished = [this]
+    {
+        working_.onboardingComplete = true;
+        pushConfig();
+        onboarding_.setVisible(false);
+    };
+    onboarding_.setVisible(!working_.onboardingComplete);
+
     // Home "More Effects" tile -> effects rack overview; back returns Home.
     home_.onMoreEffects = [this]
     {
@@ -250,6 +260,7 @@ void RootComponent::applyPalette()
     effects_.setPalette(p);
     devices_.setPalette(p);
     placeholder_.setPalette(p);
+    onboarding_.setPalette(p);
     if (mini_ != nullptr)
         mini_->content().setPalette(p);
     tray_.updateIcon(p);
@@ -293,6 +304,8 @@ void RootComponent::applyConfig(const veyra::Config& c)
     settings_.setMicConfig(c.voice);
     settings_.setSpatialConfig(c.spatial);
     settings_.setLoudnessConfig(c.loudness);
+    if (c.onboardingComplete)
+        onboarding_.setVisible(false); // a saved profile already finished onboarding
     devices_.setBridge(c.bridge);
     effects_.setConfig(c);
 
@@ -448,6 +461,8 @@ void RootComponent::resized()
     effects_.setBounds(b);
     devices_.setBounds(b);
     placeholder_.setBounds(b);
+    onboarding_.setBounds(getLocalBounds());
+    onboarding_.toFront(false);
 }
 
 } // namespace veyra::ui
