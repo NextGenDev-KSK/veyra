@@ -107,6 +107,9 @@ struct VoiceConfig {
     float presenceDb       = 2.0f;
     float outputGainDb     = 0.0f;
     float sideToneLevel    = 0.0f;  // 0..1
+    bool  noiseGate        = true;  // gate stage (maps to the suppressor's expander)
+    bool  echoCancel       = false; // AEC intent (DSP AEC not yet implemented)
+    std::string profile    = "gaming"; // gaming | streaming | podcast | meeting
 };
 
 struct Config {

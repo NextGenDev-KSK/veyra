@@ -46,9 +46,16 @@ RootComponent::RootComponent()
     soundLab_.onLoudnessChanged = [this](const veyra::LoudnessConfig& l) { working_.loudness = l; pushConfig(); };
     soundLab_.setLoudness(working_.loudness);
 
-    // Gamer Mode -> config.gamerMode.
-    gamer_.onGamerChanged = [this](const veyra::GamerModeConfig& g) { working_.gamerMode = g; pushConfig(); };
+    // Gamer Mode dashboard -> the gamer / spatial / voice / loudness blocks.
+    gamer_.onGamerChanged    = [this](const veyra::GamerModeConfig& g) { working_.gamerMode = g; pushConfig(); };
+    gamer_.onSpatialChanged  = [this](const veyra::SpatialConfig& s)   { working_.spatial = s;   settings_.setSpatialConfig(s); pushConfig(); };
+    gamer_.onVoiceChanged    = [this](const veyra::VoiceConfig& v)     { working_.voice = v;     settings_.setMicConfig(v); pushConfig(); };
+    gamer_.onLoudnessChanged = [this](const veyra::LoudnessConfig& l)  { working_.loudness = l;  soundLab_.setLoudness(l); settings_.setLoudnessConfig(l); pushConfig(); };
+    gamer_.onTestInSoundLab  = [this] { sidebar_.setActive(4); showScreen(4); };
     gamer_.setGamer(working_.gamerMode);
+    gamer_.setSpatial(working_.spatial);
+    gamer_.setVoice(working_.voice);
+    gamer_.setLoudness(working_.loudness);
 
     // First-run onboarding overlay (on top; shown until finished/skipped).
     addAndMakeVisible(onboarding_);
@@ -329,6 +336,9 @@ void RootComponent::applyConfig(const veyra::Config& c)
     settings_.setLoudnessConfig(c.loudness);
     soundLab_.setLoudness(c.loudness);
     gamer_.setGamer(c.gamerMode);
+    gamer_.setSpatial(c.spatial);
+    gamer_.setVoice(c.voice);
+    gamer_.setLoudness(c.loudness);
     if (c.onboardingComplete)
         onboarding_.setVisible(false); // a saved profile already finished onboarding
     devices_.setBridge(c.bridge);

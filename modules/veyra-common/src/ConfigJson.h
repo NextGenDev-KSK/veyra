@@ -73,6 +73,9 @@ inline void to_json(nlohmann::json& j, const VoiceConfig& v)
         {"presence_db",        v.presenceDb},
         {"output_gain_db",     v.outputGainDb},
         {"side_tone_level",    v.sideToneLevel},
+        {"noise_gate",         v.noiseGate},
+        {"echo_cancel",        v.echoCancel},
+        {"profile",            v.profile},
     };
 }
 
@@ -88,6 +91,9 @@ inline void from_json(const nlohmann::json& j, VoiceConfig& v)
     v.presenceDb        = j.value("presence_db", v.presenceDb);
     v.outputGainDb      = j.value("output_gain_db", v.outputGainDb);
     v.sideToneLevel     = j.value("side_tone_level", v.sideToneLevel);
+    v.noiseGate         = j.value("noise_gate", v.noiseGate);
+    v.echoCancel        = j.value("echo_cancel", v.echoCancel);
+    v.profile           = j.value("profile", v.profile);
 }
 
 inline void to_json(nlohmann::json& j, const GamerModeConfig& g)

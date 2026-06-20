@@ -1,0 +1,16 @@
+Open "x64 Native Tools Command Prompt for VS 2022":
+
+
+cd C:\Users\renuk\Documents\veyra
+git submodule update --init --recursive
+cmake --preset windows-release -DVEYRA_BUILD_TESTS=ON
+cmake --build --preset windows-release
+ctest --test-dir build\windows-release --output-on-failure   REM expect all green
+Binaries → build\windows-release\bin\.
+
+2 · Stage A — app works (no admin)
+
+REM Terminal 1
+build\windows-release\bin\veyra-service.exe --console
+REM Terminal 2
+build\windows-release\bin\veyra.exe
