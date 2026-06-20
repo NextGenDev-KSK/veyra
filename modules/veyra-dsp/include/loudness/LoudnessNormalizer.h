@@ -16,6 +16,7 @@ public:
     void prepare(double sampleRate)
     {
         meter_.prepare(sampleRate);
+        meter_.setIntegrating(false); // only short-term needed; keeps it bounded
         slew_ = 1.0f - std::exp(-1.0f / (float) (0.4 * sampleRate)); // ~0.4 s
         reset();
     }

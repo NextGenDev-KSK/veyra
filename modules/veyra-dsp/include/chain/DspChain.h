@@ -14,6 +14,7 @@
 #include "enhancers/StereoProcessor.h"
 #include "enhancers/ToneControls.h"
 #include "eq/GraphicEq.h"
+#include "loudness/LoudnessNormalizer.h"
 #include "loudness/NightMode.h"
 #include "spatial/Crossfeed.h"
 #include "spatial/VirtualSurround.h"
@@ -31,6 +32,7 @@ public:
         crossfeed_.prepare(sampleRate);
         surround_.prepare(sampleRate);
         nightMode_.prepare(sampleRate);
+        normalizer_.prepare(sampleRate);
         limiter_.prepare(sampleRate);
         analyzer_.prepare(sampleRate);
         volume_.prepare(sampleRate);
@@ -51,6 +53,8 @@ public:
         crossfeed_.setAmount(p.crossfeedAmount);
         surround_.setAmount(p.virtualizationAmount);
         nightMode_.setAmount(p.nightModeAmount);
+        normalizer_.setEnabled(p.loudnessMatch);
+        normalizer_.setTargetLufs(p.loudnessTargetLufs);
         volume_.setTarget(p.volumeGain);
         limiter_.setCeilingDb(p.limiterCeilingDb);
     }
@@ -79,6 +83,7 @@ public:
             right[i] *= g;
         }
 
+        normalizer_.processStereo(left, right, numSamples); // EBU R128 loudness match
         limiter_.processStereo(left, right, numSamples);
         analyzer_.processStereo(left, right, numSamples);
     }
@@ -95,6 +100,7 @@ private:
     Crossfeed        crossfeed_;
     VirtualSurround  surround_;
     NightMode        nightMode_;
+    LoudnessNormalizer normalizer_;
     Limiter          limiter_;
     Analyzer         analyzer_;
     SmoothedValue    volume_;

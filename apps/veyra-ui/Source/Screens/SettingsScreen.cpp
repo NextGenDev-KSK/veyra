@@ -533,6 +533,9 @@ public:
         minutes_.setValue(30.0, juce::dontSendNotification);
         minutes_.onValueChange = [this] { loud_.sleepTimerMinutes = (float) minutes_.getValue(); emit(); };
         addAndMakeVisible(minutes_);
+
+        matchEnable_.onClick = [this] { loud_.loudnessMatch = matchEnable_.getToggleState(); emit(); };
+        addAndMakeVisible(matchEnable_);
     }
 
     std::function<void(const veyra::LoudnessConfig&)> onLoudnessChanged;
@@ -541,6 +544,7 @@ public:
     {
         GlassPanel::setPalette(p);
         sleepEnable_.setPalette(p);
+        matchEnable_.setPalette(p);
     }
 
     void setLoudnessConfig(const veyra::LoudnessConfig& l)
@@ -549,6 +553,7 @@ public:
         night_.setValue(l.nightModeAmount, juce::dontSendNotification);
         sleepEnable_.setToggleState(l.sleepTimerEnabled, juce::dontSendNotification);
         minutes_.setValue(l.sleepTimerMinutes, juce::dontSendNotification);
+        matchEnable_.setToggleState(l.loudnessMatch, juce::dontSendNotification);
         repaint();
     }
 
@@ -568,6 +573,9 @@ public:
         mr.removeFromLeft(110);
         mr.removeFromRight(64);
         minutes_.setBounds(mr.withSizeKeepingCentre(mr.getWidth(), 18));
+
+        auto mt = matchRow();
+        matchEnable_.setBounds(mt.removeFromRight(40).withSizeKeepingCentre(40, 20));
     }
 
 protected:
@@ -605,6 +613,16 @@ protected:
         g.setFont(fonts::mono(12.0f));
         g.drawText(juce::String(juce::roundToInt(minutes_.getValue())) + " min",
                    mr.removeFromRight(64), juce::Justification::centredRight, false);
+
+        // Loudness Match row.
+        auto mt = matchRow();
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::body(14.0f, true));
+        g.drawText("Loudness Match", mt.removeFromTop(20), juce::Justification::topLeft, false);
+        g.setColour(palette_.textTertiary);
+        g.setFont(fonts::body(11.0f));
+        g.drawText("Auto-match to " + juce::String(juce::roundToInt(loud_.targetLufs)) + " LUFS",
+                   mt, juce::Justification::topLeft, false);
     }
 
 private:
@@ -626,6 +644,12 @@ private:
         c.removeFromTop(28 + 10 + 36 + 14 + 24 + 6);
         return c.removeFromTop(36);
     }
+    juce::Rectangle<int> matchRow() const
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        c.removeFromTop(28 + 10 + 36 + 14 + 24 + 6 + 36 + 10);
+        return c.removeFromTop(36);
+    }
 
     void emit()
     {
@@ -640,6 +664,7 @@ private:
     juce::Slider          night_;
     ToggleSwitch          sleepEnable_;
     juce::Slider          minutes_;
+    ToggleSwitch          matchEnable_;
 };
 
 // ---------------------------------------------------------------------------
@@ -792,7 +817,7 @@ void SettingsScreen::resized()
     auto b = getLocalBounds().reduced(24);
 
     // Bottom strip: Loudness (left) + About (right).
-    auto bottom = b.removeFromBottom(176);
+    auto bottom = b.removeFromBottom(210);
     b.removeFromBottom(20);
     auto loudnessArea = bottom.removeFromLeft(juce::jlimit(300, 460, bottom.getWidth() * 2 / 5));
     bottom.removeFromLeft(20);

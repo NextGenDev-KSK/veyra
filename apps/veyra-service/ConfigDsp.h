@@ -29,6 +29,8 @@ inline dsp::DspParameters dspParamsFromConfig(const Config& c)
     p.crossfeedAmount      = c.spatial.enabled ? c.spatial.crossfeed : 0.0f;
     p.virtualizationAmount = c.spatial.enabled ? c.spatial.virtualization : 0.0f;
     p.nightModeAmount      = c.loudness.nightModeAmount;
+    p.loudnessMatch        = c.loudness.loudnessMatch;
+    p.loudnessTargetLufs   = c.loudness.targetLufs;
     p.limiterCeilingDb  = -0.3f;
     return p;
 }

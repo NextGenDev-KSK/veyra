@@ -62,6 +62,10 @@ public:
         }
     }
 
+    // When false, the unbounded integrated history isn't accumulated (used by
+    // the realtime normalizer, which only needs the bounded short-term window).
+    void setIntegrating(bool on) noexcept { integrating_ = on; }
+
     float momentaryLufs() const { return windowLufs(4); }   // 400 ms
     float shortTermLufs() const { return windowLufs(30); }  // 3 s
 
@@ -99,7 +103,7 @@ private:
             ++ringFill_;
 
         // A 400 ms block = mean of the last 4 sub-blocks; feed the integrated set.
-        if (ringFill_ >= 4)
+        if (integrating_ && ringFill_ >= 4)
             blocks_.push_back(windowMeanZ(4));
     }
 
@@ -167,6 +171,7 @@ private:
     double sumSq_ = 0.0;
     int    acc_ = 0;
 
+    bool   integrating_ = true;
     std::array<double, 30> ring_{}; // last 30 sub-blocks (3 s) of mean-square
     int    ringFill_ = 0, ringPos_ = 0;
 

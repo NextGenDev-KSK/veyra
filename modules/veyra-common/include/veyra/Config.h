@@ -63,6 +63,8 @@ struct LoudnessConfig {
     bool  sleepTimerEnabled = false;
     float sleepTimerMinutes = 30.0f; // time until the fade begins
     float sleepFadeSeconds  = 20.0f; // fade-out tail length
+    bool  loudnessMatch     = false; // EBU R128 loudness-match (auto make-up gain)
+    float targetLufs        = -14.0f;// loudness-match target
 };
 
 // Audio bridge (no-driver processing path): when enabled, the service loopback-
