@@ -108,10 +108,10 @@ private:
         return {x + 84, y, juce::jmin(360, getWidth() - kPad * 2 - 84), 28};
     }
 
-    juce::String idFor(const juce::ComboBox& box) const
+    std::string idFor(const juce::ComboBox& box) const
     {
         const int idx = box.getSelectedId() - 1;
-        return (idx >= 0 && idx < (int) devices_.size()) ? juce::String(devices_[(size_t) idx].id) : juce::String();
+        return (idx >= 0 && idx < (int) devices_.size()) ? devices_[(size_t) idx].id : std::string();
     }
 
     void selectIds()
