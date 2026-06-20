@@ -19,7 +19,8 @@ add_executable(dsp_tests
     dsp_tests/test_truepeak_norm.cpp
     dsp_tests/test_delayline.cpp
     dsp_tests/test_sleep_timer.cpp
-    dsp_tests/test_output_router.cpp)
+    dsp_tests/test_output_router.cpp
+    dsp_tests/test_performance.cpp)
 
 target_include_directories(dsp_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/dsp_tests")
 # veyra::common for the header-only shared-parameter seqlock contract.
