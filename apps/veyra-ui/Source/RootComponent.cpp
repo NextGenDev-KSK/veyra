@@ -21,20 +21,34 @@ RootComponent::RootComponent()
     addAndMakeVisible(sidebar_);
     addChildComponent(home_);
     addChildComponent(presets_);
+    addChildComponent(apps_);
     addChildComponent(settings_);
     addChildComponent(effects_);
     addChildComponent(devices_);
+    addChildComponent(soundLab_);
+    addChildComponent(gamer_);
     addChildComponent(placeholder_);
 
     home_.attachBackdrop(&background_);
     presets_.attachBackdrop(&background_);
+    apps_.attachBackdrop(&background_);
     settings_.attachBackdrop(&background_);
     effects_.attachBackdrop(&background_);
     devices_.attachBackdrop(&background_);
+    soundLab_.attachBackdrop(&background_);
+    gamer_.attachBackdrop(&background_);
     placeholder_.attachBackdrop(&background_);
 
     devices_.onBridgeChanged = [this](const veyra::BridgeConfig& b) { working_.bridge = b; pushConfig(); };
     devices_.setBridge(working_.bridge);
+
+    // Sound Lab (Night Mode / Loudness Match / Sleep Timer) -> config.loudness.
+    soundLab_.onLoudnessChanged = [this](const veyra::LoudnessConfig& l) { working_.loudness = l; pushConfig(); };
+    soundLab_.setLoudness(working_.loudness);
+
+    // Gamer Mode -> config.gamerMode.
+    gamer_.onGamerChanged = [this](const veyra::GamerModeConfig& g) { working_.gamerMode = g; pushConfig(); };
+    gamer_.setGamer(working_.gamerMode);
 
     // First-run onboarding overlay (on top; shown until finished/skipped).
     addAndMakeVisible(onboarding_);
@@ -256,9 +270,12 @@ void RootComponent::applyPalette()
     sidebar_.setPalette(p);
     home_.setPalette(p);
     presets_.setPalette(p);
+    apps_.setPalette(p);
     settings_.setPalette(p);
     effects_.setPalette(p);
     devices_.setPalette(p);
+    soundLab_.setPalette(p);
+    gamer_.setPalette(p);
     placeholder_.setPalette(p);
     onboarding_.setPalette(p);
     if (mini_ != nullptr)
@@ -270,12 +287,18 @@ void RootComponent::applyPalette()
 void RootComponent::showScreen(int navIndex)
 {
     juce::Component* next = nullptr;
-    if (navIndex == 3)
-        next = &devices_;
-    else if (navIndex == 0)
+    if (navIndex == 0)
         next = &home_;
     else if (navIndex == 1)
         next = &presets_;
+    else if (navIndex == 2)
+        next = &apps_;
+    else if (navIndex == 3)
+        next = &devices_;
+    else if (navIndex == 4)
+        next = &soundLab_;
+    else if (navIndex == 5)
+        next = &gamer_;
     else if (navIndex == 6)
         next = &settings_;
     else
@@ -304,6 +327,8 @@ void RootComponent::applyConfig(const veyra::Config& c)
     settings_.setMicConfig(c.voice);
     settings_.setSpatialConfig(c.spatial);
     settings_.setLoudnessConfig(c.loudness);
+    soundLab_.setLoudness(c.loudness);
+    gamer_.setGamer(c.gamerMode);
     if (c.onboardingComplete)
         onboarding_.setVisible(false); // a saved profile already finished onboarding
     devices_.setBridge(c.bridge);
@@ -338,6 +363,7 @@ void RootComponent::refreshFromService()
     if (auto c = client_.config())
         applyConfig(*c);
     presets_.setPresets(client_.presets(), juce::String(working_.activePresetUuid));
+    apps_.setPresets(client_.presets());
 
     // Reflect the active preset name in the mini widget.
     juce::String presetName = "Custom";
@@ -457,9 +483,12 @@ void RootComponent::resized()
     // All screens share the content rect; only the current one is visible.
     home_.setBounds(b);
     presets_.setBounds(b);
+    apps_.setBounds(b);
     settings_.setBounds(b);
     effects_.setBounds(b);
     devices_.setBounds(b);
+    soundLab_.setBounds(b);
+    gamer_.setBounds(b);
     placeholder_.setBounds(b);
     onboarding_.setBounds(getLocalBounds());
     onboarding_.toFront(false);

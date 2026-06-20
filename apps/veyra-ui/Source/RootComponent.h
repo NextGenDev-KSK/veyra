@@ -11,13 +11,16 @@
 #include "Home/Sidebar.h"
 #include "Home/TopBar.h"
 #include "MiniWindow.h"
+#include "Screens/AppsScreen.h"
 #include "Screens/DevicesScreen.h"
 #include "Screens/EffectsScreen.h"
+#include "Screens/GamerModeScreen.h"
 #include "Screens/HomeScreen.h"
 #include "Screens/OnboardingOverlay.h"
 #include "Screens/PlaceholderScreen.h"
 #include "Screens/PresetsScreen.h"
 #include "Screens/SettingsScreen.h"
+#include "Screens/SoundLabScreen.h"
 #include "ServiceClient.h"
 #include "Theme/ThemeManager.h"
 #include "Theme/VeyraLookAndFeel.h"
@@ -69,9 +72,12 @@ private:
 
     HomeScreen        home_;
     PresetsScreen     presets_;
+    AppsScreen        apps_;
     SettingsScreen    settings_;
     EffectsScreen     effects_;
     DevicesScreen     devices_;
+    SoundLabScreen    soundLab_;
+    GamerModeScreen   gamer_;
     PlaceholderScreen placeholder_;
     juce::Component*  current_ = nullptr;
 
