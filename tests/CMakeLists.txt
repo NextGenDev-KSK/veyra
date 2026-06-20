@@ -41,7 +41,8 @@ add_executable(common_tests
     common_tests/test_sharing_config.cpp
     common_tests/test_appearance_config.cpp
     common_tests/test_analyzer_data.cpp
-    common_tests/test_bridge_config.cpp)
+    common_tests/test_bridge_config.cpp
+    common_tests/test_localization.cpp)
 
 target_link_libraries(common_tests PRIVATE veyra::common veyra::catch2)
 
