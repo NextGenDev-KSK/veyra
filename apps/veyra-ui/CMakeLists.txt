@@ -26,6 +26,7 @@ target_sources(veyra PRIVATE
     Source/MiniWindow.cpp
     Source/ServiceClient.cpp
     Source/AppRuleWatcher.cpp
+    Source/HotkeyManager.cpp
     Source/AudioDevices.cpp
     Source/Theme/DesignTokens.cpp
     Source/Theme/Fonts.cpp

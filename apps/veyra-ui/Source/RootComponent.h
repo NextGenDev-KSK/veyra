@@ -7,6 +7,7 @@
 
 #include "AppRuleWatcher.h"
 #include "Graphics/GlassBackground.h"
+#include "HotkeyManager.h"
 #include "Home/Sidebar.h"
 #include "Home/TopBar.h"
 #include "MiniWindow.h"
@@ -52,6 +53,8 @@ private:
     void setMasterVolume(double gain);
     void enterMiniMode();
     void enterFullMode();
+    void handleHotkey(veyra::HotkeyAction action);
+    void cyclePreset(int direction);
 
     void saveCurrentAsPreset(const juce::String& name);
     void exportPreset(const juce::String& uuid);
@@ -84,6 +87,8 @@ private:
     // Per-app rule watcher (user-session foreground tracking).
     AppRuleWatcher appRules_;
     int            ruleTick_ = 0;
+
+    HotkeyManager hotkeys_;
 
     ServiceClient client_; // declared last -> destroyed first (thread joins early)
 };

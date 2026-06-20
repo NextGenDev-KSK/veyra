@@ -156,14 +156,55 @@ RootComponent::RootComponent()
     });
 
     startTimerHz(30); // poll the service's live metering block for the visualizer
+
+    // Global hotkeys (master/volume/preset/mini). The callback hops to the
+    // message thread inside HotkeyManager; the SafePointer guards teardown.
+    hotkeys_.start(working_.hotkeys,
+                   [safe = juce::Component::SafePointer<RootComponent>(this)](veyra::HotkeyAction a)
+                   {
+                       if (safe != nullptr)
+                           safe->handleHotkey(a);
+                   });
 }
 
 RootComponent::~RootComponent()
 {
     stopTimer();
+    hotkeys_.stop();
     client_.stop(); // join the background thread before the rest tears down
     themeManager_.removeChangeListener(this);
     setLookAndFeel(nullptr);
+}
+
+void RootComponent::handleHotkey(veyra::HotkeyAction action)
+{
+    switch (action)
+    {
+    case veyra::HotkeyAction::ToggleMaster: setMasterEnabled(!working_.masterEnabled); break;
+    case veyra::HotkeyAction::VolumeUp:     setMasterVolume(juce::jmin(1.5, working_.masterVolumeGain + 0.05)); break;
+    case veyra::HotkeyAction::VolumeDown:   setMasterVolume(juce::jmax(0.0, working_.masterVolumeGain - 0.05)); break;
+    case veyra::HotkeyAction::NextPreset:   cyclePreset(+1); break;
+    case veyra::HotkeyAction::PrevPreset:   cyclePreset(-1); break;
+    case veyra::HotkeyAction::ToggleMini:
+        if (mini_ != nullptr && mini_->isVisible()) enterFullMode();
+        else                                        enterMiniMode();
+        break;
+    default: break;
+    }
+}
+
+void RootComponent::cyclePreset(int direction)
+{
+    const auto presets = client_.presets();
+    if (presets.empty())
+        return;
+    int idx = -1;
+    for (int i = 0; i < (int) presets.size(); ++i)
+        if (presets[(size_t) i].uuid == working_.activePresetUuid)
+            idx = i;
+    const int n = (int) presets.size();
+    const int next = (idx < 0) ? 0 : ((idx + direction) % n + n) % n;
+    client_.loadPreset(presets[(size_t) next].uuid);
 }
 
 void RootComponent::changeListenerCallback(juce::ChangeBroadcaster*)
