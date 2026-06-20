@@ -19,10 +19,12 @@ add_executable(veyra-service
     TrackerService.cpp
     SleepTimerService.cpp
     AudioBridge.cpp
+    CrashHandler.cpp
     veyra-service.rc)
 
-# advapi32: SCM APIs; veyra::dsp: the Sound Tracker engine; ole32: WASAPI/COM.
-target_link_libraries(veyra-service PRIVATE veyra::common veyra::dsp advapi32 ole32)
+# advapi32: SCM APIs; veyra::dsp: the Sound Tracker engine; ole32: WASAPI/COM;
+# dbghelp: MiniDumpWriteDump for the crash handler.
+target_link_libraries(veyra-service PRIVATE veyra::common veyra::dsp advapi32 ole32 dbghelp)
 
 # Ensure the resource compiler can locate veyra-service.exe.manifest referenced
 # from veyra-service.rc (CMake forwards include dirs to rc.exe as /I).

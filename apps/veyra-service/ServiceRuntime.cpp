@@ -1,5 +1,6 @@
 #include "ServiceRuntime.h"
 
+#include "veyra/CrashReport.h"
 #include "veyra/Paths.h"
 #include "veyra/version.h"
 
@@ -21,6 +22,11 @@ ServiceRuntime::ServiceRuntime(bool consoleLogging)
 bool ServiceRuntime::start()
 {
     log_.info(std::string("Veyra service starting, v") + kVersionString);
+
+    // Surface a crash from a previous session (the UI shows a banner; the
+    // service notes it in the log).
+    if (auto crash = latestCrashReport(paths::crashesDir()))
+        log_.warn("Previous session crashed at " + crash->timestamp + " (" + crash->message + ")");
 
     // Stand up the APO shared-memory parameter block, then republish whenever
     // the config changes so the APO always reflects current settings.

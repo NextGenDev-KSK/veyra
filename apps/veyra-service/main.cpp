@@ -7,6 +7,7 @@
 //
 // Installing/uninstalling requires an elevated (admin) prompt.
 
+#include "CrashHandler.h"
 #include "ServiceInstaller.h"
 #include "ServiceMain.h"
 #include "ServiceRuntime.h"
@@ -19,6 +20,7 @@
 #include <cstdio>
 #include <string>
 
+#include "veyra/Paths.h"
 #include "veyra/version.h"
 
 namespace {
@@ -78,6 +80,10 @@ int runConsole()
 
 int wmain(int argc, wchar_t** argv)
 {
+    // Capture unhandled crashes (report + minidump) before anything else runs.
+    veyra::service::CrashHandler::install("veyra-service", veyra::kVersionString,
+                                          veyra::kGitCommit, veyra::paths::crashesDir());
+
     if (argc >= 2)
     {
         const std::wstring cmd = argv[1];

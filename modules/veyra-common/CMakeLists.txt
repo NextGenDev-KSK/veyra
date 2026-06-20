@@ -16,6 +16,7 @@ add_library(veyra-common STATIC
     src/DeviceProfiles.cpp
     src/Localization.cpp
     src/Updater.cpp
+    src/CrashReport.cpp
     src/ipc/PipeIo.cpp
     src/ipc/PipeServer.cpp
     src/ipc/PipeClient.cpp
