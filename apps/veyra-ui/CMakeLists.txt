@@ -26,6 +26,7 @@ target_sources(veyra PRIVATE
     Source/MiniWindow.cpp
     Source/ServiceClient.cpp
     Source/AppRuleWatcher.cpp
+    Source/AudioDevices.cpp
     Source/Theme/DesignTokens.cpp
     Source/Theme/Fonts.cpp
     Source/Theme/VeyraLookAndFeel.cpp
@@ -41,7 +42,8 @@ target_sources(veyra PRIVATE
     Source/Screens/HomeScreen.cpp
     Source/Screens/PresetsScreen.cpp
     Source/Screens/SettingsScreen.cpp
-    Source/Screens/EffectsScreen.cpp)
+    Source/Screens/EffectsScreen.cpp
+    Source/Screens/DevicesScreen.cpp)
 
 target_include_directories(veyra PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source")
 
@@ -58,7 +60,8 @@ target_link_libraries(veyra PRIVATE
     juce::juce_gui_extra
     juce::juce_recommended_config_flags
     juce::juce_recommended_warning_flags
-    dwmapi)   # Windows 11 acrylic backdrop (DwmSetWindowAttribute)
+    dwmapi    # Windows 11 acrylic backdrop (DwmSetWindowAttribute)
+    ole32)    # WASAPI endpoint enumeration (Devices screen)
 
 # Keep the binary in the unified bin/ dir as veyra.exe (matches CI checks).
 set_target_properties(veyra PROPERTIES

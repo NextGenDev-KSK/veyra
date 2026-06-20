@@ -23,13 +23,18 @@ RootComponent::RootComponent()
     addChildComponent(presets_);
     addChildComponent(settings_);
     addChildComponent(effects_);
+    addChildComponent(devices_);
     addChildComponent(placeholder_);
 
     home_.attachBackdrop(&background_);
     presets_.attachBackdrop(&background_);
     settings_.attachBackdrop(&background_);
     effects_.attachBackdrop(&background_);
+    devices_.attachBackdrop(&background_);
     placeholder_.attachBackdrop(&background_);
+
+    devices_.onBridgeChanged = [this](const veyra::BridgeConfig& b) { working_.bridge = b; pushConfig(); };
+    devices_.setBridge(working_.bridge);
 
     // Home "More Effects" tile -> effects rack overview; back returns Home.
     home_.onMoreEffects = [this]
@@ -202,6 +207,7 @@ void RootComponent::applyPalette()
     presets_.setPalette(p);
     settings_.setPalette(p);
     effects_.setPalette(p);
+    devices_.setPalette(p);
     placeholder_.setPalette(p);
     if (mini_ != nullptr)
         mini_->content().setPalette(p);
@@ -212,7 +218,9 @@ void RootComponent::applyPalette()
 void RootComponent::showScreen(int navIndex)
 {
     juce::Component* next = nullptr;
-    if (navIndex == 0)
+    if (navIndex == 3)
+        next = &devices_;
+    else if (navIndex == 0)
         next = &home_;
     else if (navIndex == 1)
         next = &presets_;
@@ -244,6 +252,7 @@ void RootComponent::applyConfig(const veyra::Config& c)
     settings_.setMicConfig(c.voice);
     settings_.setSpatialConfig(c.spatial);
     settings_.setLoudnessConfig(c.loudness);
+    devices_.setBridge(c.bridge);
     effects_.setConfig(c);
 
     // Appearance: opacity / background mode / reduce-motion.
@@ -396,6 +405,7 @@ void RootComponent::resized()
     presets_.setBounds(b);
     settings_.setBounds(b);
     effects_.setBounds(b);
+    devices_.setBounds(b);
     placeholder_.setBounds(b);
 }
 
