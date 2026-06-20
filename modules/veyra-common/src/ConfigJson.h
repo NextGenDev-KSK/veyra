@@ -180,6 +180,34 @@ inline void from_json(const nlohmann::json& j, BridgeConfig& b)
     b.targetDeviceId = j.value("target_device_id", b.targetDeviceId);
 }
 
+inline void to_json(nlohmann::json& j, const HotkeysConfig& h)
+{
+    j = nlohmann::json::array();
+    for (const auto& b : h.bindings)
+        j.push_back({{"action", toString(b.action)},
+                     {"key", b.hotkey.toString()},
+                     {"enabled", b.enabled}});
+}
+
+inline void from_json(const nlohmann::json& j, HotkeysConfig& h)
+{
+    if (! j.is_array())
+        return;
+    h.bindings.clear();
+    for (const auto& e : j)
+    {
+        if (! e.is_object())
+            continue;
+        HotkeyBinding b;
+        b.action = hotkeyActionFromString(e.value("action", std::string{}));
+        if (auto hk = Hotkey::parse(e.value("key", std::string{})))
+            b.hotkey = *hk;
+        b.enabled = e.value("enabled", true);
+        if (b.action != HotkeyAction::None)
+            h.bindings.push_back(b);
+    }
+}
+
 inline void to_json(nlohmann::json& j, const SharingConfig& s)
 {
     j = nlohmann::json{

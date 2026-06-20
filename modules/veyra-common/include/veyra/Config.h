@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include "veyra/Hotkeys.h"
+
 namespace veyra {
 
 struct AudioEngineConfig {
@@ -126,6 +128,7 @@ struct Config {
     LoudnessConfig    loudness;
     SharingConfig     sharing;
     BridgeConfig      bridge;
+    HotkeysConfig     hotkeys = HotkeysConfig::defaults();
 
     // Serialise to / from pretty-printed JSON text.
     std::string toJson() const;

@@ -44,7 +44,8 @@ add_executable(common_tests
     common_tests/test_bridge_config.cpp
     common_tests/test_localization.cpp
     common_tests/test_updater.cpp
-    common_tests/test_crash_report.cpp)
+    common_tests/test_crash_report.cpp
+    common_tests/test_hotkeys.cpp)
 
 target_link_libraries(common_tests PRIVATE veyra::common veyra::catch2)
 
