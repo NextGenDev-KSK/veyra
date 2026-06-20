@@ -36,9 +36,8 @@ OnboardingOverlay::OnboardingOverlay()
 
 void OnboardingOverlay::setPalette(const Palette& p)
 {
+    // The TextButtons are themed by the global VeyraLookAndFeel; just repaint.
     palette_ = p;
-    for (auto* b : {&back_, &next_, &skip_})
-        b->setPalette(p);
     repaint();
 }
 
