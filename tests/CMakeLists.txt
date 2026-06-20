@@ -15,6 +15,7 @@ add_executable(dsp_tests
     dsp_tests/test_virtual_surround.cpp
     dsp_tests/test_tracker.cpp
     dsp_tests/test_lab_loudness.cpp
+    dsp_tests/test_loudness.cpp
     dsp_tests/test_delayline.cpp
     dsp_tests/test_sleep_timer.cpp
     dsp_tests/test_output_router.cpp)
