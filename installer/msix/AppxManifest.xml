@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Veyra Sounds MSIX package manifest (desktop / full-trust Win32 app).
+
+  This is a TEMPLATE: the Identity/Publisher must match the signing certificate
+  subject, and the version is stamped by make-msix.ps1. Build + sign per
+  installer/SIGNING.md. The UI (veyra.exe) is the package entry point; it starts
+  the service itself when needed.
+-->
+<Package
+    xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+    xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+    xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
+
+  <Identity Name="VeyraSounds.Veyra"
+            Publisher="CN=Veyra Sounds"
+            Version="0.3.0.0"
+            ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>Veyra Sounds</DisplayName>
+    <PublisherDisplayName>Veyra Sounds</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="VeyraSounds" Executable="veyra.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+          DisplayName="Veyra Sounds"
+          Description="Free, system-wide audio enhancer for Windows — EQ, spatial, loudness and more."
+          BackgroundColor="#0A0B10"
+          Square150x150Logo="Assets\Square150x150Logo.png"
+          Square44x44Logo="Assets\Square44x44Logo.png" />
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- Win32 desktop app: full-trust execution. -->
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

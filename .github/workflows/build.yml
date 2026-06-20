@@ -67,3 +67,14 @@ jobs:
           name: veyra-windows-x64
           path: dist/
           if-no-files-found: error
+
+      - name: Package portable ZIP
+        shell: pwsh
+        run: pwsh installer/portable/make-portable.ps1 -BinDir dist -RepoRoot . -OutDir dist-portable -Version "0.3.0"
+
+      - name: Upload portable
+        uses: actions/upload-artifact@v4
+        with:
+          name: veyra-portable-x64
+          path: dist-portable/*.zip
+          if-no-files-found: error
