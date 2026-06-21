@@ -85,6 +85,7 @@ private:
 
     OnboardingOverlay onboarding_;
     CrashBanner       crashBanner_;
+    juce::TooltipWindow tooltip_{this, 500}; // renders InfoIcon hover tips app-wide
 
     std::unique_ptr<MiniWindow>      mini_;
     TrayIcon                         tray_;

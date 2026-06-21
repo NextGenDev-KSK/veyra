@@ -73,6 +73,27 @@ HomeScreen::HomeScreen()
         knobs_[(size_t) i] = std::move(knob);
     }
 
+    // Per-feature info hints (hover → what it is, what it does, shortcut).
+    static const char* kKnobTips[kKnobs] = {
+        "Bass Boost — lifts low frequencies for a fuller low end (low shelf, up to +12 dB).",
+        "Treble — lifts highs for air and detail (high shelf, up to +12 dB).",
+        "Volume Gain — output pre-amp up to 300%. Hotkeys: Ctrl+Alt+Up / Ctrl+Alt+Down.",
+        "Stereo Width — widens or narrows the stereo image (mid/side), 0–200%.",
+        "Reverb — adds room ambience, mixed with the dry signal.",
+        "Compression — evens out loud and quiet parts for a steadier level.",
+    };
+    for (int i = 0; i < kKnobs; ++i)
+    {
+        knobInfo_[(size_t) i].setTooltip(kKnobTips[i]);
+        addAndMakeVisible(knobInfo_[(size_t) i]);
+    }
+    eqInfo_.setTooltip("Equalizer — 10-band graphic EQ, or switch to Parametric for draggable "
+                       "bell / shelf / notch / HP / LP nodes (drag = freq+gain, wheel = Q).");
+    vizInfo_.setTooltip("Visualizer — live spectrum from your audio. Pick a mode (top-right) "
+                        "or open fullscreen.");
+    addAndMakeVisible(eqInfo_);
+    addAndMakeVisible(vizInfo_);
+
     {
         auto more = std::make_unique<MoreEffectsCard>();
         more->onClick = [this] { if (onMoreEffects) onMoreEffects(); };
@@ -124,7 +145,10 @@ void HomeScreen::setPalette(const Palette& p)
     {
         knobCards_[(size_t) i]->setPalette(p);
         knobs_[(size_t) i]->setPalette(p);
+        knobInfo_[(size_t) i].setPalette(p);
     }
+    eqInfo_.setPalette(p);
+    vizInfo_.setPalette(p);
     moreCard_->setPalette(p);
 }
 
@@ -191,6 +215,8 @@ void HomeScreen::resized()
     auto knobsRow = main.removeFromBottom(132);
     main.removeFromBottom(20);
     eq_.setBounds(main);
+    eqInfo_.setBounds(eq_.getX() + 128, eq_.getY() + 24, 15, 15);
+    vizInfo_.setBounds(viz_.getRight() - 172, viz_.getY() + 12, 15, 15);
 
     const int n = kKnobs + 1;
     const int gap = 16;
@@ -200,6 +226,7 @@ void HomeScreen::resized()
     {
         knobCards_[(size_t) i]->setBounds(x, knobsRow.getY(), cw, knobsRow.getHeight());
         knobs_[(size_t) i]->setBounds(knobCards_[(size_t) i]->getLocalBounds().reduced(8));
+        knobInfo_[(size_t) i].setBounds(x + cw - 22, knobsRow.getY() + 6, 14, 14);
         x += cw + gap;
     }
     moreCard_->setBounds(x, knobsRow.getY(), cw, knobsRow.getHeight());

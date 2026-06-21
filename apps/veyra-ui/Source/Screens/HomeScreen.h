@@ -6,6 +6,7 @@
 // reported via onEnhancementChanged and reflected back via applyEnhancement.
 
 #include "Components/GlassPanel.h"
+#include "Components/InfoIcon.h"
 #include "Components/Knob.h"
 #include "Home/EqualizerCard.h"
 #include "Home/VisualizerCard.h"
@@ -59,6 +60,8 @@ private:
     static constexpr int kKnobs = 6;
     std::array<std::unique_ptr<GlassPanel>, kKnobs> knobCards_;
     std::array<std::unique_ptr<Knob>, kKnobs> knobs_;
+    std::array<InfoIcon, kKnobs> knobInfo_;
+    InfoIcon eqInfo_, vizInfo_;
     std::unique_ptr<GlassPanel> moreCard_;
 
     EnhancementConfig enh_;
