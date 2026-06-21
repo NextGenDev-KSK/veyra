@@ -5,6 +5,7 @@
 #include "Theme/Fonts.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace veyra::ui {
 
@@ -13,6 +14,12 @@ constexpr int kPad = 24;
 constexpr int kTileW = 230;
 constexpr int kTileH = 92;
 constexpr int kGap = 16;
+
+juce::File veyraStateFile(const char* name)
+{
+    return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+        .getChildFile("Veyra").getChildFile(name);
+}
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -23,13 +30,19 @@ public:
     explicit Tile(veyra::Preset p) : preset_(std::move(p)) { setElevated(true); }
 
     void setActive(bool a) { active_ = a; repaint(); }
+    void setFavorite(bool f) { favorite_ = f; repaint(); }
     const std::string& uuid() const { return preset_.uuid; }
 
     std::function<void()> onClick;
+    std::function<void()> onToggleFavorite;
 
     void mouseEnter(const juce::MouseEvent&) override { hover_ = true; repaint(); }
     void mouseExit(const juce::MouseEvent&) override { hover_ = false; repaint(); }
-    void mouseDown(const juce::MouseEvent&) override { if (onClick) onClick(); }
+    void mouseDown(const juce::MouseEvent& e) override
+    {
+        if (starBounds().contains(e.getPosition())) { if (onToggleFavorite) onToggleFavorite(); return; }
+        if (onClick) onClick();
+    }
 
 protected:
     void paintContent(juce::Graphics& g) override
@@ -57,20 +70,38 @@ protected:
         {
             g.setColour(palette_.accentPrimary);
             g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(1.5f), 16.0f, 2.0f);
-            // "Active" check dot, top-right.
-            g.fillEllipse((float) getWidth() - 22.0f, 14.0f, 8.0f, 8.0f);
         }
         else if (hover_)
         {
             g.setColour(palette_.strokeHover);
             g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(0.5f), 16.0f, 1.0f);
         }
+
+        // Favorite star (top-right): filled when favorited, outline otherwise.
+        const auto sb = starBounds().toFloat();
+        juce::Path star;
+        const float cx = sb.getCentreX(), cy = sb.getCentreY();
+        const float ro = sb.getWidth() * 0.46f, ri = ro * 0.45f;
+        for (int i = 0; i < 10; ++i)
+        {
+            const float a = -juce::MathConstants<float>::halfPi + (float) i * juce::MathConstants<float>::pi / 5.0f;
+            const float r = (i % 2 == 0) ? ro : ri;
+            const juce::Point<float> pt(cx + std::cos(a) * r, cy + std::sin(a) * r);
+            if (i == 0) star.startNewSubPath(pt); else star.lineTo(pt);
+        }
+        star.closeSubPath();
+        if (favorite_) { g.setColour(palette_.warning); g.fillPath(star); }
+        else           { g.setColour(hover_ ? palette_.textSecondary : palette_.textTertiary);
+                         g.strokePath(star, juce::PathStrokeType(1.0f)); }
     }
 
 private:
+    juce::Rectangle<int> starBounds() const { return {getWidth() - 30, 10, 20, 20}; }
+
     veyra::Preset preset_;
-    bool active_ = false;
-    bool hover_  = false;
+    bool active_   = false;
+    bool hover_    = false;
+    bool favorite_ = false;
 };
 
 // ---------------------------------------------------------------------------
@@ -79,9 +110,11 @@ private:
 class PresetsScreen::Grid : public juce::Component {
 public:
     std::function<void(juce::String)> onApply;
+    std::function<void(juce::String)> onToggleFavorite;
 
     void setBackdrop(GlassBackground* b) { backdrop_ = b; for (auto& t : tiles_) t->setBackdrop(b); }
     void setPalette(const Palette& p) { palette_ = p; for (auto& t : tiles_) t->setPalette(p); }
+    void setFavorites(std::set<std::string> f) { favorites_ = std::move(f); }
 
     void setPresets(const std::vector<veyra::Preset>& presets, const juce::String& active)
     {
@@ -92,8 +125,10 @@ public:
             t->setBackdrop(backdrop_);
             t->setPalette(palette_);
             t->setActive(juce::String(p.uuid) == active);
+            t->setFavorite(favorites_.count(p.uuid) > 0);
             const juce::String uuid(p.uuid);
             t->onClick = [this, uuid] { if (onApply) onApply(uuid); };
+            t->onToggleFavorite = [this, uuid] { if (onToggleFavorite) onToggleFavorite(uuid); };
             addAndMakeVisible(*t);
             tiles_.push_back(std::move(t));
         }
@@ -132,6 +167,7 @@ public:
 
 private:
     std::vector<std::unique_ptr<Tile>> tiles_;
+    std::set<std::string> favorites_;
     GlassBackground* backdrop_ = nullptr;
     Palette palette_ = paletteForTheme("midnight");
     bool listMode_ = false;
@@ -142,8 +178,11 @@ private:
 // ---------------------------------------------------------------------------
 PresetsScreen::PresetsScreen()
 {
+    loadFavoritesAndRecent();
+
     grid_ = std::make_unique<Grid>();
-    grid_->onApply = [this](juce::String uuid) { if (onApply) onApply(uuid); };
+    grid_->onApply = [this](juce::String uuid) { recordRecent(uuid); if (onApply) onApply(uuid); };
+    grid_->onToggleFavorite = [this](juce::String uuid) { toggleFavorite(uuid); };
 
     viewport_.setViewedComponent(grid_.get(), false);
     viewport_.setScrollBarsShown(true, false);
@@ -197,9 +236,9 @@ void PresetsScreen::setPresets(std::vector<veyra::Preset> presets, juce::String 
     activeUuid_ = activeUuid;
     allPresets_ = std::move(presets);
 
-    // Build the category column: All + each built-in category (in first-seen
-    // order) + Custom (if any user presets exist).
-    categories_ = juce::StringArray{"All Presets"};
+    // Build the category column: All + Favorites + Recently Used + each built-in
+    // category (in first-seen order) + Custom (if any user presets exist).
+    categories_ = juce::StringArray{"All Presets", "Favorites", "Recently Used"};
     bool anyCustom = false;
     for (const auto& p : allPresets_)
     {
@@ -220,23 +259,41 @@ void PresetsScreen::applyFilter()
 {
     const juce::String cat = categories_[selectedCat_];
     const juce::String q = search_.getText().trim();
+    const bool recentView = (cat == "Recently Used");
     std::vector<veyra::Preset> filtered;
     for (const auto& p : allPresets_)
     {
-        bool catOk = (selectedCat_ == 0)
-                     || (cat == "Custom" ? !p.builtIn : juce::String(p.category) == cat);
+        bool catOk;
+        if (cat == "All Presets")        catOk = true;
+        else if (cat == "Favorites")     catOk = favorites_.count(p.uuid) > 0;
+        else if (recentView)             catOk = std::find(recent_.begin(), recent_.end(), p.uuid) != recent_.end();
+        else if (cat == "Custom")        catOk = !p.builtIn;
+        else                             catOk = juce::String(p.category) == cat;
         bool qOk = q.isEmpty() || juce::String(p.name).containsIgnoreCase(q);
         if (catOk && qOk)
             filtered.push_back(p);
     }
 
-    std::sort(filtered.begin(), filtered.end(), [this](const veyra::Preset& a, const veyra::Preset& b)
+    if (recentView)
     {
-        if (sortMode_ == 1 && a.category != b.category)
-            return juce::String(a.category).compareIgnoreCase(juce::String(b.category)) < 0;
-        return juce::String(a.name).compareIgnoreCase(juce::String(b.name)) < 0;
-    });
+        auto rank = [this](const std::string& u) {
+            const auto it = std::find(recent_.begin(), recent_.end(), u);
+            return it == recent_.end() ? (int) recent_.size() : (int) std::distance(recent_.begin(), it);
+        };
+        std::sort(filtered.begin(), filtered.end(),
+                  [&](const veyra::Preset& a, const veyra::Preset& b) { return rank(a.uuid) < rank(b.uuid); });
+    }
+    else
+    {
+        std::sort(filtered.begin(), filtered.end(), [this](const veyra::Preset& a, const veyra::Preset& b)
+        {
+            if (sortMode_ == 1 && a.category != b.category)
+                return juce::String(a.category).compareIgnoreCase(juce::String(b.category)) < 0;
+            return juce::String(a.name).compareIgnoreCase(juce::String(b.name)) < 0;
+        });
+    }
 
+    grid_->setFavorites(favorites_);
     grid_->setPresets(filtered, activeUuid_);
 }
 
@@ -246,6 +303,59 @@ void PresetsScreen::selectCategory(int i)
     applyFilter();
     resized();
     repaint();
+}
+
+void PresetsScreen::loadFavoritesAndRecent()
+{
+    favorites_.clear();
+    recent_.clear();
+    if (auto f = veyraStateFile("favorites.txt"); f.existsAsFile())
+    {
+        juce::StringArray lines; lines.addLines(f.loadFileAsString());
+        for (auto& l : lines) if (l.trim().isNotEmpty()) favorites_.insert(l.trim().toStdString());
+    }
+    if (auto f = veyraStateFile("recent.txt"); f.existsAsFile())
+    {
+        juce::StringArray lines; lines.addLines(f.loadFileAsString());
+        for (auto& l : lines) if (l.trim().isNotEmpty()) recent_.push_back(l.trim().toStdString());
+    }
+}
+
+void PresetsScreen::saveFavorites()
+{
+    juce::StringArray a;
+    for (const auto& u : favorites_) a.add(juce::String(u));
+    auto f = veyraStateFile("favorites.txt");
+    f.getParentDirectory().createDirectory();
+    f.replaceWithText(a.joinIntoString("\n"));
+}
+
+void PresetsScreen::saveRecent()
+{
+    juce::StringArray a;
+    for (const auto& u : recent_) a.add(juce::String(u));
+    auto f = veyraStateFile("recent.txt");
+    f.getParentDirectory().createDirectory();
+    f.replaceWithText(a.joinIntoString("\n"));
+}
+
+void PresetsScreen::toggleFavorite(const juce::String& uuid)
+{
+    const auto u = uuid.toStdString();
+    if (favorites_.count(u)) favorites_.erase(u); else favorites_.insert(u);
+    saveFavorites();
+    // Defer the grid rebuild so we don't destroy the tile mid-click.
+    juce::Component::SafePointer<PresetsScreen> safe(this);
+    juce::MessageManager::callAsync([safe] { if (safe != nullptr) safe->applyFilter(); });
+}
+
+void PresetsScreen::recordRecent(const juce::String& uuid)
+{
+    const auto u = uuid.toStdString();
+    recent_.erase(std::remove(recent_.begin(), recent_.end(), u), recent_.end());
+    recent_.insert(recent_.begin(), u);
+    if (recent_.size() > 12) recent_.resize(12);
+    saveRecent(); // the Recently-Used view refreshes on the next setPresets
 }
 
 juce::Rectangle<int> PresetsScreen::categoryColumn() const

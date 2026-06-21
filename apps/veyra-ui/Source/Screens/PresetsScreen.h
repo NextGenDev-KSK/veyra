@@ -13,6 +13,8 @@
 
 #include <functional>
 #include <memory>
+#include <set>
+#include <string>
 #include <vector>
 
 namespace veyra::ui {
@@ -45,6 +47,11 @@ private:
     void promptSaveCurrent();
     void applyFilter();
     void selectCategory(int i);
+    void toggleFavorite(const juce::String& uuid);
+    void recordRecent(const juce::String& uuid);
+    void loadFavoritesAndRecent();
+    void saveFavorites();
+    void saveRecent();
     juce::Rectangle<int> categoryColumn() const;
     juce::Rectangle<int> categoryItemBounds(int i) const;
 
@@ -55,6 +62,8 @@ private:
     std::vector<veyra::Preset> allPresets_;
     juce::StringArray          categories_{"All Presets"};
     int                        selectedCat_ = 0;
+    std::set<std::string>      favorites_;
+    std::vector<std::string>   recent_; // most-recent-first
 
     juce::TextEditor       search_;
     SegmentedControl       viewToggle_;
