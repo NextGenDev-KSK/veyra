@@ -94,7 +94,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 - [ ] **Reference Listening Mode** (flat, bypass all coloration)
 
 ### Phase 17 — Headphone & Spatial Suite  `[ ]`
-- [ ] **AutoEQ database** — pick headphone model → auto-load parametric corrections  *(1.0 Required)*
+- [x] **AutoEQ database** — pick headphone model → auto-load parametric corrections. Parser (`veyra::AutoEq`) for the AutoEq ParametricEQ.txt format + 16 vendored oratory1990 corrections (BinaryData-embedded) + an "AutoEQ" picker on the EQ card. Tested. CI-green. *(1.0 Required)*
 - [ ] **Advanced crossfeed** — frequency-dependent, delay-compensated (Bauer/Meier)
 - [ ] **Headphone optimization profiles** (impedance / driver / open-vs-closed)
 - [ ] **Multiple HRTF databases** — KEMAR (done) + CIPIC + IRCAM, user-selectable
@@ -126,7 +126,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 
 ## Veyra 1.0 release target
 
-**Required:** Stable APO ⏵ · RNNoise ✅ · AutoEQ `[ ]` · Parametric EQ ✅ · KEMAR ✅ · Good presets ✅ · Apps page ✅ · Devices page ✅ (polish `[ ]`) · Localization framework ✅ · Documentation `[ ]`
+**Required:** Stable APO ⏵ · RNNoise ✅ · AutoEQ ✅ · Parametric EQ ✅ · KEMAR ✅ · Good presets ✅ · Apps page ✅ · Devices page ✅ (polish `[ ]`) · Localization framework ✅ · Documentation `[ ]`
 **Nice-to-have:** CIPIC · IRCAM · Equal-loudness · Advanced crossfeed
 **Future:** Personalized HRTF · Room simulation · Binaural speaker emulation
 
