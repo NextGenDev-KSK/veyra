@@ -30,6 +30,8 @@ public:
     void mouseDown(const juce::MouseEvent& e) override;
     void mouseDrag(const juce::MouseEvent& e) override;
     void mouseUp(const juce::MouseEvent& e) override;
+    void mouseMove(const juce::MouseEvent& e) override;
+    void mouseExit(const juce::MouseEvent& e) override;
     void mouseDoubleClick(const juce::MouseEvent& e) override;
     void mouseWheelMove(const juce::MouseEvent& e, const juce::MouseWheelDetails& w) override;
 
@@ -44,10 +46,13 @@ private:
     float curveDbAt(float freq) const;
     void  emit();
 
+    void showBandMenu(int index);
+
     Palette palette_ = paletteForTheme("midnight");
     std::vector<veyra::ParametricBand> bands_;
     int dragging_ = -1;
     int selected_ = -1;
+    int hovered_  = -1;
 };
 
 } // namespace veyra::ui

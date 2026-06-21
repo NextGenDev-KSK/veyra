@@ -134,13 +134,16 @@ void ParametricEqEditor::paint(juce::Graphics& g)
         }
     }
 
-    if (selected_ >= 0 && selected_ < (int) bands_.size())
+    const int readout = hovered_ >= 0 ? hovered_ : selected_;
+    if (readout >= 0 && readout < (int) bands_.size())
     {
-        const auto& b = bands_[(size_t) selected_];
+        static const char* kTypes[] = {"Bell", "Low Shelf", "High Shelf", "Notch", "High Pass", "Low Pass"};
+        const auto& b = bands_[(size_t) readout];
+        const int t = juce::jlimit(0, 5, b.type);
         g.setColour(palette_.textSecondary);
         g.setFont(fonts::mono(10.0f));
-        g.drawText(juce::String((int) b.freq) + " Hz   " + juce::String(b.gainDb, 1) + " dB   Q "
-                       + juce::String(b.q, 2),
+        g.drawText(juce::String(kTypes[t]) + "   " + juce::String((int) b.freq) + " Hz   "
+                       + juce::String(b.gainDb, 1) + " dB   Q " + juce::String(b.q, 2),
                    getLocalBounds().reduced(8).removeFromTop(14), juce::Justification::right, false);
     }
 }
@@ -150,12 +153,47 @@ void ParametricEqEditor::mouseDown(const juce::MouseEvent& e)
     const int hit = hitTest(e.position);
     if (e.mods.isPopupMenu())
     {
-        if (hit >= 0) { bands_.erase(bands_.begin() + hit); selected_ = -1; emit(); repaint(); }
+        if (hit >= 0) showBandMenu(hit); // filter type / remove
         return;
     }
     selected_ = hit;
     dragging_ = hit;
     repaint();
+}
+
+void ParametricEqEditor::showBandMenu(int index)
+{
+    if (index < 0 || index >= (int) bands_.size())
+        return;
+    juce::PopupMenu m;
+    static const char* kTypes[] = {"Bell", "Low Shelf", "High Shelf", "Notch", "High Pass", "Low Pass"};
+    for (int t = 0; t < 6; ++t)
+        m.addItem(t + 1, kTypes[t], true, bands_[(size_t) index].type == t);
+    m.addSeparator();
+    m.addItem(100, "Remove band");
+
+    juce::Component::SafePointer<ParametricEqEditor> safe(this);
+    m.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(this),
+                    [safe, index](int r)
+                    {
+                        if (safe == nullptr || r <= 0 || index >= (int) safe->bands_.size()) return;
+                        if (r == 100) { safe->bands_.erase(safe->bands_.begin() + index); safe->selected_ = -1; }
+                        else          { safe->bands_[(size_t) index].type = r - 1; }
+                        safe->emit();
+                        safe->repaint();
+                    });
+}
+
+void ParametricEqEditor::mouseMove(const juce::MouseEvent& e)
+{
+    const int h = hitTest(e.position);
+    if (h != hovered_) { hovered_ = h; repaint(); }
+    setMouseCursor(h >= 0 ? juce::MouseCursor::DraggingHandCursor : juce::MouseCursor::NormalCursor);
+}
+
+void ParametricEqEditor::mouseExit(const juce::MouseEvent&)
+{
+    if (hovered_ != -1) { hovered_ = -1; repaint(); }
 }
 
 void ParametricEqEditor::mouseDrag(const juce::MouseEvent& e)
@@ -173,7 +211,15 @@ void ParametricEqEditor::mouseUp(const juce::MouseEvent&) { dragging_ = -1; }
 
 void ParametricEqEditor::mouseDoubleClick(const juce::MouseEvent& e)
 {
-    if (hitTest(e.position) >= 0 || bands_.size() >= 16)
+    const int hit = hitTest(e.position);
+    if (hit >= 0) // double-click a node resets its gain to flat
+    {
+        bands_[(size_t) hit].gainDb = 0.0f;
+        emit();
+        repaint();
+        return;
+    }
+    if (bands_.size() >= 16)
         return;
     veyra::ParametricBand b;
     b.enabled = true;
