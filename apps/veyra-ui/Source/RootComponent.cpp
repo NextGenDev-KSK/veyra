@@ -396,12 +396,13 @@ void RootComponent::refreshFromService()
     presets_.setPresets(client_.presets(), juce::String(working_.activePresetUuid));
     apps_.setPresets(client_.presets());
 
-    // Reflect the active preset name in the mini widget.
+    // Reflect the active preset name in the mini widget + the top-bar chip.
     juce::String presetName = "Custom";
     for (const auto& p : client_.presets())
         if (p.uuid == working_.activePresetUuid)
             presetName = juce::String(p.name);
     mini_->content().setPreset(presetName);
+    topBar_.setActivePreset(presetName);
 }
 
 void RootComponent::saveCurrentAsPreset(const juce::String& name)

@@ -37,6 +37,9 @@ public:
     // Connection status dot beside the wordmark.
     void setConnection(bool connected, juce::String version);
 
+    // Active preset name shown in the top-bar chip.
+    void setActivePreset(juce::String name);
+
 private:
     void toggleMaximise();
 
@@ -44,6 +47,7 @@ private:
 
     bool         connected_ = false;
     juce::String version_;
+    juce::String activePreset_{"Custom"};
     juce::Image  logoImage_; // brand mark (resources/icons/Veyra_Icon.png)
 
     ToggleSwitch master_;
