@@ -22,12 +22,12 @@ TopBar::TopBar()
 
     // A/B, search and bell aren't wired yet — hide them rather than show dead
     // controls. The gear opens Settings; the window buttons work.
-    for (auto* b : {&gear_, &min_, &max_, &close_})
+    for (auto* b : {&gear_, &min_, &close_})
         addAndMakeVisible(b);
+    max_.setVisible(false); // fixed canvas: no maximise
 
     gear_.onClick  = [this] { if (onOpenSettings) onOpenSettings(); };
     min_.onClick   = [this] { if (auto* p = getPeer()) p->setMinimised(true); };
-    max_.onClick   = [this] { toggleMaximise(); };
     close_.onClick = [] { juce::JUCEApplication::getInstance()->systemRequestedQuit(); };
 }
 
@@ -78,8 +78,7 @@ void TopBar::resized()
     int rx = getWidth() - 16;
     auto place = [&](IconButton& b, int sz) { rx -= sz; b.setBounds(rx, centreY(sz), sz, sz); rx -= 6; };
     place(close_, 28);
-    place(max_, 28);
-    place(min_, 28);
+    place(min_, 28); // no maximise: the window is a fixed canvas
     rx -= 10;
     place(gear_, 32); // opens Settings (A/B, search, bell hidden until wired)
 }
@@ -204,6 +203,6 @@ void TopBar::mouseDrag(const juce::MouseEvent& e)
         w->setTopLeftPosition(dragWin_ + (e.getScreenPosition() - dragMouse_));
 }
 
-void TopBar::mouseDoubleClick(const juce::MouseEvent&) { toggleMaximise(); }
+void TopBar::mouseDoubleClick(const juce::MouseEvent&) {} // fixed canvas: no maximise
 
 } // namespace veyra::ui

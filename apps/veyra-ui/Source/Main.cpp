@@ -46,9 +46,10 @@ public:
         setTitleBarHeight(0);
         setBackgroundColour(juce::Colours::transparentBlack);
         setContentOwned(new veyra::ui::RootComponent(), true);
-        setResizable(true, false);
-        setResizeLimits(960, 620, 4000, 3000);
-        centreWithSize(1180, 760);
+        // Fixed canvas (1600x900), like Spotify / SteelSeries Sonar: the layout is
+        // designed around one size, so no resize and no maximise.
+        setResizable(false, false);
+        centreWithSize(1600, 900);
         setVisible(true);
 
         if (auto* peer = getPeer())
