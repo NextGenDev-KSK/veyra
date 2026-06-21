@@ -64,13 +64,14 @@ private:
     class MicrophoneCard;
     class SpatialCard;
     class LoudnessCard;
+    class UpdatesCard;
     class AboutCard;
 
     void setSection(int i);
     juce::Rectangle<int> navItemBounds(int i) const;
     juce::Component* cardForSection(int i) const;
 
-    static constexpr int kSections = 6; // Appearance, Audio Engine, Microphone, Spatial, Loudness, About
+    static constexpr int kSections = 7; // Appearance, Audio Engine, Microphone, Spatial, Loudness, Updates, About
     int section_ = 0;
 
     std::unique_ptr<AppearanceCard>  appearance_;
@@ -78,6 +79,7 @@ private:
     std::unique_ptr<MicrophoneCard>  microphone_;
     std::unique_ptr<SpatialCard>     spatial_;
     std::unique_ptr<LoudnessCard>    loudness_;
+    std::unique_ptr<UpdatesCard>     updates_;
     std::unique_ptr<AboutCard>       about_;
     Palette palette_ = paletteForTheme("midnight");
 };

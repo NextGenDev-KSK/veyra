@@ -862,6 +862,59 @@ private:
     juce::Slider     buffer_;
 };
 
+// ===========================================================================
+// Updates
+// ===========================================================================
+class SettingsScreen::UpdatesCard : public GlassPanel {
+public:
+    UpdatesCard()
+    {
+        releases_.setButtonText("View Releases on GitHub");
+        releases_.onClick = []
+        { juce::URL("https://github.com/NextGenDev-KSK/veyra/releases").launchInDefaultBrowser(); };
+        addAndMakeVisible(releases_);
+    }
+
+    void resized() override
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        c.removeFromTop(28 + 18 + 26 + 22 + 18); // title + 3 painted lines
+        releases_.setBounds(c.removeFromTop(34).removeFromLeft(240));
+    }
+
+protected:
+    void paintContent(juce::Graphics& g) override
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::display(18.0f));
+        g.drawText("UPDATES", c.removeFromTop(28), juce::Justification::centredLeft, false);
+
+        auto row = [&](const char* label, const juce::String& value)
+        {
+            auto r = c.removeFromTop(26);
+            g.setColour(palette_.textSecondary);
+            g.setFont(fonts::body(13.0f));
+            g.drawText(label, r.removeFromLeft(160), juce::Justification::centredLeft, false);
+            g.setColour(palette_.textPrimary);
+            g.setFont(fonts::mono(12.0f));
+            g.drawText(value, r, juce::Justification::centredLeft, false);
+        };
+        c.removeFromTop(18);
+        row("Current version", "v" + juce::String(veyra::kVersionString));
+        row("Channel", "Stable");
+        c.removeFromTop(18);
+        g.setColour(palette_.textTertiary);
+        g.setFont(fonts::body(11.0f));
+        g.drawText("Veyra checks for updates automatically in the background.",
+                   c.removeFromTop(16), juce::Justification::topLeft, false);
+    }
+
+private:
+    static constexpr int kPad = 24;
+    juce::TextButton releases_;
+};
+
 SettingsScreen::SettingsScreen()
 {
     appearance_ = std::make_unique<AppearanceCard>();
@@ -887,6 +940,9 @@ SettingsScreen::SettingsScreen()
     loudness_->onLoudnessChanged = [this](const veyra::LoudnessConfig& l) { if (onLoudnessChanged) onLoudnessChanged(l); };
     addAndMakeVisible(*loudness_);
 
+    updates_ = std::make_unique<UpdatesCard>();
+    addAndMakeVisible(*updates_);
+
     about_ = std::make_unique<AboutCard>();
     about_->onResetSettings = [this] { if (onResetSettings) onResetSettings(); };
     addAndMakeVisible(*about_);
@@ -903,6 +959,7 @@ juce::Component* SettingsScreen::cardForSection(int i) const
     case 2: return microphone_.get();
     case 3: return spatial_.get();
     case 4: return loudness_.get();
+    case 5: return updates_.get();
     default: return about_.get();
     }
 }
@@ -948,7 +1005,7 @@ void SettingsScreen::paint(juce::Graphics& g)
                juce::Justification::topLeft, false);
 
     static const char* kNames[kSections] =
-        {"Appearance", "Audio Engine", "Microphone", "Spatial", "Loudness", "About"};
+        {"Appearance", "Audio Engine", "Microphone", "Spatial", "Loudness", "Updates", "About"};
     for (int i = 0; i < kSections; ++i)
     {
         if (i == section_)
@@ -980,6 +1037,7 @@ void SettingsScreen::setPalette(const Palette& p)
     microphone_->setPalette(p);
     spatial_->setPalette(p);
     loudness_->setPalette(p);
+    updates_->setPalette(p);
     about_->setPalette(p);
     repaint();
 }
@@ -991,6 +1049,7 @@ void SettingsScreen::attachBackdrop(GlassBackground* b)
     microphone_->setBackdrop(b);
     spatial_->setBackdrop(b);
     loudness_->setBackdrop(b);
+    updates_->setBackdrop(b);
     about_->setBackdrop(b);
 }
 
