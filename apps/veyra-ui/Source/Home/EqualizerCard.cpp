@@ -46,6 +46,28 @@ EqualizerCard::EqualizerCard()
     paramEditor_->onChanged = [this](const std::vector<veyra::ParametricBand>& b)
     { if (onParametricChanged) onParametricChanged(b); };
     addChildComponent(*paramEditor_); // shown only in parametric mode
+
+    autoEqBtn_.onClick = [this]
+    {
+        if (autoEq_.empty()) return;
+        juce::PopupMenu m;
+        for (int i = 0; i < (int) autoEq_.size(); ++i)
+            m.addItem(i + 1, autoEq_[(size_t) i].name);
+        juce::Component::SafePointer<EqualizerCard> safe(this);
+        m.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&autoEqBtn_),
+                        [safe](int r)
+                        {
+                            if (safe == nullptr || r <= 0 || r > (int) safe->autoEq_.size()) return;
+                            if (safe->onAutoEqSelected) safe->onAutoEqSelected(safe->autoEq_[(size_t) (r - 1)].bands);
+                        });
+    };
+    addAndMakeVisible(autoEqBtn_);
+}
+
+void EqualizerCard::setAutoEqProfiles(std::vector<veyra::AutoEqProfile> profiles)
+{
+    autoEq_ = std::move(profiles);
+    autoEqBtn_.setEnabled(!autoEq_.empty());
 }
 
 void EqualizerCard::setPalette(const Palette& p)
@@ -99,6 +121,8 @@ void EqualizerCard::resized()
     showCurve_.setBounds(header.removeFromRight(36).withSizeKeepingCentre(36, 20));
     header.removeFromRight(8 + 78);  // gap + painted "Show curve" label
     modeToggle_.setBounds(header.removeFromRight(170).withSizeKeepingCentre(170, 32));
+    header.removeFromRight(12);
+    autoEqBtn_.setBounds(header.removeFromRight(96).withSizeKeepingCentre(96, 28)); // headphone correction
 
     content.removeFromTop(16);
     paramEditor_->setBounds(content);

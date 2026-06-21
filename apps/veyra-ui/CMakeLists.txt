@@ -12,13 +12,15 @@ juce_add_gui_app(veyra
     ICON_BIG "${CMAKE_SOURCE_DIR}/resources/icons/Veyra_Icon_square.png"
     ICON_SMALL "${CMAKE_SOURCE_DIR}/resources/icons/Veyra_Icon_square.png")
 
-# Embed fonts (OFL) + the brand mark. BinaryData::Orbitron_ttf / Inter_ttf /
-# JetBrainsMono_ttf / Veyra_Icon_png.
+# Embed fonts (OFL) + the brand mark + the AutoEQ headphone corrections (*.txt),
+# so the picker works in dev and installed builds without a resource path.
+file(GLOB VEYRA_AUTOEQ_TXT "${CMAKE_SOURCE_DIR}/resources/autoeq/*.txt")
 juce_add_binary_data(veyra_assets SOURCES
     "${CMAKE_SOURCE_DIR}/resources/fonts/Orbitron.ttf"
     "${CMAKE_SOURCE_DIR}/resources/fonts/Inter.ttf"
     "${CMAKE_SOURCE_DIR}/resources/fonts/JetBrainsMono.ttf"
-    "${CMAKE_SOURCE_DIR}/resources/icons/Veyra_Icon_square.png")
+    "${CMAKE_SOURCE_DIR}/resources/icons/Veyra_Icon_square.png"
+    ${VEYRA_AUTOEQ_TXT})
 
 target_sources(veyra PRIVATE
     Source/Main.cpp

@@ -4,9 +4,35 @@
 #include "Graphics/Icons.h"
 #include "Theme/Fonts.h"
 
+#include "veyra/AutoEq.h"
+
+#include <algorithm>
+#include <string>
+
 namespace veyra::ui {
 
 namespace {
+// AutoEQ headphone corrections embedded as BinaryData (resources/autoeq/*.txt).
+std::vector<veyra::AutoEqProfile> loadEmbeddedAutoEq()
+{
+    std::vector<veyra::AutoEqProfile> out;
+    for (int i = 0; i < BinaryData::namedResourceListSize; ++i)
+    {
+        const juce::String fn = BinaryData::originalFilenames[i];
+        if (!fn.endsWithIgnoreCase(".txt"))
+            continue;
+        int sz = 0;
+        const char* d = BinaryData::getNamedResource(BinaryData::namedResourceList[i], sz);
+        if (!d || sz <= 0)
+            continue;
+        if (auto p = veyra::parseAutoEq(fn.dropLastCharacters(4).toStdString(), std::string(d, (size_t) sz)))
+            out.push_back(std::move(*p));
+    }
+    std::sort(out.begin(), out.end(),
+              [](const veyra::AutoEqProfile& a, const veyra::AutoEqProfile& b) { return a.name < b.name; });
+    return out;
+}
+
 struct KnobSpec { const char* label; double v; };
 const KnobSpec kKnobSpecs[] = {
     {"Bass Boost", 0.33}, {"Treble", 0.27},
@@ -129,6 +155,18 @@ HomeScreen::HomeScreen()
     eq_.onParametricChanged = [this](const std::vector<veyra::ParametricBand>& bands)
     {
         enh_.parametricBands = bands;
+        if (onEnhancementChanged)
+            onEnhancementChanged(enh_);
+    };
+
+    // AutoEQ: pick a headphone -> load its correction into the parametric EQ.
+    eq_.setAutoEqProfiles(loadEmbeddedAutoEq());
+    eq_.onAutoEqSelected = [this](const std::vector<veyra::ParametricBand>& bands)
+    {
+        enh_.parametricBands = bands;
+        enh_.eqMode = "parametric";
+        eq_.setParametricBands(bands);
+        eq_.setMode(true);
         if (onEnhancementChanged)
             onEnhancementChanged(enh_);
     };

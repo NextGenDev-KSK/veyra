@@ -11,6 +11,7 @@
 #include "Components/ToggleSwitch.h"
 #include "VeyraGui.h"
 
+#include "veyra/AutoEq.h"
 #include "veyra/Config.h"
 
 #include <array>
@@ -30,6 +31,9 @@ public:
     std::function<void(int, float)> onBandChanged; // (band index, dB)
     std::function<void(bool)>       onModeChanged; // true = parametric
     std::function<void(const std::vector<veyra::ParametricBand>&)> onParametricChanged;
+    std::function<void(const std::vector<veyra::ParametricBand>&)> onAutoEqSelected; // headphone correction
+
+    void setAutoEqProfiles(std::vector<veyra::AutoEqProfile> profiles);
 
     // Set a band's gain from config without firing onBandChanged.
     void setBandGain(int index, float db);
@@ -46,6 +50,8 @@ private:
     SegmentedControl modeToggle_;
     ToggleSwitch showCurve_, showSpectrum_;
     juce::TextButton reset_{"Reset"};
+    juce::TextButton autoEqBtn_{"AutoEQ"};
+    std::vector<veyra::AutoEqProfile> autoEq_;
 };
 
 } // namespace veyra::ui
