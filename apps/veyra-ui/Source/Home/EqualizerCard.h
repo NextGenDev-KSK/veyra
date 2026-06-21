@@ -24,10 +24,12 @@ public:
     void paintContent(juce::Graphics&) override;
 
     std::function<void(int, float)> onBandChanged; // (band index, dB)
+    std::function<void(bool)>       onModeChanged; // true = parametric
 
     // Set a band's gain from config without firing onBandChanged.
     void setBandGain(int index, float db);
     float bandGain(int index) const;
+    void setMode(bool parametric); // reflect graphic/parametric, no callback
 
     static constexpr int kBands = 10;
 

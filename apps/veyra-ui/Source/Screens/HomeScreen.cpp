@@ -87,6 +87,13 @@ HomeScreen::HomeScreen()
             onEnhancementChanged(enh_);
     };
 
+    eq_.onModeChanged = [this](bool parametric)
+    {
+        enh_.eqMode = parametric ? "parametric" : "graphic";
+        if (onEnhancementChanged)
+            onEnhancementChanged(enh_);
+    };
+
     seedFromControls();
     applyEnhancement(enh_); // normalise displayed values/text from enh_
 }
@@ -141,6 +148,7 @@ void HomeScreen::applyEnhancement(const EnhancementConfig& e)
 
     for (int i = 0; i < EqualizerCard::kBands; ++i)
         eq_.setBandGain(i, e.eqBandsDb[(size_t) i]);
+    eq_.setMode(e.eqMode == "parametric");
 }
 
 void HomeScreen::seedFromControls()

@@ -15,6 +15,7 @@
 #include "enhancers/StereoProcessor.h"
 #include "enhancers/ToneControls.h"
 #include "eq/GraphicEq.h"
+#include "eq/ParametricEq.h"
 #include "loudness/LoudnessNormalizer.h"
 #include "loudness/NightMode.h"
 #include "spatial/Crossfeed.h"
@@ -27,6 +28,7 @@ public:
     void prepare(double sampleRate, int maxBlock = 0)
     {
         eq_.prepare(sampleRate, maxBlock);
+        parametric_.prepare(sampleRate);
         tone_.prepare(sampleRate);
         stereo_.prepare(sampleRate);
         comp_.prepare(sampleRate);
@@ -44,8 +46,24 @@ public:
     void setParameters(const DspParameters& p) noexcept
     {
         bypass_ = p.bypass;
+        parametricMode_ = p.parametricMode;
         for (int b = 0; b < GraphicEq::kNumBands; ++b)
             eq_.setBandGainDb(b, p.eqBandsDb[static_cast<size_t>(b)]);
+
+        // Parametric mode reuses the 10 band gains as bell filters at the same
+        // centres (the draggable per-node freq/Q editor extends this later).
+        static constexpr double kCentres[10] =
+            {31.25, 62.5, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0};
+        if (parametricMode_)
+        {
+            std::array<EqBand, ParametricEq::kMaxBands> bands{};
+            for (int b = 0; b < 10; ++b)
+                bands[(size_t) b] = EqBand{true, EqBandType::Bell,
+                                           (float) kCentres[b], p.eqBandsDb[(size_t) b], 1.41f};
+            parametric_.setBands(bands);
+        }
+        parametric_.setEnabled(parametricMode_);
+
         tone_.setBassDb(p.bassBoostDb);
         tone_.setTrebleDb(p.trebleDb);
         stereo_.setMono(p.monoMode);
@@ -71,7 +89,10 @@ public:
         }
 
         stereo_.applyMonoBalance(left, right, numSamples);
-        eq_.processStereo(left, right, numSamples);
+        if (parametricMode_)
+            parametric_.processStereo(left, right, numSamples);
+        else
+            eq_.processStereo(left, right, numSamples);
         tone_.processStereo(left, right, numSamples);
         comp_.processStereo(left, right, numSamples);
         stereo_.applyWidth(left, right, numSamples);
@@ -97,7 +118,9 @@ public:
 
 private:
     bool bypass_ = false;
+    bool parametricMode_ = false;
     GraphicEq        eq_;
+    ParametricEq     parametric_;
     ToneControls     tone_;
     StereoProcessor  stereo_;
     Compressor       comp_;

@@ -21,6 +21,7 @@ EqualizerCard::EqualizerCard()
     }
 
     modeToggle_.setItems({"Graphic", "Parametric"});
+    modeToggle_.onChange = [this](int i) { if (onModeChanged) onModeChanged(i == 1); repaint(); };
     addAndMakeVisible(modeToggle_);
 
     showCurve_.setToggleState(true, juce::dontSendNotification);
@@ -63,6 +64,11 @@ void EqualizerCard::setBandGain(int index, float db)
 float EqualizerCard::bandGain(int index) const
 {
     return (index >= 0 && index < kBands) ? bands_[(size_t) index]->gainDb() : 0.0f;
+}
+
+void EqualizerCard::setMode(bool parametric)
+{
+    modeToggle_.setSelectedIndex(parametric ? 1 : 0, false);
 }
 
 void EqualizerCard::resized()

@@ -13,7 +13,8 @@ struct DspParameters {
     bool  monoMode = false;
     float balance = 0.0f;        // -1 (L) .. +1 (R)
 
-    std::array<float, 10> eqBandsDb{}; // graphic EQ gains, dB
+    std::array<float, 10> eqBandsDb{}; // EQ gains, dB (graphic bands / parametric bells)
+    bool  parametricMode = false;      // false = graphic EQ, true = parametric EQ
     float bassBoostDb = 0.0f;          // low shelf @ 80 Hz
     float trebleDb = 0.0f;             // high shelf @ 8 kHz
 
