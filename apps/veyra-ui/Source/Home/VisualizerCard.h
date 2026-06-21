@@ -31,10 +31,13 @@ public:
 
 private:
     void timerCallback() override;
+    void drawSpectrum(juce::Graphics& g, juce::Rectangle<float> area);
 
     static constexpr int kBars = 48;
+    int modeIndex_ = 0;                   // 0 Bars .. 7 3D Bars (matches mode_ items)
     std::array<float, kBars> bars_{};    // normalised 0..1
     std::array<float, kBars> targets_{}; // normalised 0..1
+    std::array<float, kBars> caps_{};    // falling caps (Monstercat)
     float vuL_ = 0.4f, vuR_ = 0.3f;
     float peakL_ = 0.4f, peakR_ = 0.3f;
     bool clip_ = false;

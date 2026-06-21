@@ -9,6 +9,7 @@ VisualizerCard::VisualizerCard()
     mode_.addItemList({"Bars", "Monstercat", "Circular", "Ferrofluid", "Waveform",
                        "Particle", "Wavy", "3D Bars"}, 1);
     mode_.setSelectedId(1, juce::dontSendNotification);
+    mode_.onChange = [this] { modeIndex_ = mode_.getSelectedId() - 1; repaint(); };
     addAndMakeVisible(mode_);
     addAndMakeVisible(fullscreen_);
     bars_.fill(0.2f);
@@ -78,7 +79,10 @@ void VisualizerCard::timerCallback()
     }
 
     for (int i = 0; i < kBars; ++i)
+    {
         bars_[(size_t) i] += (targets_[(size_t) i] - bars_[(size_t) i]) * 0.10f;
+        caps_[(size_t) i] = juce::jmax(bars_[(size_t) i], caps_[(size_t) i] - 0.018f); // Monstercat gravity
+    }
     peakL_ = juce::jmax(vuL_, peakL_ - 0.01f); // peak-hold with slow decay
     peakR_ = juce::jmax(vuR_, peakR_ - 0.01f);
     repaint();
@@ -139,19 +143,154 @@ void VisualizerCard::paintContent(juce::Graphics& g)
         g.drawText("- DB", clipBox, juce::Justification::centredLeft, false);
     }
 
-    // ---- Spectrum (normalised heights) ----
-    const float sgap = 3.0f;
-    const float bw = ((float) area.getWidth() - sgap * (kBars - 1)) / kBars;
-    const float baseY = (float) area.getBottom();
-    const float specH = (float) area.getHeight();
-    for (int i = 0; i < kBars; ++i)
+    // ---- Spectrum (mode-dependent render) ----
+    drawSpectrum(g, area.toFloat());
+}
+
+void VisualizerCard::drawSpectrum(juce::Graphics& g, juce::Rectangle<float> a)
+{
+    const float baseY = a.getBottom();
+    const float specH = a.getHeight();
+    const auto accent = palette_.accentPrimary;
+
+    auto bandX = [&](int i, float bw, float gap) { return a.getX() + i * (bw + gap); };
+    float energy = 0.0f;
+    for (int i = 0; i < kBars; ++i) energy += bars_[(size_t) i];
+    energy /= kBars;
+
+    switch (modeIndex_)
     {
-        const float hgt = juce::jmax(2.0f, bars_[(size_t) i] * specH);
-        const float x = (float) area.getX() + i * (bw + sgap);
-        juce::ColourGradient grad(palette_.accentPrimary, 0, baseY - hgt,
-                                  palette_.accentPrimary.withAlpha(0.30f), 0, baseY, false);
+    case 1: // Monstercat — bars with falling caps
+    {
+        const float gap = 3.0f, bw = (a.getWidth() - gap * (kBars - 1)) / kBars;
+        for (int i = 0; i < kBars; ++i)
+        {
+            const float h = juce::jmax(2.0f, bars_[(size_t) i] * specH);
+            const float x = bandX(i, bw, gap);
+            g.setColour(accent);
+            g.fillRoundedRectangle(x, baseY - h, bw, h, 2.0f);
+            const float capY = baseY - juce::jmax(h, caps_[(size_t) i] * specH);
+            g.setColour(palette_.accentSecondary);
+            g.fillRect(x, capY - 2.0f, bw, 2.0f);
+        }
+        break;
+    }
+    case 2: // Circular — radial bars
+    {
+        const auto c = a.getCentre();
+        const float rIn = juce::jmin(a.getWidth(), a.getHeight()) * 0.16f;
+        const float rMax = juce::jmin(a.getWidth(), a.getHeight()) * 0.48f;
+        for (int i = 0; i < kBars; ++i)
+        {
+            const float ang = (float) i / kBars * juce::MathConstants<float>::twoPi;
+            const float len = rIn + bars_[(size_t) i] * (rMax - rIn);
+            const float ca = std::cos(ang), sa = std::sin(ang);
+            g.setColour(accent.withAlpha(0.5f + 0.5f * bars_[(size_t) i]));
+            g.drawLine(c.x + ca * rIn, c.y + sa * rIn, c.x + ca * len, c.y + sa * len, 2.5f);
+        }
+        break;
+    }
+    case 3: // Ferrofluid — filled smooth envelope + glow
+    {
+        juce::Path p;
+        p.startNewSubPath(a.getX(), baseY);
+        for (int i = 0; i < kBars; ++i)
+            p.lineTo(a.getX() + (float) i / (kBars - 1) * a.getWidth(),
+                     baseY - juce::jmax(2.0f, bars_[(size_t) i] * specH));
+        p.lineTo(a.getRight(), baseY);
+        p.closeSubPath();
+        juce::ColourGradient grad(accent.withAlpha(0.85f), 0, baseY - specH,
+                                  accent.withAlpha(0.10f), 0, baseY, false);
         g.setGradientFill(grad);
-        g.fillRoundedRectangle(x, baseY - hgt, bw, hgt, 2.0f);
+        g.fillPath(p);
+        break;
+    }
+    case 4: // Waveform — symmetric oscilloscope band
+    {
+        const float mid = a.getCentreY();
+        juce::Path top, bot;
+        top.startNewSubPath(a.getX(), mid);
+        bot.startNewSubPath(a.getX(), mid);
+        for (int i = 0; i < kBars; ++i)
+        {
+            const float x = a.getX() + (float) i / (kBars - 1) * a.getWidth();
+            const float dev = bars_[(size_t) i] * specH * 0.45f;
+            top.lineTo(x, mid - dev);
+            bot.lineTo(x, mid + dev);
+        }
+        g.setColour(accent);
+        g.strokePath(top, juce::PathStrokeType(2.0f));
+        g.setColour(accent.withAlpha(0.5f));
+        g.strokePath(bot, juce::PathStrokeType(2.0f));
+        break;
+    }
+    case 5: // Particle — dots driven by band energy
+    {
+        for (int i = 0; i < kBars; ++i)
+        {
+            const float x = a.getX() + (float) i / (kBars - 1) * a.getWidth();
+            const float y = baseY - bars_[(size_t) i] * specH;
+            g.setColour(accent.withAlpha(0.85f));
+            g.fillEllipse(x - 2.0f, y - 2.0f, 4.0f, 4.0f);
+            g.setColour(palette_.accentSecondary.withAlpha(0.4f));
+            g.fillEllipse(x - 1.0f, baseY - bars_[(size_t) i] * specH * 0.5f - 1.0f, 2.0f, 2.0f);
+        }
+        break;
+    }
+    case 6: // Wavy — stacked sine layers modulated by energy
+    {
+        const float mid = a.getCentreY();
+        for (int layer = 0; layer < 3; ++layer)
+        {
+            juce::Path p;
+            const float amp = specH * 0.18f * (1.0f + layer) * (0.3f + energy);
+            const float phase = (float) frame_ * 0.06f + layer * 1.7f;
+            for (int x = 0; x <= (int) a.getWidth(); x += 4)
+            {
+                const float fx = a.getX() + x;
+                const float fy = mid + std::sin(x * 0.03f + phase) * amp;
+                if (x == 0) p.startNewSubPath(fx, fy); else p.lineTo(fx, fy);
+            }
+            g.setColour(accent.withAlpha(0.25f + 0.2f * layer));
+            g.strokePath(p, juce::PathStrokeType(2.0f));
+        }
+        break;
+    }
+    case 7: // 3D Bars — front face + lighter top face (faux perspective)
+    {
+        const float gap = 5.0f, bw = (a.getWidth() - gap * (kBars - 1)) / kBars;
+        const float depth = 7.0f;
+        for (int i = 0; i < kBars; ++i)
+        {
+            const float h = juce::jmax(2.0f, bars_[(size_t) i] * specH * 0.85f);
+            const float x = bandX(i, bw, gap);
+            const float topY = baseY - h;
+            g.setColour(accent);
+            g.fillRect(x, topY, bw, h);
+            juce::Path top;
+            top.startNewSubPath(x, topY);
+            top.lineTo(x + depth, topY - depth);
+            top.lineTo(x + bw + depth, topY - depth);
+            top.lineTo(x + bw, topY);
+            top.closeSubPath();
+            g.setColour(accent.brighter(0.4f));
+            g.fillPath(top);
+        }
+        break;
+    }
+    default: // Bars
+    {
+        const float gap = 3.0f, bw = (a.getWidth() - gap * (kBars - 1)) / kBars;
+        for (int i = 0; i < kBars; ++i)
+        {
+            const float h = juce::jmax(2.0f, bars_[(size_t) i] * specH);
+            const float x = bandX(i, bw, gap);
+            juce::ColourGradient grad(accent, 0, baseY - h, accent.withAlpha(0.30f), 0, baseY, false);
+            g.setGradientFill(grad);
+            g.fillRoundedRectangle(x, baseY - h, bw, h, 2.0f);
+        }
+        break;
+    }
     }
 }
 
