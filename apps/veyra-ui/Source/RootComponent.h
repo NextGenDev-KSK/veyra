@@ -12,6 +12,7 @@
 #include "Home/TopBar.h"
 #include "MiniWindow.h"
 #include "Screens/AppsScreen.h"
+#include "Screens/CrashBanner.h"
 #include "Screens/DevicesScreen.h"
 #include "Screens/EffectsScreen.h"
 #include "Screens/GamerModeScreen.h"
@@ -82,6 +83,7 @@ private:
     juce::Component*  current_ = nullptr;
 
     OnboardingOverlay onboarding_;
+    CrashBanner       crashBanner_;
 
     std::unique_ptr<MiniWindow>      mini_;
     TrayIcon                         tray_;

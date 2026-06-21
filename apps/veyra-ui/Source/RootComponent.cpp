@@ -1,5 +1,6 @@
 #include "RootComponent.h"
 
+#include "veyra/CrashReport.h"
 #include "veyra/Paths.h"
 #include "veyra/Preset.h"
 
@@ -56,6 +57,21 @@ RootComponent::RootComponent()
     gamer_.setSpatial(working_.spatial);
     gamer_.setVoice(working_.voice);
     gamer_.setLoudness(working_.loudness);
+
+    // Crash-recovery banner: surface a previous session's crash report (§15).
+    addChildComponent(crashBanner_);
+    crashBanner_.onDismiss = [this] { crashBanner_.setVisible(false); resized(); };
+    crashBanner_.onOpenFolder = [this]
+    {
+        juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+            .getChildFile("Veyra").getChildFile("crashes").revealToUser();
+    };
+    if (auto crash = veyra::latestCrashReport(veyra::paths::crashesDir()))
+    {
+        crashBanner_.setMessage("Veyra recovered from a crash on "
+                                + juce::String(crash->timestamp) + ". Your settings are safe.");
+        crashBanner_.setVisible(true);
+    }
 
     // First-run onboarding overlay (on top; shown until finished/skipped).
     addAndMakeVisible(onboarding_);
@@ -286,6 +302,7 @@ void RootComponent::applyPalette()
     devices_.setPalette(p);
     soundLab_.setPalette(p);
     gamer_.setPalette(p);
+    crashBanner_.setPalette(p);
     placeholder_.setPalette(p);
     onboarding_.setPalette(p);
     if (mini_ != nullptr)
@@ -493,6 +510,13 @@ void RootComponent::resized()
     background_.setBounds(b);
     topBar_.setBounds(b.removeFromTop(56));
     sidebar_.setBounds(b.removeFromLeft(200));
+
+    // Crash-recovery banner sits atop the content area when present.
+    if (crashBanner_.isVisible())
+    {
+        crashBanner_.setBounds(b.removeFromTop(48).reduced(24, 6));
+        b.removeFromTop(4);
+    }
 
     // All screens share the content rect; only the current one is visible.
     home_.setBounds(b);
