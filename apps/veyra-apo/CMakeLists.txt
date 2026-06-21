@@ -17,7 +17,7 @@ set_target_properties(veyra-apo PROPERTIES
 
 # Only SharedMemory.obj is pulled from veyra-common (no logging/spdlog), so the
 # DLL stays lean for the real-time audio engine.
-target_link_libraries(veyra-apo PRIVATE veyra::common veyra::dsp)
+target_link_libraries(veyra-apo PRIVATE veyra::common veyra::dsp veyra::ns)
 
 # Export the COM entry points by undecorated name.
 target_link_options(veyra-apo PRIVATE "/DEF:${CMAKE_CURRENT_SOURCE_DIR}/VeyraApo.def")

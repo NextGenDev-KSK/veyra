@@ -75,4 +75,61 @@ All CI-green:
 
 ---
 
+## Roadmap to 1.0 and beyond (Phases 16–20) — PROMPT 2 TODO
+
+Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hardware-only · ⬜ needs external asset.
+
+### Phase 16 — Sound Quality Engine  `[ ]`
+- [~] **RNNoise** as the default mic NS, custom suppressor as fallback  *(submodule pinned @ v0.1.1, small embedded model; build/wrapper pending a doubt below)*
+- [ ] **Live AEC far-end reference** wiring (render→capture reference) so echo cancel works on real devices  *(NLMS engine done; ⏵ live)*
+- [ ] **Limiter upgrade** — oversampling + look-ahead + inter-sample-peak (ISP) protection + soft clip
+- [ ] **Optional oversampling** (2×/4×/8×) for nonlinear DSP modules (anti-alias)
+- [ ] **Equal-loudness (ISO 226)** compensation — natural bass/treble at low volume
+- [ ] **Harmonic exciter** (transparent presence/clarity)
+- [ ] **Saturation** modes — tape / tube / transparent (subtle harmonics)
+- [ ] **Multiband stereo width** — mono lows, widen highs
+- [ ] **Transient enhancement** (attack/detail)
+- [ ] **Adaptive bass management** (punch without clipping)
+- [ ] **Headphone-safe listening mode** (loudness norm + fatigue reduction)
+- [ ] **Reference Listening Mode** (flat, bypass all coloration)
+
+### Phase 17 — Headphone & Spatial Suite  `[ ]`
+- [ ] **AutoEQ database** — pick headphone model → auto-load parametric corrections  *(1.0 Required)*
+- [ ] **Advanced crossfeed** — frequency-dependent, delay-compensated (Bauer/Meier)
+- [ ] **Headphone optimization profiles** (impedance / driver / open-vs-closed)
+- [ ] **Multiple HRTF databases** — KEMAR (done) + CIPIC + IRCAM, user-selectable
+- [ ] **Personalized HRTF** (head width, ear size, preference)
+- [ ] **Better HRTF interpolation** (eliminate localization jumps)
+- [ ] **Diffuse-field / free-field** headphone compensation
+- [ ] **Room simulation / speaker virtualization** (cinematic)
+- [ ] **Binaural speaker emulation** (Waves NX / Dolby Headphone style)
+
+### Phase 18 — Sound Lab Pro + Personalization  `[ ]`
+- [ ] **Pro measurement tools** in Sound Lab — frequency-response analysis, channel matching
+- [ ] **Hearing-test-based EQ personalization** — generate per-user correction curves
+
+### Phase 19 — UI / Product Polish + Docs + First-run  `[ ]`
+- [ ] **Home** pixel-perfect alignment vs reference
+- [ ] **Eliminate dead space** across Presets / Devices / Apps / Gamer Mode / Sound Lab
+- [ ] **GPU/OpenGL visualizer** rendering (replace 2D)
+- [ ] **Docs** — screenshots, demo videos, architecture diagrams, per-feature docs
+- [ ] **Polished first-run** — auto-detect devices/headphones + recommend presets
+
+### Phase 20 — Release Validation (runtime / hardware)  `[ ]`
+- [ ] ⏵ **Hardware APO validation** on multiple Windows PCs (audio confirmed through `audiodg.exe`)
+- [ ] ⏵ **8-hour soak** — fix leaks / CPU spikes / dropouts
+- [ ] ⏵ **Competitor benchmark** vs FxSound / Sonar / Boom 3D / Dolby Access / Equalizer APO (CPU, latency, quality)
+- [ ] ⬜ **Human translations** ZH-CN / ES / AR / HI / TA + Arabic RTL
+- [ ] ⏵ **Production code signing**
+
+---
+
+## Veyra 1.0 release target
+
+**Required:** Stable APO ⏵ · RNNoise `[~]` · AutoEQ `[ ]` · Parametric EQ ✅ · KEMAR ✅ · Good presets ✅ · Apps page ✅ · Devices page ✅ (polish `[ ]`) · Localization framework ✅ · Documentation `[ ]`
+**Nice-to-have:** CIPIC · IRCAM · Equal-loudness · Advanced crossfeed
+**Future:** Personalized HRTF · Room simulation · Binaural speaker emulation
+
+---
+
 _Log started 2026-06-14. `FEATURE_COVERAGE.md` is the detailed §1–§16 audit._

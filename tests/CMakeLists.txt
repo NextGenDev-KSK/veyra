@@ -57,8 +57,9 @@ add_executable(common_tests
     common_tests/test_updater.cpp
     common_tests/test_crash_report.cpp
     common_tests/test_hotkeys.cpp
-    common_tests/test_game_detector.cpp)
+    common_tests/test_game_detector.cpp
+    common_tests/test_rnnoise.cpp)
 
-target_link_libraries(common_tests PRIVATE veyra::common veyra::catch2)
+target_link_libraries(common_tests PRIVATE veyra::common veyra::catch2 veyra::ns)
 
 add_test(NAME common_tests COMMAND common_tests)

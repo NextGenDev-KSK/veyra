@@ -44,6 +44,35 @@ if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/JUCE/CMakeLists.txt")
 endif()
 add_subdirectory(JUCE)
 
+# --- RNNoise (submodule @ v0.1.1, BSD) — mic noise suppression -------------
+# v0.1.1 ships the small (~436 KB) model in-repo and is plain C with config.h
+# guarded, so we build it directly as a static lib (it ships autotools, not
+# CMake). Default ON; degrades to "not available" if the submodule is missing.
+option(VEYRA_USE_RNNOISE "Build + link RNNoise for mic noise suppression" ON)
+set(VEYRA_HAVE_RNNOISE OFF CACHE INTERNAL "RNNoise built")
+if(VEYRA_USE_RNNOISE AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/rnnoise/include/rnnoise.h")
+    add_library(veyra_rnnoise STATIC
+        rnnoise/src/denoise.c
+        rnnoise/src/rnn.c
+        rnnoise/src/rnn_data.c
+        rnnoise/src/pitch.c
+        rnnoise/src/kiss_fft.c
+        rnnoise/src/celt_lpc.c)
+    add_library(veyra::rnnoise ALIAS veyra_rnnoise)
+    target_include_directories(veyra_rnnoise PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/rnnoise/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/rnnoise/src")
+    target_compile_definitions(veyra_rnnoise PRIVATE _USE_MATH_DEFINES _CRT_SECURE_NO_WARNINGS)
+    if(MSVC)
+        target_compile_options(veyra_rnnoise PRIVATE /W0) # third-party C, not our warnings
+    endif()
+    set(VEYRA_HAVE_RNNOISE ON CACHE INTERNAL "RNNoise built")
+    message(STATUS "third_party: RNNoise enabled (veyra::rnnoise, v0.1.1)")
+elseif(VEYRA_USE_RNNOISE)
+    message(STATUS "third_party: RNNoise requested but submodule missing — "
+                   "git submodule update --init third_party/rnnoise (synthetic NS fallback)")
+endif()
+
 # --- Other submodule-backed dependencies (later phases) --------------------
 if(NOT VEYRA_FETCH_DEPS)
     message(STATUS "third_party: optional submodule dependencies disabled (stub build)")

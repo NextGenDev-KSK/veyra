@@ -70,6 +70,7 @@ endif()
 add_subdirectory(third_party)
 add_subdirectory(modules/veyra-common)
 add_subdirectory(modules/veyra-dsp)
+add_subdirectory(modules/veyra-rnnoise)
 
 add_subdirectory(apps/veyra-apo)
 add_subdirectory(apps/veyra-service)

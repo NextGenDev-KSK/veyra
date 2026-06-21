@@ -21,3 +21,6 @@
 [submodule "third_party/JUCE"]
 	path = third_party/JUCE
 	url = https://github.com/juce-framework/JUCE
+[submodule "third_party/rnnoise"]
+	path = third_party/rnnoise
+	url = https://github.com/xiph/rnnoise

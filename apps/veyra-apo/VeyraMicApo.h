@@ -19,6 +19,7 @@
 
 #include <atomic>
 
+#include "veyra/RnnoiseDenoiser.h"
 #include "veyra/ipc/SharedMemory.h"
 #include "veyra/ipc/SharedParameters.h"
 #include "voice/VoiceChain.h"
@@ -83,6 +84,7 @@ private:
     UINT32 maxFrameCount_ = 0;
 
     veyra::dsp::VoiceChain voice_;
+    veyra::RnnoiseDenoiser rnnoise_; // default mic NS when available; else VoiceChain's
 
     veyra::ipc::SharedMemoryRegion              paramRegion_;
     const veyra::ipc::VeyraMicSharedParameters* sharedParams_ = nullptr;

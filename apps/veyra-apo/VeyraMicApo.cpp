@@ -69,6 +69,7 @@ STDMETHODIMP VeyraMicApo::Reset()
     {
         voice_.prepare(sampleRate_);
         voice_.reset();
+        rnnoise_.prepare(sampleRate_);
     }
     haveApplied_ = false;
     return S_OK;
@@ -203,6 +204,7 @@ STDMETHODIMP VeyraMicApo::LockForProcess(UINT32 u32NumInputConnections,
 
     voice_.prepare(sampleRate_);
     voice_.reset();
+    rnnoise_.prepare(sampleRate_);
     haveApplied_ = false;
     refreshParametersFromShared();
 
@@ -243,6 +245,10 @@ void VeyraMicApo::refreshParametersFromShared() noexcept
     vp.outputGainDb     = p.outputGainDb;
     vp.sideToneLevel    = p.sideToneLevel;
     vp.agc              = p.agc != 0;
+    // RNNoise (when active) is the noise-suppression stage; disable the chain's
+    // expander so they don't fight. Otherwise VoiceChain's suppressor is used.
+    if (rnnoise_.active())
+        vp.noiseSuppression = 0.0f;
     voice_.setParams(vp);
 }
 
@@ -273,6 +279,7 @@ STDMETHODIMP_(void) VeyraMicApo::APOProcess(UINT32 u32NumInputConnections,
         refreshParametersFromShared();
         if (dst != src)
             std::memcpy(dst, src, static_cast<size_t>(frames) * sizeof(float));
+        rnnoise_.processMono(dst, static_cast<int>(frames)); // default NS (no-op if unavailable)
         voice_.processMono(dst, static_cast<int>(frames));
     }
     else
