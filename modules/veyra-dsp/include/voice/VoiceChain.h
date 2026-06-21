@@ -14,6 +14,7 @@
 
 #include "dynamics/Compressor.h"
 #include "eq/Biquad.h"
+#include "voice/AcousticEchoCanceller.h"
 #include "voice/NoiseSuppressor.h"
 
 namespace veyra::dsp {
@@ -38,6 +39,7 @@ public:
         sampleRate_ = sampleRate;
         comp_.prepare(sampleRate);
         ns_.prepare(sampleRate);
+        aec_.prepare(256); // ~5 ms echo tail @ 48k; extend when wired to a real room
 
         deEssAtk_ = timeToCoeff(2.0f);
         deEssRel_ = timeToCoeff(40.0f);
@@ -89,6 +91,18 @@ public:
     }
 
     const VoiceParams& params() const noexcept { return params_; }
+
+    void setEchoCancel(bool on) noexcept { aecEnabled_ = on; }
+
+    // AEC overload: pass the far-end reference (what the speakers play) to cancel
+    // its echo before the rest of the chain. Falls back to plain processing when
+    // no reference is supplied.
+    void processMono(float* x, const float* farReference, int numSamples) noexcept
+    {
+        if (aecEnabled_ && farReference != nullptr)
+            aec_.processBlock(x, farReference, numSamples);
+        processMono(x, numSamples);
+    }
 
     void processMono(float* x, int numSamples) noexcept
     {
@@ -182,6 +196,8 @@ private:
     Biquad          hp_, presence_, deHp_, deShelf_;
     NoiseSuppressor ns_;
     Compressor      comp_;
+    AcousticEchoCanceller aec_;
+    bool            aecEnabled_ = false;
 
     bool  deActive_   = true;
     float deThreshDb_ = -40.0f;
