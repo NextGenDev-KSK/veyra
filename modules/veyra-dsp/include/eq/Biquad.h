@@ -95,6 +95,15 @@ inline BiquadCoeffs makeHighPass(double fs, double freq, double q) noexcept
                              1.0 + alpha, -2.0 * cw, 1.0 - alpha);
 }
 
+inline BiquadCoeffs makeNotch(double fs, double freq, double q) noexcept
+{
+    const double w0 = 2.0 * detail::kPi * freq / fs;
+    const double cw = std::cos(w0), sw = std::sin(w0);
+    const double alpha = sw / (2.0 * q);
+    return detail::normalise(1.0, -2.0 * cw, 1.0,
+                             1.0 + alpha, -2.0 * cw, 1.0 - alpha);
+}
+
 inline BiquadCoeffs makeBandPass(double fs, double freq, double q) noexcept
 {
     // Constant 0 dB peak gain (RBJ "BPF, peak gain = Q").
