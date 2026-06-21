@@ -278,6 +278,7 @@ public:
         wire(rnnoise_,  [this](bool on) { cfg_.noiseSuppression = on ? 0.6f : 0.0f; });
         wire(gate_,     [this](bool on) { cfg_.noiseGate = on; });
         wire(aec_,      [this](bool on) { cfg_.echoCancel = on; });
+        wire(agc_,      [this](bool on) { cfg_.agc = on; });
         wire(enhancer_, [this](bool on) { cfg_.presenceDb = on ? 3.0f : 0.0f; });
         wire(sidetone_, [this](bool on) { cfg_.sideToneLevel = on ? 0.3f : 0.0f; });
     }
@@ -285,7 +286,7 @@ public:
     void setPalette(const Palette& p) override
     {
         GlassPanel::setPalette(p);
-        for (ToggleSwitch* t : {&rnnoise_, &gate_, &aec_, &enhancer_, &sidetone_})
+        for (ToggleSwitch* t : {&rnnoise_, &gate_, &aec_, &agc_, &enhancer_, &sidetone_})
             t->setPalette(p);
     }
 
@@ -298,6 +299,7 @@ public:
         rnnoise_.setToggleState(v.noiseSuppression > 0.001f, juce::dontSendNotification);
         gate_.setToggleState(v.noiseGate, juce::dontSendNotification);
         aec_.setToggleState(v.echoCancel, juce::dontSendNotification);
+        agc_.setToggleState(v.agc, juce::dontSendNotification);
         enhancer_.setToggleState(v.presenceDb > 0.001f, juce::dontSendNotification);
         sidetone_.setToggleState(v.sideToneLevel > 0.001f, juce::dontSendNotification);
         repaint();
@@ -309,7 +311,7 @@ public:
         c.removeFromTop(24);                  // title
         profile_.setBounds(c.removeFromTop(28));
         c.removeFromTop(12);
-        ToggleSwitch* rows[] = {&rnnoise_, &gate_, &aec_, &enhancer_, &sidetone_};
+        ToggleSwitch* rows[] = {&rnnoise_, &gate_, &aec_, &agc_, &enhancer_, &sidetone_};
         for (auto* t : rows)
         {
             auto r = c.removeFromTop(26);
@@ -329,7 +331,7 @@ protected:
 
         c.removeFromTop(28 + 12); // profile combo
         const char* names[] = {"RNNoise Suppression", "Noise Gate", "Echo Cancellation",
-                               "Voice Enhancer", "Side-tone"};
+                               "Auto Gain (AGC)", "Voice Enhancer", "Side-tone"};
         for (const char* n : names)
         {
             auto r = c.removeFromTop(26);
@@ -363,7 +365,7 @@ private:
 
     veyra::VoiceConfig cfg_;
     juce::ComboBox profile_;
-    ToggleSwitch   rnnoise_, gate_, aec_, enhancer_, sidetone_;
+    ToggleSwitch   rnnoise_, gate_, aec_, agc_, enhancer_, sidetone_;
 };
 
 // ===========================================================================

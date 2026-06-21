@@ -94,6 +94,7 @@ struct VeyraMicParamsPayload {
     float    presenceDb = 2.0f;
     float    outputGainDb = 0.0f;
     float    sideToneLevel = 0.0f;
+    uint32_t agc = 0;
 };
 
 struct alignas(64) VeyraMicSharedParameters {

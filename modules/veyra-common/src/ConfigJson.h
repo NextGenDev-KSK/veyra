@@ -93,6 +93,7 @@ inline void to_json(nlohmann::json& j, const VoiceConfig& v)
         {"side_tone_level",    v.sideToneLevel},
         {"noise_gate",         v.noiseGate},
         {"echo_cancel",        v.echoCancel},
+        {"agc",                v.agc},
         {"profile",            v.profile},
     };
 }
@@ -111,6 +112,7 @@ inline void from_json(const nlohmann::json& j, VoiceConfig& v)
     v.sideToneLevel     = j.value("side_tone_level", v.sideToneLevel);
     v.noiseGate         = j.value("noise_gate", v.noiseGate);
     v.echoCancel        = j.value("echo_cancel", v.echoCancel);
+    v.agc               = j.value("agc", v.agc);
     v.profile           = j.value("profile", v.profile);
 }
 

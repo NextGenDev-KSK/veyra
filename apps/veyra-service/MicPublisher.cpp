@@ -39,6 +39,7 @@ void MicPublisher::publish(const Config& config)
     p.presenceDb        = v.presenceDb;
     p.outputGainDb      = v.outputGainDb;
     p.sideToneLevel     = v.sideToneLevel;
+    p.agc               = v.agc ? 1u : 0u;
 
     ipc::publishMicParameters(params_, p);
 }

@@ -27,6 +27,8 @@ struct VoiceParams {
     float presenceDb       = 2.0f;   // clarity peak around 3.5 kHz
     float outputGainDb     = 0.0f;   // make-up
     float sideToneLevel    = 0.0f;   // 0..1 — monitored back to the user (routed by the APO)
+    bool  agc              = false;  // automatic gain control (level toward target)
+    float agcTargetDb      = -16.0f; // AGC target RMS (≈ -16 LUFS)
 };
 
 class VoiceChain {
@@ -39,6 +41,10 @@ public:
 
         deEssAtk_ = timeToCoeff(2.0f);
         deEssRel_ = timeToCoeff(40.0f);
+
+        agcEnvCoeff_ = timeToCoeff(50.0f);  // power smoothing
+        agcAtk_      = timeToCoeff(200.0f); // gain rise
+        agcRel_      = timeToCoeff(600.0f); // gain fall
 
         setParams(params_);
         reset();
@@ -54,6 +60,8 @@ public:
         deEnv_      = 0.0f;
         deReductDb_ = 0.0f;
         lastShelfDb_ = -1.0f; // force a coeff refresh
+        agcEnv_ = 0.0f;
+        agcGain_ = 1.0f;
     }
 
     void setParams(const VoiceParams& p) noexcept
@@ -69,6 +77,9 @@ public:
 
         ns_.setAmount(p.noiseSuppression);
         comp_.setAmount(p.compressionAmount);
+
+        agcActive_     = p.agc;
+        agcTargetLin_  = std::pow(10.0f, p.agcTargetDb / 20.0f);
 
         // De-esser detection band scaled by amount.
         deThreshDb_ = -20.0f - p.deEssAmount * 28.0f; // amount 1 -> -48 dB (sensitive)
@@ -97,6 +108,10 @@ public:
         // 4. De-esser: subtract part of the sibilance band when it's hot.
         if (deActive_)
             processDeEss(x, numSamples);
+
+        // 4.5 AGC: slowly level toward the target RMS.
+        if (agcActive_)
+            processAgc(x, numSamples);
 
         // 5. Presence EQ + 6. output gain.
         for (int i = 0; i < numSamples; ++i)
@@ -140,6 +155,25 @@ private:
         }
     }
 
+    void processAgc(float* x, int numSamples) noexcept
+    {
+        constexpr float kFloorPow = 1.0e-8f; // ~ -80 dBFS: hold gain in silence
+        for (int i = 0; i < numSamples; ++i)
+        {
+            const float pw = x[i] * x[i];
+            agcEnv_ = pw + agcEnvCoeff_ * (agcEnv_ - pw);
+            float desired = agcGain_;
+            if (agcEnv_ > kFloorPow)
+            {
+                const float rms = std::sqrt(agcEnv_);
+                desired = std::clamp(agcTargetLin_ / (rms + 1.0e-9f), 0.25f, 4.0f); // ±12 dB
+            }
+            const float sc = desired > agcGain_ ? agcAtk_ : agcRel_;
+            agcGain_ = desired + sc * (agcGain_ - desired);
+            x[i] *= agcGain_;
+        }
+    }
+
     static constexpr double kDeEssHz = 5500.0;
 
     double sampleRate_ = 48000.0;
@@ -154,6 +188,11 @@ private:
     float deEssAtk_ = 0.0f, deEssRel_ = 0.0f;
     float deEnv_ = 0.0f, deReductDb_ = 0.0f, lastShelfDb_ = -1.0f;
     float outGain_ = 1.0f;
+
+    bool  agcActive_ = false;
+    float agcTargetLin_ = 0.158f; // -16 dB
+    float agcEnv_ = 0.0f, agcGain_ = 1.0f;
+    float agcEnvCoeff_ = 0.0f, agcAtk_ = 0.0f, agcRel_ = 0.0f;
 };
 
 } // namespace veyra::dsp

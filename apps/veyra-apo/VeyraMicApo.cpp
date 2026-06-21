@@ -242,6 +242,7 @@ void VeyraMicApo::refreshParametersFromShared() noexcept
     vp.presenceDb       = p.presenceDb;
     vp.outputGainDb     = p.outputGainDb;
     vp.sideToneLevel    = p.sideToneLevel;
+    vp.agc              = p.agc != 0;
     voice_.setParams(vp);
 }
 
