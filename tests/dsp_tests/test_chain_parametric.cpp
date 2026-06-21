@@ -46,3 +46,25 @@ TEST_CASE("DspChain: parametric mode is wired and boosts the 1 kHz band")
     CHECK(std::isfinite(b));
     CHECK(b > f * 1.4f);                 // the parametric bell clearly lifts 1 kHz
 }
+
+TEST_CASE("DspChain: explicit parametric bands (editor) drive the EQ")
+{
+    DspChain chain;
+    chain.prepare(kFs, 8192);
+    DspParameters p;
+    p.parametricMode = true;
+    chain.setParameters(p);
+
+    std::array<EqBand, ParametricEq::kMaxBands> bands{};
+    bands[0] = EqBand{true, EqBandType::Bell, 1000.0f, 12.0f, 2.0f}; // explicit +12 @1k
+    chain.setParametricBands(bands, 1);
+
+    const float boosted = rms1k(chain);
+
+    // count 0 reverts to the derived (flat) curve
+    chain.setParametricBands(bands, 0);
+    chain.setParameters(p);
+    const float flat = rms1k(chain);
+
+    CHECK(boosted > flat * 1.4f);
+}

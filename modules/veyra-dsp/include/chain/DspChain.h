@@ -54,7 +54,7 @@ public:
         // centres (the draggable per-node freq/Q editor extends this later).
         static constexpr double kCentres[10] =
             {31.25, 62.5, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0};
-        if (parametricMode_)
+        if (parametricMode_ && !explicitParametric_)
         {
             std::array<EqBand, ParametricEq::kMaxBands> bands{};
             for (int b = 0; b < 10; ++b)
@@ -113,12 +113,22 @@ public:
         analyzer_.processStereo(left, right, numSamples);
     }
 
+    // Explicit parametric bands (editor-driven). count<=0 reverts to deriving
+    // the parametric curve from the 10 band gains in setParameters().
+    void setParametricBands(const std::array<EqBand, ParametricEq::kMaxBands>& bands, int count) noexcept
+    {
+        explicitParametric_ = count > 0;
+        if (explicitParametric_)
+            parametric_.setBands(bands);
+    }
+
     bool popAnalyzerFrame(AnalyzerFrame& out) noexcept { return analyzer_.popFrame(out); }
     int  latencySamples() const noexcept { return limiter_.latencySamples(); }
 
 private:
     bool bypass_ = false;
     bool parametricMode_ = false;
+    bool explicitParametric_ = false;
     GraphicEq        eq_;
     ParametricEq     parametric_;
     ToneControls     tone_;

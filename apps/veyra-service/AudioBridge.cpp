@@ -221,6 +221,8 @@ bool AudioBridge::session()
                 cfg_.bridge.targetDeviceId != cfg.bridge.targetDeviceId)
             { ok = true; break; }
             chain.setParameters(dspParamsFromConfig(cfg_));
+            const auto pb = parametricBandsFromConfig(cfg_);
+            chain.setParametricBands(pb.first, pb.second);
         }
 
         UINT32 packet = 0;

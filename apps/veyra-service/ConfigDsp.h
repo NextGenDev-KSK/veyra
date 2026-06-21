@@ -7,6 +7,10 @@
 #include <algorithm>
 
 #include "chain/DspParameters.h"
+#include "eq/ParametricEq.h"
+
+#include <array>
+#include <utility>
 #include "veyra/Config.h"
 
 namespace veyra::service {
@@ -35,6 +39,27 @@ inline dsp::DspParameters dspParamsFromConfig(const Config& c)
     p.loudnessTargetLufs   = c.loudness.targetLufs;
     p.limiterCeilingDb  = -0.3f;
     return p;
+}
+
+// Explicit parametric bands from config (empty -> count 0 -> DspChain derives the
+// curve from the 10 band gains instead).
+inline std::pair<std::array<dsp::EqBand, dsp::ParametricEq::kMaxBands>, int>
+parametricBandsFromConfig(const Config& c)
+{
+    std::array<dsp::EqBand, dsp::ParametricEq::kMaxBands> out{};
+    int n = 0;
+    for (const auto& b : c.enhancement.parametricBands)
+    {
+        if (n >= dsp::ParametricEq::kMaxBands) break;
+        dsp::EqBand e;
+        e.enabled = b.enabled;
+        e.type    = static_cast<dsp::EqBandType>(std::clamp(b.type, 0, 5));
+        e.freq    = b.freq;
+        e.gainDb  = b.gainDb;
+        e.q       = b.q;
+        out[(size_t) n++] = e;
+    }
+    return {out, n};
 }
 
 } // namespace veyra::service

@@ -23,18 +23,30 @@ struct AudioEngineConfig {
     bool        hardwareAcceleration = true; // GPU for visualizers/UI rendering
 };
 
+// One parametric EQ band (mirrors veyra::dsp::EqBand; kept here so veyra-common
+// has no DSP dependency). type: 0 bell, 1 low-shelf, 2 high-shelf, 3 notch,
+// 4 high-pass, 5 low-pass.
+struct ParametricBand {
+    bool  enabled = true;
+    int   type    = 0;
+    float freq    = 1000.0f;
+    float gainDb  = 0.0f;
+    float q       = 1.0f;
+};
+
 // Live audio enhancement parameters surfaced by the Home screen. Ranges are
 // chosen to map cleanly onto veyra::dsp::DspParameters; the service's
 // ApoPublisher does the final translation into the shared-memory payload.
 struct EnhancementConfig {
     std::array<float, 10> eqBandsDb{}; // graphic EQ, -12..+12 dB per band
     std::string           eqMode = "graphic"; // graphic | parametric
+    std::vector<ParametricBand> parametricBands; // parametric mode (empty = derive from the 10 bands)
     float bassBoostDb       = 0.0f; // low shelf, 0..+12 dB
     float trebleDb          = 0.0f; // high shelf, 0..+12 dB
     float volumeGain        = 1.0f; // pre-amp knob, 0..3 (×master trim)
     float stereoWidth       = 1.0f; // 0 (mono) .. 2 (wide)
     float compressionAmount = 0.0f; // 0..1
-    float reverbAmount      = 0.0f; // 0..1 — no DSP stage yet, persisted for the UI
+    float reverbAmount      = 0.0f; // 0..1 ambience wet/dry
 };
 
 // Spatial / headphone parameters. crossfeed is the realtime render-side effect;

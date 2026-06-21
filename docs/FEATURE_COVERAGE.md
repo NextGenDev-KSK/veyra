@@ -39,13 +39,13 @@ Parameter smoothing (5 ms) ✅.
 EFX output ✅ · MFX/mic ✅ · seqlock shared params ✅ · analyzer SPSC ring ✅ · COM registration (INF + script) ✅ · **SIMD ⬜** (scalar; well within budget). Endpoint association is ⏵ (test-signing + admin on a real PC).
 
 ## §6 Service
-Shared-mem bootstrap ✅ · control pipe ✅ · canonical state (presets/per-app/per-device) ✅ · **per-app detection 🟡** (UI-side foreground watcher; audio-session signal + 800 ms rate-limit ⬜) · **game detection ⬜** (process/GPU poll + blocklist) · loopback capture 🟡 (`AudioBridge` does WASAPI loopback; a dedicated tracker producer thread ⬜) · **Sound Tracker engine 🟡** (classifier + direction estimator built & tested, not fed by live loopback) · updater 🟡 · crash aggregation ✅.
+Shared-mem bootstrap ✅ · control pipe ✅ · canonical state (presets/per-app/per-device) ✅ · **per-app detection 🟡** (UI-side foreground watcher; audio-session signal + 800 ms rate-limit ⬜) · **game detection ⬜** (process/GPU poll + blocklist) · loopback capture ✅ (`AudioBridge` + `TrackerService`) · **Sound Tracker engine ✅** (`TrackerService` does WASAPI loopback → `SoundTracker` → `VeyraTracker` shared block, gated by Gamer Mode; live blips are ⏵) · updater 🟡 · crash aggregation ✅.
 
 ## §7 UI
 Borderless custom titlebar ✅ · 11 themes + live switch ✅ · glass (blur+tint+stroke+shadow) ✅ · **visualizers 🟡 (1 of 8 — bars only)** · IPC client ✅ · global hotkeys ✅ · tray + custom menu ✅ · mini mode ✅ · onboarding ✅.
 
 ## §8 Overlay
-Layered window ✅ · 3 radar styles (competitive/rich/compass) ✅ · competitive/rich density ✅ · IPC client ✅ · **hold-to-interact ⬜** · **per-game memory ⬜** · live blips ⏵ (need the tracker producer).
+Layered window ✅ · 3 radar styles (competitive/rich/compass) ✅ · competitive/rich density ✅ · IPC client ✅ · **hold-to-interact ⬜** · **per-game memory ⬜** · tracker producer ✅ (`TrackerService`); live blips are ⏵ (real audio on a PC).
 
 ## §9 Sound Lab — ✅ (tab bar + tone engine)
 All 7 tools as a top tab bar (Speaker / 7.1 Surround / Mic / Frequency Sweep /

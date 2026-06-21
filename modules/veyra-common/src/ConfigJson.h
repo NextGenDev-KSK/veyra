@@ -23,6 +23,11 @@ inline void to_json(nlohmann::json& j, const EnhancementConfig& e)
         {"compression_amount", e.compressionAmount},
         {"reverb_amount",      e.reverbAmount},
     };
+    auto bands = nlohmann::json::array();
+    for (const auto& b : e.parametricBands)
+        bands.push_back({{"enabled", b.enabled}, {"type", b.type},
+                         {"freq", b.freq}, {"gain_db", b.gainDb}, {"q", b.q}});
+    j["parametric_bands"] = bands;
 }
 
 inline void from_json(const nlohmann::json& j, EnhancementConfig& e)
@@ -40,6 +45,19 @@ inline void from_json(const nlohmann::json& j, EnhancementConfig& e)
     e.stereoWidth       = j.value("stereo_width", e.stereoWidth);
     e.compressionAmount = j.value("compression_amount", e.compressionAmount);
     e.reverbAmount      = j.value("reverb_amount", e.reverbAmount);
+    e.parametricBands.clear();
+    if (const auto it = j.find("parametric_bands"); it != j.end() && it->is_array())
+        for (const auto& b : *it)
+        {
+            if (!b.is_object()) continue;
+            ParametricBand pb;
+            pb.enabled = b.value("enabled", true);
+            pb.type    = b.value("type", 0);
+            pb.freq    = b.value("freq", 1000.0f);
+            pb.gainDb  = b.value("gain_db", 0.0f);
+            pb.q       = b.value("q", 1.0f);
+            e.parametricBands.push_back(pb);
+        }
 }
 
 inline void to_json(nlohmann::json& j, const SpatialConfig& s)
