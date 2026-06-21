@@ -90,6 +90,24 @@ HomeScreen::HomeScreen()
     eq_.onModeChanged = [this](bool parametric)
     {
         enh_.eqMode = parametric ? "parametric" : "graphic";
+        if (parametric && enh_.parametricBands.empty())
+        {
+            // Seed parametric mode from the current 10 graphic bands (bells at the
+            // standard centres) so the editor opens on the user's existing curve.
+            static constexpr float kCentres[10] =
+                {31.25f, 62.5f, 125.f, 250.f, 500.f, 1000.f, 2000.f, 4000.f, 8000.f, 16000.f};
+            for (int b = 0; b < 10; ++b)
+                enh_.parametricBands.push_back(
+                    veyra::ParametricBand{true, 0, kCentres[b], enh_.eqBandsDb[(size_t) b], 1.41f});
+        }
+        eq_.setParametricBands(enh_.parametricBands);
+        if (onEnhancementChanged)
+            onEnhancementChanged(enh_);
+    };
+
+    eq_.onParametricChanged = [this](const std::vector<veyra::ParametricBand>& bands)
+    {
+        enh_.parametricBands = bands;
         if (onEnhancementChanged)
             onEnhancementChanged(enh_);
     };
@@ -148,6 +166,7 @@ void HomeScreen::applyEnhancement(const EnhancementConfig& e)
 
     for (int i = 0; i < EqualizerCard::kBands; ++i)
         eq_.setBandGain(i, e.eqBandsDb[(size_t) i]);
+    eq_.setParametricBands(e.parametricBands);
     eq_.setMode(e.eqMode == "parametric");
 }
 

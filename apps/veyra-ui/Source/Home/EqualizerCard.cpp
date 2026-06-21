@@ -41,12 +41,18 @@ EqualizerCard::EqualizerCard()
         repaint();
     };
     addAndMakeVisible(reset_);
+
+    paramEditor_ = std::make_unique<ParametricEqEditor>();
+    paramEditor_->onChanged = [this](const std::vector<veyra::ParametricBand>& b)
+    { if (onParametricChanged) onParametricChanged(b); };
+    addChildComponent(*paramEditor_); // shown only in parametric mode
 }
 
 void EqualizerCard::setPalette(const Palette& p)
 {
     GlassPanel::setPalette(p);
     for (auto& b : bands_) b->setPalette(p);
+    paramEditor_->setPalette(p);
     modeToggle_.setPalette(p);
     showCurve_.setPalette(p);
     showSpectrum_.setPalette(p);
@@ -68,7 +74,17 @@ float EqualizerCard::bandGain(int index) const
 
 void EqualizerCard::setMode(bool parametric)
 {
+    parametric_ = parametric;
     modeToggle_.setSelectedIndex(parametric ? 1 : 0, false);
+    for (auto& b : bands_) b->setVisible(!parametric);
+    paramEditor_->setVisible(parametric);
+    resized();
+    repaint();
+}
+
+void EqualizerCard::setParametricBands(std::vector<veyra::ParametricBand> bands)
+{
+    paramEditor_->setBands(std::move(bands));
 }
 
 void EqualizerCard::resized()
@@ -85,6 +101,7 @@ void EqualizerCard::resized()
     modeToggle_.setBounds(header.removeFromRight(170).withSizeKeepingCentre(170, 32));
 
     content.removeFromTop(16);
+    paramEditor_->setBounds(content);
     const int bw = content.getWidth() / kBands;
     for (int i = 0; i < kBands; ++i)
         bands_[(size_t) i]->setBounds(content.getX() + i * bw, content.getY(), bw, content.getHeight());
@@ -108,6 +125,10 @@ void EqualizerCard::paintContent(juce::Graphics& g)
     g.drawText("Show spectrum",
                juce::Rectangle<int>(showSpectrum_.getX() - 102, header.getY(), 98, 36),
                juce::Justification::centredRight, false);
+
+    // In parametric mode the node editor owns the plot area.
+    if (parametric_)
+        return;
 
     // dB grid behind the bands (0 / +/-6 / +/-12) for readability.
     if (! bands_[0])

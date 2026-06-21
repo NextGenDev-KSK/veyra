@@ -6,12 +6,16 @@
 
 #include "Components/EqBandSlider.h"
 #include "Components/GlassPanel.h"
+#include "Components/ParametricEqEditor.h"
 #include "Components/SegmentedControl.h"
 #include "Components/ToggleSwitch.h"
 #include "VeyraGui.h"
 
+#include "veyra/Config.h"
+
 #include <array>
 #include <memory>
+#include <vector>
 
 namespace veyra::ui {
 
@@ -25,16 +29,20 @@ public:
 
     std::function<void(int, float)> onBandChanged; // (band index, dB)
     std::function<void(bool)>       onModeChanged; // true = parametric
+    std::function<void(const std::vector<veyra::ParametricBand>&)> onParametricChanged;
 
     // Set a band's gain from config without firing onBandChanged.
     void setBandGain(int index, float db);
     float bandGain(int index) const;
     void setMode(bool parametric); // reflect graphic/parametric, no callback
+    void setParametricBands(std::vector<veyra::ParametricBand> bands);
 
     static constexpr int kBands = 10;
 
 private:
     std::array<std::unique_ptr<EqBandSlider>, kBands> bands_;
+    std::unique_ptr<ParametricEqEditor> paramEditor_;
+    bool parametric_ = false;
     SegmentedControl modeToggle_;
     ToggleSwitch showCurve_, showSpectrum_;
     juce::TextButton reset_{"Reset"};

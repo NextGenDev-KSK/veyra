@@ -37,6 +37,7 @@ target_sources(veyra PRIVATE
     Source/Components/Knob.cpp
     Source/Components/SegmentedControl.cpp
     Source/Components/EqBandSlider.cpp
+    Source/Components/ParametricEqEditor.cpp
     Source/Home/TopBar.cpp
     Source/Home/Sidebar.cpp
     Source/Home/VisualizerCard.cpp
