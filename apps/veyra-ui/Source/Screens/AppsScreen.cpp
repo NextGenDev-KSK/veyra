@@ -270,7 +270,7 @@ private:
                                {
                                    const int idx = r - 2;
                                    if (idx < (int) safe->appIndex_.size())
-                                       rule.match = safe->appIndex_[(size_t) idx].match;
+                                       rule.match = safe->appIndex_[(size_t) idx].match.toStdString();
                                }
                                safe->addRow(rule);
                                safe->resized();
