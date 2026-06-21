@@ -31,18 +31,18 @@ gaps are called out so the remaining work is unambiguous.
 ✅ `veyra-apo.dll`, `veyra-service.exe`, `veyra.exe`, `veyra-overlay.exe` all build; shared-memory params + ring buffers + two named pipes. Anti-cheat strategy = layered-window only ✅; D3D-hook opt-in mode ⬜ (intentionally not built).
 
 ## §4 DSP chains
-**Output chain:** loudness norm ✅ · mono/balance ✅ · 10-band graphic EQ ✅ · **parametric EQ ⬜** · bass/treble shelves ✅ · compressor ✅ · stereo widener ✅ · **reverb ✅** (Freeverb in the live chain; Home knob wired; unit-tested) · **echo/delay 🟡** (`DelayLine`/`OutputRouter` exist; not in render chain) · virtual surround/HRTF ✅ · volume gain ✅ · true-peak limiter ✅.
-**Mic chain:** HPF ✅ · NS 🟡 (custom, not RNNoise) · **noise gate 🟡** (NS doubles as a gate) · **AEC ⬜** · voice EQ/presence 🟡 · de-esser ✅ · **AGC ⬜** (leveling comp ≠ −16 LUFS AGC) · side-tone 🟡 (level field; routing ⬜).
+**Output chain:** loudness norm ✅ · mono/balance ✅ · 10-band graphic EQ ✅ · **parametric EQ ✅** (16-band engine + draggable node editor, both render paths) · bass/treble shelves ✅ · compressor ✅ · stereo widener ✅ · **reverb ✅** (Freeverb in the live chain; Home knob wired; unit-tested) · **echo/delay 🟡** (`DelayLine` exists; deliberately not in the chain — no reference UI + low value for an enhancer) · virtual surround/HRTF ✅ · volume gain ✅ · true-peak limiter ✅.
+**Mic chain:** HPF ✅ · NS 🟡 (custom expander, not the RNNoise model) · **noise gate ✅** (config + NS expander) · **AEC ⬜** (config flag only; DSP not implemented) · voice EQ/presence ✅ · de-esser ✅ · **AGC ✅** (−16 LUFS auto-level, unit-tested) · side-tone 🟡 (level field; APO routing ⬜).
 Parameter smoothing (5 ms) ✅.
 
 ## §5 APO
 EFX output ✅ · MFX/mic ✅ · seqlock shared params ✅ · analyzer SPSC ring ✅ · COM registration (INF + script) ✅ · **SIMD ⬜** (scalar; well within budget). Endpoint association is ⏵ (test-signing + admin on a real PC).
 
 ## §6 Service
-Shared-mem bootstrap ✅ · control pipe ✅ · canonical state (presets/per-app/per-device) ✅ · **per-app detection 🟡** (UI-side foreground watcher; audio-session signal + 800 ms rate-limit ⬜) · **game detection ⬜** (process/GPU poll + blocklist) · loopback capture ✅ (`AudioBridge` + `TrackerService`) · **Sound Tracker engine ✅** (`TrackerService` does WASAPI loopback → `SoundTracker` → `VeyraTracker` shared block, gated by Gamer Mode; live blips are ⏵) · updater 🟡 · crash aggregation ✅.
+Shared-mem bootstrap ✅ · control pipe ✅ · canonical state (presets/per-app/per-device) ✅ · **per-app detection 🟡** (UI-side foreground watcher; audio-session signal + 800 ms rate-limit ⬜) · **game detection ✅** (`GameDetector` + TrackerService foreground poll auto-activates the tracker; anti-cheat-safe) · loopback capture ✅ (`AudioBridge` + `TrackerService`) · **Sound Tracker engine ✅** (`TrackerService` does WASAPI loopback → `SoundTracker` → `VeyraTracker` shared block, gated by Gamer Mode; live blips are ⏵) · updater 🟡 · crash aggregation ✅.
 
 ## §7 UI
-Borderless custom titlebar ✅ · 11 themes + live switch ✅ · glass (blur+tint+stroke+shadow) ✅ · **visualizers 🟡 (1 of 8 — bars only)** · IPC client ✅ · global hotkeys ✅ · tray + custom menu ✅ · mini mode ✅ · onboarding ✅.
+Fixed 1600×900 canvas ✅ · custom titlebar (no maximise) ✅ · 11 themes + live switch ✅ · glass (blur+tint+stroke+shadow) ✅ · **visualizers 🟡 (all 8 modes, 2D-canvas — not yet OpenGL/shader)** · crash-recovery banner ✅ · IPC client ✅ · global hotkeys ✅ · tray + custom menu ✅ · mini mode ✅ · onboarding ✅.
 
 ## §8 Overlay
 Layered window ✅ · 3 radar styles (competitive/rich/compass) ✅ · competitive/rich density ✅ · IPC client ✅ · **hold-to-interact ⬜** · **per-game memory ⬜** · tracker producer ✅ (`TrackerService`); live blips are ⏵ (real audio on a PC).
