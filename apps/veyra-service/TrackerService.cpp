@@ -31,6 +31,28 @@ double nowSeconds()
     return duration<double>(steady_clock::now().time_since_epoch()).count();
 }
 
+// Foreground process image path (UTF-8). Name only — anti-cheat safe, no hooks.
+std::string foregroundExe()
+{
+    HWND fg = GetForegroundWindow();
+    if (!fg) return {};
+    DWORD pid = 0;
+    GetWindowThreadProcessId(fg, &pid);
+    if (!pid) return {};
+    HANDLE h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+    if (!h) return {};
+    wchar_t buf[512];
+    DWORD n = 512;
+    std::string out;
+    if (QueryFullProcessImageNameW(h, 0, buf, &n) && n > 0)
+    {
+        const int len = WideCharToMultiByte(CP_UTF8, 0, buf, (int) n, nullptr, 0, nullptr, nullptr);
+        if (len > 0) { out.resize((size_t) len); WideCharToMultiByte(CP_UTF8, 0, buf, (int) n, out.data(), len, nullptr, nullptr); }
+    }
+    CloseHandle(h);
+    return out;
+}
+
 ipc::TrackerEventType toWire(dsp::SoundClass c)
 {
     switch (c)
@@ -215,6 +237,14 @@ bool TrackerService::captureSession()
             lastSensitivity = sens;
         }
 
+        // ~1 Hz: auto-activate the tracker when a known game is in the foreground.
+        const auto now = std::chrono::steady_clock::now();
+        if (now - lastGamePoll_ > std::chrono::seconds(1))
+        {
+            lastGamePoll_ = now;
+            autoGameActive_.store(gameDetector_.isGame(foregroundExe()), std::memory_order_relaxed);
+        }
+
         UINT32 packet = 0;
         if (FAILED(capture->GetNextPacketSize(&packet)))
             break;
@@ -255,8 +285,10 @@ bool TrackerService::captureSession()
                     publishAnalyzerFrame(fr);
             }
 
-            // Tracker detections — only while Gamer Mode is on.
-            if (enabled_.load(std::memory_order_relaxed))
+            // Tracker detections — while Gamer Mode is on, or auto when a game
+            // is in the foreground.
+            if (enabled_.load(std::memory_order_relaxed)
+                || autoGameActive_.load(std::memory_order_relaxed))
             {
                 tracker.processStereo(left.data(), right.data(), static_cast<int>(frames));
                 dsp::TrackerEvent ev;

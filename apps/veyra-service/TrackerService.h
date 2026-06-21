@@ -6,10 +6,12 @@
 // while Gamer Mode is enabled. No graphics-API hooking — fully anti-cheat safe.
 
 #include <atomic>
+#include <chrono>
 #include <thread>
 
 #include "analyzer/Analyzer.h"
 #include "veyra/Config.h"
+#include "veyra/GameDetector.h"
 #include "veyra/ipc/AnalyzerData.h"
 #include "veyra/ipc/SharedMemory.h"
 #include "veyra/ipc/TrackerData.h"
@@ -46,7 +48,11 @@ private:
     std::thread        thread_;
     std::atomic<bool>  running_{false};
     std::atomic<bool>  enabled_{false};   // Gamer Mode: gates tracker events only
+    std::atomic<bool>  autoGameActive_{false}; // a known game is in the foreground
     std::atomic<float> sensitivity_{0.6f};
+
+    GameDetector       gameDetector_;
+    std::chrono::steady_clock::time_point lastGamePoll_{};
 };
 
 } // namespace veyra::service
