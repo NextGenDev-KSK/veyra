@@ -98,7 +98,14 @@ public:
         resized();
     }
 
-    int columnsFor(int width) const { return juce::jmax(1, (width + kGap) / (kTileW + kGap)); }
+    void setListMode(bool m) { listMode_ = m; resized(); }
+
+    int columnsFor(int width) const
+    {
+        return listMode_ ? 1 : juce::jmax(1, (width + kGap) / (kTileW + kGap));
+    }
+
+    int tileHeight() const { return listMode_ ? 54 : kTileH; }
 
     int preferredHeight(int width) const
     {
@@ -106,17 +113,18 @@ public:
             return 0;
         const int cols = columnsFor(width);
         const int rows = ((int) tiles_.size() + cols - 1) / cols;
-        return rows * kTileH + (rows - 1) * kGap;
+        return rows * tileHeight() + (rows - 1) * kGap;
     }
 
     void resized() override
     {
         const int cols = columnsFor(getWidth());
+        const int th = tileHeight();
         const int tileW = (getWidth() - kGap * (cols - 1)) / juce::jmax(1, cols);
         for (int i = 0; i < (int) tiles_.size(); ++i)
         {
             const int col = i % cols, row = i / cols;
-            tiles_[(size_t) i]->setBounds(col * (tileW + kGap), row * (kTileH + kGap), tileW, kTileH);
+            tiles_[(size_t) i]->setBounds(col * (tileW + kGap), row * (th + kGap), tileW, th);
         }
     }
 
@@ -124,6 +132,7 @@ private:
     std::vector<std::unique_ptr<Tile>> tiles_;
     GlassBackground* backdrop_ = nullptr;
     Palette palette_ = paletteForTheme("midnight");
+    bool listMode_ = false;
 };
 
 // ---------------------------------------------------------------------------
@@ -144,6 +153,14 @@ PresetsScreen::PresetsScreen()
     deleteBtn_.onClick = [this] { if (onDelete && activeUuid_.isNotEmpty()) onDelete(activeUuid_); };
     for (auto* b : {&saveBtn_, &importBtn_, &exportBtn_, &deleteBtn_})
         addAndMakeVisible(b);
+
+    search_.setTextToShowWhenEmpty("Search presets...", juce::Colours::grey);
+    search_.onTextChange = [this] { applyFilter(); resized(); };
+    addAndMakeVisible(search_);
+
+    viewToggle_.setItems({"Grid", "List"});
+    viewToggle_.onChange = [this](int i) { grid_->setListMode(i == 1); resized(); };
+    addAndMakeVisible(viewToggle_);
 }
 
 PresetsScreen::~PresetsScreen() = default;
@@ -152,6 +169,7 @@ void PresetsScreen::setPalette(const Palette& p)
 {
     palette_ = p;
     grid_->setPalette(p);
+    viewToggle_.setPalette(p);
     repaint();
 }
 
@@ -164,8 +182,72 @@ void PresetsScreen::attachBackdrop(GlassBackground* bg)
 void PresetsScreen::setPresets(std::vector<veyra::Preset> presets, juce::String activeUuid)
 {
     activeUuid_ = activeUuid;
-    grid_->setPresets(presets, activeUuid);
+    allPresets_ = std::move(presets);
+
+    // Build the category column: All + each built-in category (in first-seen
+    // order) + Custom (if any user presets exist).
+    categories_ = juce::StringArray{"All Presets"};
+    bool anyCustom = false;
+    for (const auto& p : allPresets_)
+    {
+        if (!p.builtIn) { anyCustom = true; continue; }
+        const juce::String cat(p.category);
+        if (cat.isNotEmpty() && !categories_.contains(cat))
+            categories_.add(cat);
+    }
+    if (anyCustom)
+        categories_.add("Custom");
+    selectedCat_ = juce::jlimit(0, categories_.size() - 1, selectedCat_);
+
+    applyFilter();
     resized();
+}
+
+void PresetsScreen::applyFilter()
+{
+    const juce::String cat = categories_[selectedCat_];
+    const juce::String q = search_.getText().trim();
+    std::vector<veyra::Preset> filtered;
+    for (const auto& p : allPresets_)
+    {
+        bool catOk = (selectedCat_ == 0)
+                     || (cat == "Custom" ? !p.builtIn : juce::String(p.category) == cat);
+        bool qOk = q.isEmpty() || juce::String(p.name).containsIgnoreCase(q);
+        if (catOk && qOk)
+            filtered.push_back(p);
+    }
+    grid_->setPresets(filtered, activeUuid_);
+}
+
+void PresetsScreen::selectCategory(int i)
+{
+    selectedCat_ = juce::jlimit(0, categories_.size() - 1, i);
+    applyFilter();
+    resized();
+    repaint();
+}
+
+juce::Rectangle<int> PresetsScreen::categoryColumn() const
+{
+    auto content = getLocalBounds().reduced(kPad);
+    content.removeFromTop(34 + 12); // title + gap
+    return content.removeFromLeft(170);
+}
+
+juce::Rectangle<int> PresetsScreen::categoryItemBounds(int i) const
+{
+    auto col = categoryColumn();
+    return { col.getX(), col.getY() + i * 34, col.getWidth() - 8, 30 };
+}
+
+void PresetsScreen::mouseDown(const juce::MouseEvent& e)
+{
+    for (int i = 0; i < categories_.size(); ++i)
+        if (categoryItemBounds(i).contains(e.getPosition()))
+        {
+            selectCategory(i);
+            return;
+        }
 }
 
 void PresetsScreen::promptSaveCurrent()
@@ -190,10 +272,12 @@ void PresetsScreen::promptSaveCurrent()
 void PresetsScreen::resized()
 {
     auto b = getLocalBounds().reduced(kPad);
+    b.removeFromTop(34 + 12);     // title (painted)
+    b.removeFromLeft(170);        // category column (painted)
+    b.removeFromLeft(20);         // gutter
 
     auto header = b.removeFromTop(40);
-    // Action buttons on the right.
-    int bw = 96, gap = 8;
+    int bw = 92, gap = 8;
     auto place = [&](juce::TextButton& btn)
     {
         btn.setBounds(header.removeFromRight(bw).reduced(0, 4));
@@ -203,20 +287,44 @@ void PresetsScreen::resized()
     place(exportBtn_);
     place(importBtn_);
     place(saveBtn_);
+    header.removeFromRight(12);
+    viewToggle_.setBounds(header.removeFromRight(140).reduced(0, 5));
+    header.removeFromRight(12);
+    search_.setBounds(header.removeFromLeft(juce::jmin(260, header.getWidth())).reduced(0, 5));
 
     b.removeFromTop(12);
     viewport_.setBounds(b);
-
     const int w = viewport_.getMaximumVisibleWidth();
     grid_->setBounds(0, 0, w, grid_->preferredHeight(w));
 }
 
 void PresetsScreen::paint(juce::Graphics& g)
 {
-    auto header = getLocalBounds().reduced(kPad).removeFromTop(40);
     g.setColour(palette_.textPrimary);
     g.setFont(fonts::display(24.0f));
-    g.drawText("PRESETS", header, juce::Justification::centredLeft, false);
+    g.drawText("PRESETS", getLocalBounds().reduced(kPad).removeFromTop(34),
+               juce::Justification::centredLeft, false);
+
+    // Category column.
+    for (int i = 0; i < categories_.size(); ++i)
+    {
+        const auto r = categoryItemBounds(i);
+        if (i == selectedCat_)
+        {
+            auto rf = r.toFloat();
+            g.setColour(palette_.bgGlassActive);
+            g.fillRoundedRectangle(rf, 8.0f);
+            g.setColour(palette_.accentPrimary);
+            g.fillRoundedRectangle(rf.removeFromLeft(3.0f), 1.5f);
+            g.setColour(palette_.textPrimary);
+        }
+        else
+        {
+            g.setColour(palette_.textSecondary);
+        }
+        g.setFont(fonts::body(13.0f, i == selectedCat_));
+        g.drawText(categories_[i], r.withTrimmedLeft(14), juce::Justification::centredLeft, false);
+    }
 }
 
 } // namespace veyra::ui
