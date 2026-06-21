@@ -26,11 +26,15 @@ add_executable(dsp_tests
     dsp_tests/test_chain_parametric.cpp
     dsp_tests/test_agc.cpp
     dsp_tests/test_aec.cpp
-    dsp_tests/test_scene_detector.cpp)
+    dsp_tests/test_scene_detector.cpp
+    dsp_tests/test_hrtf_kemar.cpp)
 
 target_include_directories(dsp_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/dsp_tests")
 # veyra::common for the header-only shared-parameter seqlock contract.
 target_link_libraries(dsp_tests PRIVATE veyra::dsp veyra::common veyra::catch2)
+# Point the HRTF tests at the in-repo MIT KEMAR diffuse set.
+target_compile_definitions(dsp_tests PRIVATE
+    VEYRA_KEMAR_DIR="${CMAKE_SOURCE_DIR}/third_party/hrtf/mit_kemar/diffuse")
 
 add_test(NAME dsp_tests COMMAND dsp_tests)
 
