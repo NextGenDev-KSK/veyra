@@ -1,6 +1,5 @@
 # Normalise text to LF in the repo; let Git handle working-tree endings.
 * text=auto eol=lf
-
 # Treat known binary assets as binary (added in later phases).
 *.png  binary
 *.wav  binary
