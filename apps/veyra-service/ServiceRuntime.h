@@ -8,6 +8,7 @@
 #include "PresetLibrary.h"
 #include "SleepTimerService.h"
 #include "TrackerService.h"
+#include "UpdaterClient.h"
 #include "veyra/Logging.h"
 
 namespace veyra::service {
@@ -35,6 +36,7 @@ private:
     ConfigManager     config_;
     PresetLibrary     presets_;
     ControlServer     control_;
+    UpdaterClient     updater_;
 };
 
 } // namespace veyra::service

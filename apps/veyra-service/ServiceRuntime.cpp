@@ -15,7 +15,8 @@ ServiceRuntime::ServiceRuntime(bool consoleLogging)
       bridge_(&log_),
       config_(paths::configFile(), &log_),
       presets_(paths::presetsDir(), &log_),
-      control_(config_, presets_, paths::appDataDir() / "app_rules.json", &log_)
+      control_(config_, presets_, paths::appDataDir() / "app_rules.json", &log_),
+      updater_(&log_)
 {
 }
 
@@ -55,12 +56,16 @@ bool ServiceRuntime::start()
         return false;
     }
     log_.info("Control server listening on \\\\.\\pipe\\veyra-control");
+
+    updater_.start(kVersionString,
+                   "https://api.github.com/repos/NextGenDev-KSK/veyra/releases");
     return true;
 }
 
 void ServiceRuntime::stop()
 {
     control_.stop();
+    updater_.stop();
     tracker_.stop();
     sleepTimer_.stop(); // restores the endpoint volume if a fade was in progress
     bridge_.stop();
