@@ -148,6 +148,7 @@ RootComponent::RootComponent()
     settings_.onMicChanged     = [this](const veyra::VoiceConfig& v) { working_.voice = v; pushConfig(); };
     settings_.onSpatialChanged = [this](const veyra::SpatialConfig& s) { working_.spatial = s; pushConfig(); };
     settings_.onLoudnessChanged = [this](const veyra::LoudnessConfig& l) { working_.loudness = l; pushConfig(); };
+    settings_.onAudioEngineChanged = [this](const veyra::AudioEngineConfig& e) { working_.audioEngine = e; pushConfig(); };
     settings_.onResetSettings  = [this]
     {
         applyConfig(veyra::Config{}); // restore all defaults across the UI
@@ -160,6 +161,7 @@ RootComponent::RootComponent()
     settings_.setMicConfig(working_.voice);
     settings_.setSpatialConfig(working_.spatial);
     settings_.setLoudnessConfig(working_.loudness);
+    settings_.setAudioEngineConfig(working_.audioEngine);
 
     // Apply the initial appearance to the live background.
     background_.setOpacity((float) working_.uiOpacity);
@@ -330,6 +332,7 @@ void RootComponent::applyConfig(const veyra::Config& c)
     settings_.setMicConfig(c.voice);
     settings_.setSpatialConfig(c.spatial);
     settings_.setLoudnessConfig(c.loudness);
+    settings_.setAudioEngineConfig(c.audioEngine);
     gamer_.setGamer(c.gamerMode);
     gamer_.setSpatial(c.spatial);
     gamer_.setVoice(c.voice);

@@ -753,6 +753,115 @@ private:
 // ---------------------------------------------------------------------------
 // SettingsScreen: thin host that forwards to the cards.
 // ---------------------------------------------------------------------------
+// ===========================================================================
+// Audio Engine
+// ===========================================================================
+class SettingsScreen::AudioEngineCard : public GlassPanel {
+public:
+    std::function<void(const veyra::AudioEngineConfig&)> onChanged;
+
+    AudioEngineCard()
+    {
+        hwAccel_.onClick = [this] { cfg_.hardwareAcceleration = hwAccel_.getToggleState(); emit(); };
+        addAndMakeVisible(hwAccel_);
+        lowLatency_.onClick = [this]
+        { cfg_.latencyMode = lowLatency_.getToggleState() ? "UltraLow" : "Standard"; emit(); };
+        addAndMakeVisible(lowLatency_);
+
+        rate_.setItems({"44.1 kHz", "48 kHz", "96 kHz", "192 kHz"});
+        rate_.onChange = [this](int i) { cfg_.sampleRate = kRates[(size_t) juce::jlimit(0, 3, i)]; emit(); };
+        addAndMakeVisible(rate_);
+
+        buffer_.setSliderStyle(juce::Slider::LinearHorizontal);
+        buffer_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        buffer_.setRange(64.0, 2048.0, 1.0);
+        buffer_.onValueChange = [this] { cfg_.bufferSize = (int) buffer_.getValue(); repaint(); emit(); };
+        addAndMakeVisible(buffer_);
+    }
+
+    void setPalette(const Palette& p) override
+    {
+        GlassPanel::setPalette(p);
+        hwAccel_.setPalette(p);
+        lowLatency_.setPalette(p);
+        rate_.setPalette(p);
+    }
+
+    void setConfig(const veyra::AudioEngineConfig& e)
+    {
+        cfg_ = e;
+        hwAccel_.setToggleState(e.hardwareAcceleration, juce::dontSendNotification);
+        lowLatency_.setToggleState(e.latencyMode == "UltraLow", juce::dontSendNotification);
+        int idx = 1;
+        for (int i = 0; i < 4; ++i) if (kRates[i] == e.sampleRate) idx = i;
+        rate_.setSelectedIndex(idx, false);
+        buffer_.setValue(e.bufferSize, juce::dontSendNotification);
+        repaint();
+    }
+
+    void resized() override
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        c.removeFromTop(28);                 // title
+        c.removeFromTop(18);                 // subtitle
+        auto t1 = c.removeFromTop(28);
+        hwAccel_.setBounds(t1.removeFromRight(46).withSizeKeepingCentre(46, 22));
+        c.removeFromTop(10);
+        auto t2 = c.removeFromTop(28);
+        lowLatency_.setBounds(t2.removeFromRight(46).withSizeKeepingCentre(46, 22));
+        c.removeFromTop(18);
+        c.removeFromTop(18);                 // "Sample Rate" label
+        rate_.setBounds(c.removeFromTop(32));
+        c.removeFromTop(18);
+        c.removeFromTop(18);                 // "Buffer Size" label
+        buffer_.setBounds(c.removeFromTop(24));
+    }
+
+protected:
+    void paintContent(juce::Graphics& g) override
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::display(18.0f));
+        g.drawText("AUDIO ENGINE", c.removeFromTop(28), juce::Justification::centredLeft, false);
+        g.setColour(palette_.textTertiary);
+        g.setFont(fonts::body(11.0f));
+        g.drawText("Core DSP and hardware interfacing.", c.removeFromTop(18),
+                   juce::Justification::topLeft, false);
+
+        auto rowLabel = [&](juce::Rectangle<int> r, const char* t)
+        {
+            g.setColour(palette_.textSecondary);
+            g.setFont(fonts::body(13.0f));
+            g.drawText(t, r, juce::Justification::centredLeft, false);
+        };
+        rowLabel(c.removeFromTop(28), "Hardware Acceleration");
+        c.removeFromTop(10);
+        rowLabel(c.removeFromTop(28), "Low Latency Mode");
+        c.removeFromTop(18);
+        rowLabel(c.removeFromTop(18), "Sample Rate");
+        c.removeFromTop(32);
+        c.removeFromTop(18);
+        auto bl = c.removeFromTop(18);
+        g.setColour(palette_.textSecondary);
+        g.setFont(fonts::body(13.0f));
+        g.drawText("Buffer Size", bl, juce::Justification::centredLeft, false);
+        g.setColour(palette_.textTertiary);
+        g.setFont(fonts::mono(11.0f));
+        g.drawText(juce::String(cfg_.bufferSize) + " smp", bl, juce::Justification::centredRight, false);
+    }
+
+private:
+    void emit() { if (onChanged) onChanged(cfg_); }
+    static constexpr int kPad = 24;
+    static constexpr int kRates[4] = {44100, 48000, 96000, 192000};
+
+    veyra::AudioEngineConfig cfg_;
+    ToggleSwitch     hwAccel_, lowLatency_;
+    SegmentedControl rate_;
+    juce::Slider     buffer_;
+};
+
 SettingsScreen::SettingsScreen()
 {
     appearance_ = std::make_unique<AppearanceCard>();
@@ -761,6 +870,10 @@ SettingsScreen::SettingsScreen()
     appearance_->onBackgroundMode = [this](int i) { if (onBackgroundMode) onBackgroundMode(i); };
     appearance_->onReduceMotion   = [this](bool b) { if (onReduceMotion) onReduceMotion(b); };
     addAndMakeVisible(*appearance_);
+
+    audioEngine_ = std::make_unique<AudioEngineCard>();
+    audioEngine_->onChanged = [this](const veyra::AudioEngineConfig& e) { if (onAudioEngineChanged) onAudioEngineChanged(e); };
+    addAndMakeVisible(*audioEngine_);
 
     microphone_ = std::make_unique<MicrophoneCard>();
     microphone_->onMicChanged = [this](const veyra::VoiceConfig& v) { if (onMicChanged) onMicChanged(v); };
@@ -777,22 +890,104 @@ SettingsScreen::SettingsScreen()
     about_ = std::make_unique<AboutCard>();
     about_->onResetSettings = [this] { if (onResetSettings) onResetSettings(); };
     addAndMakeVisible(*about_);
+
+    setSection(0);
+}
+
+juce::Component* SettingsScreen::cardForSection(int i) const
+{
+    switch (i)
+    {
+    case 0: return appearance_.get();
+    case 1: return audioEngine_.get();
+    case 2: return microphone_.get();
+    case 3: return spatial_.get();
+    case 4: return loudness_.get();
+    default: return about_.get();
+    }
+}
+
+void SettingsScreen::setSection(int i)
+{
+    section_ = juce::jlimit(0, kSections - 1, i);
+    for (int s = 0; s < kSections; ++s)
+        if (auto* c = cardForSection(s))
+            c->setVisible(s == section_);
+    resized();
+    repaint();
+}
+
+juce::Rectangle<int> SettingsScreen::navItemBounds(int i) const
+{
+    auto content = getLocalBounds().reduced(24);
+    content.removeFromTop(56);
+    auto nav = content.removeFromLeft(180);
+    return { nav.getX(), nav.getY() + i * 44, nav.getWidth() - 12, 38 };
+}
+
+void SettingsScreen::mouseDown(const juce::MouseEvent& e)
+{
+    for (int i = 0; i < kSections; ++i)
+        if (navItemBounds(i).contains(e.getPosition()))
+        {
+            setSection(i);
+            return;
+        }
+}
+
+void SettingsScreen::paint(juce::Graphics& g)
+{
+    auto content = getLocalBounds().reduced(24);
+    auto header = content.removeFromTop(56);
+    g.setColour(palette_.textPrimary);
+    g.setFont(fonts::display(28.0f));
+    g.drawText("Settings", header.removeFromTop(34), juce::Justification::topLeft, false);
+    g.setColour(palette_.textSecondary);
+    g.setFont(fonts::body(13.0f));
+    g.drawText("Configure application preferences and the audio engine.", header,
+               juce::Justification::topLeft, false);
+
+    static const char* kNames[kSections] =
+        {"Appearance", "Audio Engine", "Microphone", "Spatial", "Loudness", "About"};
+    for (int i = 0; i < kSections; ++i)
+    {
+        const auto r = navItemBounds(i).toFloat();
+        if (i == section_)
+        {
+            g.setColour(palette_.bgGlassActive);
+            g.fillRoundedRectangle(r, 8.0f);
+            g.setColour(palette_.accentPrimary);
+            g.fillRoundedRectangle(r.removeFromLeft(3.0f), 1.5f); // accent rail
+            g.setColour(palette_.textPrimary);
+        }
+        else
+        {
+            g.setColour(palette_.textSecondary);
+        }
+        g.setFont(fonts::body(14.0f, i == section_));
+        g.drawText(kNames[i], navItemBounds(i).withTrimmedLeft(14),
+                   juce::Justification::centredLeft, false);
+    }
 }
 
 SettingsScreen::~SettingsScreen() = default;
 
 void SettingsScreen::setPalette(const Palette& p)
 {
+    palette_ = p;
     appearance_->setPalette(p);
+    audioEngine_->setPalette(p);
     microphone_->setPalette(p);
     spatial_->setPalette(p);
     loudness_->setPalette(p);
     about_->setPalette(p);
+    repaint();
 }
 
 void SettingsScreen::attachBackdrop(GlassBackground* b)
 {
     appearance_->setBackdrop(b);
+    audioEngine_->setBackdrop(b);
     microphone_->setBackdrop(b);
     spatial_->setBackdrop(b);
     loudness_->setBackdrop(b);
@@ -807,6 +1002,7 @@ void SettingsScreen::setAppearance(double opacity, int backgroundMode, bool redu
 void SettingsScreen::setMicConfig(const veyra::VoiceConfig& v) { microphone_->setMicConfig(v); }
 void SettingsScreen::setSpatialConfig(const veyra::SpatialConfig& s) { spatial_->setSpatialConfig(s); }
 void SettingsScreen::setLoudnessConfig(const veyra::LoudnessConfig& l) { loudness_->setLoudnessConfig(l); }
+void SettingsScreen::setAudioEngineConfig(const veyra::AudioEngineConfig& e) { audioEngine_->setConfig(e); }
 void SettingsScreen::setServiceStatus(bool connected, juce::String version)
 {
     about_->setServiceStatus(connected, std::move(version));
@@ -814,26 +1010,16 @@ void SettingsScreen::setServiceStatus(bool connected, juce::String version)
 
 void SettingsScreen::resized()
 {
-    auto b = getLocalBounds().reduced(24);
+    // Title + left sub-nav (painted); the selected card fills the right area.
+    auto content = getLocalBounds().reduced(24);
+    content.removeFromTop(56);   // header (painted)
+    content.removeFromLeft(180); // sub-nav (painted)
+    content.removeFromLeft(24);  // gutter
+    const auto cardArea = content;
 
-    // Bottom strip: Loudness (left) + About (right).
-    auto bottom = b.removeFromBottom(210);
-    b.removeFromBottom(20);
-    auto loudnessArea = bottom.removeFromLeft(juce::jlimit(300, 460, bottom.getWidth() * 2 / 5));
-    bottom.removeFromLeft(20);
-    loudness_->setBounds(loudnessArea);
-    about_->setBounds(bottom);
-
-    // Above it: Appearance (wide, theme grid) left; Microphone over Spatial right.
-    const int rightW = juce::jlimit(300, 420, b.getWidth() / 3);
-    auto rightCol = b.removeFromRight(rightW);
-    b.removeFromRight(20); // gutter
-    appearance_->setBounds(b);
-
-    auto spatialArea = rightCol.removeFromBottom(juce::jlimit(160, 220, rightCol.getHeight() / 3));
-    rightCol.removeFromBottom(20);
-    microphone_->setBounds(rightCol);
-    spatial_->setBounds(spatialArea);
+    for (int s = 0; s < kSections; ++s)
+        if (auto* c = cardForSection(s))
+            c->setBounds(cardArea);
 }
 
 } // namespace veyra::ui

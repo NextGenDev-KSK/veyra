@@ -20,6 +20,7 @@ struct AudioEngineConfig {
     int         bufferSize  = 128;
     std::string latencyMode = "Standard"; // Standard | UltraLow
     std::string dspPrecision = "float32";
+    bool        hardwareAcceleration = true; // GPU for visualizers/UI rendering
 };
 
 // Live audio enhancement parameters surfaced by the Home screen. Ranges are

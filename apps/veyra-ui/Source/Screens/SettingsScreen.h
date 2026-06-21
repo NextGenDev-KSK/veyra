@@ -25,6 +25,8 @@ public:
     void setPalette(const Palette& p);
     void attachBackdrop(GlassBackground* bg);
     void resized() override;
+    void paint(juce::Graphics& g) override;            // title + sub-nav
+    void mouseDown(const juce::MouseEvent& e) override; // sub-nav selection
 
     // Appearance interactions.
     std::function<void(const juce::String&)> onThemeSelected;   // theme id
@@ -41,6 +43,9 @@ public:
     // Loudness (Night Mode + Sleep Timer) interactions.
     std::function<void(const veyra::LoudnessConfig&)> onLoudnessChanged;
 
+    // Audio Engine interactions.
+    std::function<void(const veyra::AudioEngineConfig&)> onAudioEngineChanged;
+
     // About: reset all settings to defaults.
     std::function<void()> onResetSettings;
 
@@ -50,19 +55,31 @@ public:
     void setMicConfig(const veyra::VoiceConfig& voice);
     void setSpatialConfig(const veyra::SpatialConfig& spatial);
     void setLoudnessConfig(const veyra::LoudnessConfig& loud);
+    void setAudioEngineConfig(const veyra::AudioEngineConfig& engine);
     void setServiceStatus(bool connected, juce::String version);
 
 private:
     class AppearanceCard;
+    class AudioEngineCard;
     class MicrophoneCard;
     class SpatialCard;
     class LoudnessCard;
     class AboutCard;
-    std::unique_ptr<AppearanceCard> appearance_;
-    std::unique_ptr<MicrophoneCard> microphone_;
-    std::unique_ptr<SpatialCard>    spatial_;
-    std::unique_ptr<LoudnessCard>   loudness_;
-    std::unique_ptr<AboutCard>      about_;
+
+    void setSection(int i);
+    juce::Rectangle<int> navItemBounds(int i) const;
+    juce::Component* cardForSection(int i) const;
+
+    static constexpr int kSections = 6; // Appearance, Audio Engine, Microphone, Spatial, Loudness, About
+    int section_ = 0;
+
+    std::unique_ptr<AppearanceCard>  appearance_;
+    std::unique_ptr<AudioEngineCard> audioEngine_;
+    std::unique_ptr<MicrophoneCard>  microphone_;
+    std::unique_ptr<SpatialCard>     spatial_;
+    std::unique_ptr<LoudnessCard>    loudness_;
+    std::unique_ptr<AboutCard>       about_;
+    Palette palette_ = paletteForTheme("midnight");
 };
 
 } // namespace veyra::ui

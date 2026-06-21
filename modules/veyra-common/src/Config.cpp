@@ -39,6 +39,7 @@ std::string Config::toJson() const
         {"buffer_size",   audioEngine.bufferSize},
         {"latency_mode",  audioEngine.latencyMode},
         {"dsp_precision", audioEngine.dspPrecision},
+        {"hardware_acceleration", audioEngine.hardwareAcceleration},
     };
     j["enhancement"]        = enhancement;
     j["voice"]              = voice;
@@ -82,6 +83,7 @@ std::optional<Config> Config::fromJson(const std::string& text)
         c.audioEngine.bufferSize   = a.value("buffer_size", c.audioEngine.bufferSize);
         c.audioEngine.latencyMode  = a.value("latency_mode", c.audioEngine.latencyMode);
         c.audioEngine.dspPrecision = a.value("dsp_precision", c.audioEngine.dspPrecision);
+        c.audioEngine.hardwareAcceleration = a.value("hardware_acceleration", c.audioEngine.hardwareAcceleration);
     }
 
     if (const auto it = j.find("enhancement"); it != j.end() && it->is_object())
