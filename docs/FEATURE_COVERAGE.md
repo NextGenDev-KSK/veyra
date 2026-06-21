@@ -47,8 +47,12 @@ Borderless custom titlebar ✅ · 11 themes + live switch ✅ · glass (blur+tin
 ## §8 Overlay
 Layered window ✅ · 3 radar styles (competitive/rich/compass) ✅ · competitive/rich density ✅ · IPC client ✅ · **hold-to-interact ⬜** · **per-game memory ⬜** · live blips ⏵ (need the tracker producer).
 
-## §9 Sound Lab — **⬜ (biggest UI gap)**
-The 7 tools (Speaker / 7.1 Surround / Mic / Frequency Sweep / Hearing Range / Polarity-Phase / Noise Generator) are **not** built; current screen hosts loudness controls. Needs a UI-side tone/test engine (`juce::AudioDeviceManager`). Reference = a top tab bar.
+## §9 Sound Lab — ✅ (tab bar + tone engine)
+All 7 tools as a top tab bar (Speaker / 7.1 Surround / Mic / Frequency Sweep /
+Hearing Range / Polarity-Phase / Noise Generator) over a central card, driven by
+`SoundLabEngine` (`juce_audio_devices` + the dsp `SignalGenerator`) — real
+per-channel sine, sweep, white/pink noise, polarity invert, and a live mic-input
+meter. ⏵ audio output verified on a real device.
 
 ## §10 Preset format
 ✅ `.vpreset` JSON, atomic save/load, 8 built-ins. 🟡 schema is a subset (no parametric/mic-chain blocks yet).
@@ -82,8 +86,8 @@ CMake → 4 binaries ✅ · MSIX ✅ · portable ZIP (CI artifact) ✅ · signin
 These are tracked and being worked in priority order — see the implementation plan below and `docs/DESIGN_SYSTEM.md` §12.
 
 ## Implementation order (UI-first, each CI-green)
-1. **Gamer Mode → 2×2 dashboard** (Sound Tracker · Spatial Audio · Voice & Microphone · Night Mode) — folds in spatial + mic + night.
-2. **Sound Lab → 7-tool tab bar** + UI tone engine (real test signals).
+1. ✅ **Gamer Mode → 2×2 dashboard** (Sound Tracker · Spatial Audio · Voice & Microphone · Night Mode) — folds in spatial + mic + night.
+2. ✅ **Sound Lab → 7-tool tab bar** + UI tone engine (real test signals).
 3. **Home top bar** device selector + output meter; **Reverb/Delay** into the live render chain.
 4. **Parametric EQ** (≤16 nodes) on the existing EQ card.
 5. **Visualizer modes** (Monstercat/Circular/Waveform first, then the GPU-heavy ones).
