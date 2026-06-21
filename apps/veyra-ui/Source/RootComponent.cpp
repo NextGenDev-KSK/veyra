@@ -192,7 +192,7 @@ RootComponent::RootComponent()
     home_.setVisible(true);
     sidebar_.setActive(0);
 
-    setSize(1600, 900);
+    setSize(1200, 675);
 
     // Connect to the service; notifications hop to the message thread.
     client_.start([safe = juce::Component::SafePointer<RootComponent>(this)]

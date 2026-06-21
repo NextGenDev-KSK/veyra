@@ -34,6 +34,43 @@ void enableAcrylicBackdrop(HWND hwnd)
     DwmSetWindowAttribute(hwnd, kSystemBackdropType, &backdrop, sizeof(backdrop));
 }
 
+// The brand PNG has transparent padding, so as a taskbar icon the mark looks
+// small. Trim to the opaque bounds and re-centre on a square canvas so the logo
+// fills the icon.
+static juce::Image taskbarIcon()
+{
+    auto img = juce::ImageCache::getFromMemory(BinaryData::Veyra_Icon_square_png,
+                                               BinaryData::Veyra_Icon_square_pngSize);
+    if (!img.isValid())
+        return img;
+    img = img.convertedToFormat(juce::Image::ARGB);
+
+    int minX = img.getWidth(), minY = img.getHeight(), maxX = 0, maxY = 0;
+    bool any = false;
+    {
+        const juce::Image::BitmapData bd(img, juce::Image::BitmapData::readOnly);
+        for (int y = 0; y < img.getHeight(); ++y)
+            for (int x = 0; x < img.getWidth(); ++x)
+                if (bd.getPixelColour(x, y).getAlpha() > 16)
+                {
+                    any = true;
+                    minX = juce::jmin(minX, x); minY = juce::jmin(minY, y);
+                    maxX = juce::jmax(maxX, x); maxY = juce::jmax(maxY, y);
+                }
+    }
+    if (!any)
+        return img;
+
+    const int cw = maxX - minX + 1, ch = maxY - minY + 1;
+    const int s = juce::jmax(cw, ch);
+    juce::Image square(juce::Image::ARGB, s, s, true);
+    juce::Graphics g(square);
+    g.drawImage(img.getClippedImage({minX, minY, cw, ch}).createCopy(),
+                juce::Rectangle<float>((float) (s - cw) / 2.0f, (float) (s - ch) / 2.0f,
+                                       (float) cw, (float) ch));
+    return square;
+}
+
 class MainWindow : public juce::DocumentWindow {
 public:
     MainWindow()
@@ -41,6 +78,7 @@ public:
                                juce::Colours::transparentBlack, // let the acrylic show
                                juce::DocumentWindow::allButtons)
     {
+        setIcon(taskbarIcon()); // larger, padding-trimmed taskbar mark
         // Borderless: our TopBar is the custom glass title bar.
         setUsingNativeTitleBar(false);
         setTitleBarHeight(0);
@@ -49,7 +87,7 @@ public:
         // Fixed canvas (1600x900), like Spotify / SteelSeries Sonar: the layout is
         // designed around one size, so no resize and no maximise.
         setResizable(false, false);
-        centreWithSize(1600, 900);
+        centreWithSize(1200, 675);
         setVisible(true);
 
         if (auto* peer = getPeer())
