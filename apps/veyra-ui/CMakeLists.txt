@@ -28,6 +28,7 @@ target_sources(veyra PRIVATE
     Source/AppRuleWatcher.cpp
     Source/HotkeyManager.cpp
     Source/SoundLabEngine.cpp
+    Source/AppIndex.cpp
     Source/AudioDevices.cpp
     Source/Theme/DesignTokens.cpp
     Source/Theme/Fonts.cpp
@@ -70,7 +71,8 @@ target_link_libraries(veyra PRIVATE
     juce::juce_recommended_config_flags
     juce::juce_recommended_warning_flags
     dwmapi    # Windows 11 acrylic backdrop (DwmSetWindowAttribute)
-    ole32)    # WASAPI endpoint enumeration (Devices screen)
+    ole32     # WASAPI endpoint enumeration (Devices screen)
+    shell32)  # SHGetFileInfo — EXE icon extraction (Apps index)
 
 # Keep the binary in the unified bin/ dir as veyra.exe (matches CI checks).
 set_target_properties(veyra PROPERTIES

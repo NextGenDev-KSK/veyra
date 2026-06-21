@@ -1,5 +1,7 @@
 #include "Screens/AppsScreen.h"
 
+#include "AppIndex.h"
+
 #include "Components/GlassPanel.h"
 #include "Components/ToggleSwitch.h"
 #include "Graphics/GlassBackground.h"
@@ -147,7 +149,7 @@ public:
         addAndMakeVisible(switching_);
 
         add_.setButtonText("+ Add App");
-        add_.onClick = [this] { addRow(veyra::AppRule{}); resized(); };
+        add_.onClick = [this] { showAddPicker(); };
         addAndMakeVisible(add_);
         save_.setButtonText("Save");
         save_.onClick = [this] { save(); };
@@ -236,6 +238,46 @@ private:
             addRow(r);
     }
 
+    // Offline picker: scan installed apps once, then show a menu with EXE icons.
+    void showAddPicker()
+    {
+        if (!indexed_) { appIndex_ = scanInstalledApps(); indexed_ = true; }
+
+        juce::PopupMenu menu;
+        menu.addItem(1, "Custom rule...");
+        menu.addSeparator();
+        for (int i = 0; i < (int) appIndex_.size(); ++i)
+        {
+            juce::PopupMenu::Item it;
+            it.itemID = i + 2;
+            it.text = appIndex_[(size_t) i].name;
+            if (appIndex_[(size_t) i].icon.isValid())
+            {
+                auto d = std::make_unique<juce::DrawableImage>();
+                d->setImage(appIndex_[(size_t) i].icon);
+                it.image = std::move(d);
+            }
+            menu.addItem(std::move(it));
+        }
+
+        juce::Component::SafePointer<Card> safe(this);
+        menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&add_),
+                           [safe](int r)
+                           {
+                               if (safe == nullptr || r <= 0) return;
+                               veyra::AppRule rule;
+                               if (r >= 2)
+                               {
+                                   const int idx = r - 2;
+                                   if (idx < (int) safe->appIndex_.size())
+                                       rule.match = safe->appIndex_[(size_t) idx].match;
+                               }
+                               safe->addRow(rule);
+                               safe->resized();
+                               if (r >= 2) safe->save();
+                           });
+    }
+
     void addRow(const veyra::AppRule& r)
     {
         auto row = std::make_unique<RuleRow>();
@@ -286,6 +328,8 @@ private:
     ToggleSwitch                          switching_;
     juce::TextButton                      add_, save_;
     juce::String                          status_;
+    std::vector<InstalledApp>             appIndex_;
+    bool                                  indexed_ = false;
 };
 
 // ---------------------------------------------------------------------------
