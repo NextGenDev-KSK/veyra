@@ -42,6 +42,10 @@ RootComponent::RootComponent()
     devices_.onBridgeChanged = [this](const veyra::BridgeConfig& b) { working_.bridge = b; pushConfig(); };
     devices_.setBridge(working_.bridge);
 
+    // Apps: master per-app-switching toggle.
+    apps_.onSwitchingChanged = [this](bool on) { working_.appSwitching = on; pushConfig(); };
+    apps_.setSwitchingEnabled(working_.appSwitching);
+
     // Gamer Mode dashboard -> the gamer / spatial / voice / loudness blocks.
     gamer_.onGamerChanged    = [this](const veyra::GamerModeConfig& g) { working_.gamerMode = g; pushConfig(); };
     gamer_.onSpatialChanged  = [this](const veyra::SpatialConfig& s)   { working_.spatial = s;   settings_.setSpatialConfig(s); pushConfig(); };
@@ -247,8 +251,9 @@ void RootComponent::timerCallback()
     if (++ruleTick_ >= 30)
     {
         ruleTick_ = 0;
-        if (auto uuid = appRules_.poll())
-            client_.loadPreset(*uuid);
+        if (working_.appSwitching)
+            if (auto uuid = appRules_.poll())
+                client_.loadPreset(*uuid);
     }
 
     // Open the analyzer block lazily (the service may start after the UI).
@@ -333,6 +338,7 @@ void RootComponent::applyConfig(const veyra::Config& c)
     settings_.setSpatialConfig(c.spatial);
     settings_.setLoudnessConfig(c.loudness);
     settings_.setAudioEngineConfig(c.audioEngine);
+    apps_.setSwitchingEnabled(c.appSwitching);
     gamer_.setGamer(c.gamerMode);
     gamer_.setSpatial(c.spatial);
     gamer_.setVoice(c.voice);

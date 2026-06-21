@@ -43,7 +43,10 @@ std::string AppRuleEngine::toJson() const
         arr.push_back({{"match", r.match},
                        {"preset_uuid", r.presetUuid},
                        {"priority", r.priority},
-                       {"enabled", r.enabled}});
+                       {"enabled", r.enabled},
+                       {"detection", r.detection},
+                       {"volume", r.volume},
+                       {"auto_mute", r.autoMute}});
     return arr.dump(2);
 }
 
@@ -63,6 +66,9 @@ std::vector<AppRule> AppRuleEngine::rulesFromJson(const std::string& text)
         r.presetUuid = e.value("preset_uuid", std::string{});
         r.priority   = e.value("priority", 0);
         r.enabled    = e.value("enabled", true);
+        r.detection  = e.value("detection", std::string{"foreground"});
+        r.volume     = e.value("volume", 1.0f);
+        r.autoMute   = e.value("auto_mute", false);
         if (!r.match.empty() && !r.presetUuid.empty())
             out.push_back(std::move(r));
     }

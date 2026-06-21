@@ -125,6 +125,7 @@ struct Config {
     std::string language           = "en";
     bool        telemetryOptIn     = false;
     bool        onboardingComplete = false; // first-run wizard shown + dismissed
+    bool        appSwitching       = true;  // master enable for per-app rule auto-switching
     AudioEngineConfig audioEngine;
     EnhancementConfig enhancement;
     VoiceConfig       voice;

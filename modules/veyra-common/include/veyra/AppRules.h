@@ -17,6 +17,9 @@ struct AppRule {
     std::string presetUuid;       // preset to apply when this rule wins
     int         priority = 0;     // higher wins; ties resolve to the earlier rule
     bool        enabled  = true;
+    std::string detection = "foreground"; // foreground | audio | both
+    float       volume    = 1.0f;         // per-app volume (0..1.5)
+    bool        autoMute  = false;        // mute this app when it loses focus
 };
 
 class AppRuleEngine {

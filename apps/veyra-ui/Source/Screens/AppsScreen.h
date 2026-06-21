@@ -10,6 +10,7 @@
 
 #include "veyra/Preset.h"
 
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -27,6 +28,8 @@ public:
     void resized() override;
 
     void setPresets(const std::vector<veyra::Preset>& presets); // populate the pickers
+    void setSwitchingEnabled(bool on);                          // reflect, no callback
+    std::function<void(bool)> onSwitchingChanged;               // master per-app toggle
 
 private:
     class Card;
