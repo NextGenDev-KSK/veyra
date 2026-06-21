@@ -105,7 +105,26 @@ public:
         return r;
     }
 
-    void setPalette(const Palette& p) { autoMute_.setPalette(p); status_.setPalette(p); }
+    void setPalette(const Palette& p)
+    {
+        autoMute_.setPalette(p);
+        status_.setPalette(p);
+        // Blend the cells into the dark glass instead of default-JUCE grey.
+        match_.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+        match_.setColour(juce::TextEditor::outlineColourId, p.strokeDefault);
+        match_.setColour(juce::TextEditor::focusedOutlineColourId, p.strokeActive);
+        match_.setColour(juce::TextEditor::textColourId, p.textPrimary);
+        for (juce::ComboBox* cb : {&detect_, &preset_})
+        {
+            cb->setColour(juce::ComboBox::backgroundColourId, p.bgInput.withAlpha(0.5f));
+            cb->setColour(juce::ComboBox::textColourId, p.textPrimary);
+            cb->setColour(juce::ComboBox::outlineColourId, juce::Colours::transparentBlack);
+            cb->setColour(juce::ComboBox::arrowColourId, p.textSecondary);
+        }
+        vol_.setColour(juce::Slider::trackColourId, p.accentPrimary.withAlpha(0.6f));
+        vol_.setColour(juce::Slider::backgroundColourId, p.bgInput.withAlpha(0.5f));
+        vol_.setColour(juce::Slider::textBoxTextColourId, p.textPrimary);
+    }
 
     void resized() override
     {
@@ -214,6 +233,16 @@ protected:
         for (int i = 0; i < 6; ++i)
             g.drawText(titles[i], colRect(head, i).withTrimmedLeft(4),
                        juce::Justification::centredLeft, false);
+        g.setColour(palette_.strokeDefault);
+        g.fillRect(head.getX(), head.getBottom() - 1, head.getWidth(), 1); // header underline
+
+        // Faint separators between rows for a clean table read.
+        for (size_t i = 1; i < rows_.size(); ++i)
+        {
+            const auto rb = rows_[i]->getBounds();
+            g.setColour(palette_.strokeDefault.withAlpha(0.5f));
+            g.fillRect(rb.getX(), rb.getY() - 3, rb.getWidth(), 1);
+        }
 
         if (rows_.empty())
         {
