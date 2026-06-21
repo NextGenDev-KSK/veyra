@@ -81,7 +81,9 @@ CMake → 4 binaries ✅ · MSIX ✅ · portable ZIP (CI artifact) ✅ · signin
 
 **Solid & CI-green:** the 3-process + APO architecture, the core real-time output DSP (EQ/tone/dynamics/width/spatial/loudness/limiter), config/preset/per-app/per-device models, IPC, packaging, crash capture, hotkeys, onboarding, performance guard.
 
-**Real remaining gaps (not yet built):** parametric 16-band EQ · 7 of 8 visualizers · the 7 Sound Lab tools · real RNNoise · AEC · AGC · pitch/time · live game detection + Sound Tracker producer · overlay hold-to-interact + per-game memory · scene-aware EQ · 6-language catalogs · crash UI banner · updater download/apply · reverb/delay in the live chain · audio-session per-app detection.
+**Done since the first audit:** parametric 16-band EQ + node editor · all 8 visualizer modes (2D) · the 7 Sound Lab tools + tone engine · AGC · noise gate · live game detection · Sound Tracker producer · crash UI banner · updater HTTPS check · reverb in the live chain · fixed 1600×900 canvas · Home master polish + active-preset chip · offline app index with EXE icons · Settings Updates section.
+
+**Real remaining gaps (need external assets or are research-scale — not faked):** OpenGL/shader-grade unique visualizers (current are 2D) · real RNNoise model · MIT KEMAR dataset · true AEC · pitch/time · scene-aware ML EQ · 6-language human translations · signature-verified silent updater + download/apply · overlay hold-to-interact + per-game memory · pixel-level per-screen spacing polish (needs visual iteration). Smaller: echo/delay in the chain (intentionally omitted — no reference UI), audio-session per-app detection, side-tone routing.
 
 These are tracked and being worked in priority order — see the implementation plan below and `docs/DESIGN_SYSTEM.md` §12.
 
