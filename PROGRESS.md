@@ -80,7 +80,7 @@ All CI-green:
 Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hardware-only · ⬜ needs external asset.
 
 ### Phase 16 — Sound Quality Engine  `[ ]`
-- [~] **RNNoise** as the default mic NS, custom suppressor as fallback  *(submodule pinned @ v0.1.1, small embedded model; build/wrapper pending a doubt below)*
+- [x] **RNNoise** as the default mic NS, custom suppressor as fallback — submodule @ v0.1.1 (small embedded model), builds on MSVC (VLA→alloca patch), opaque RT-safe `RnnoiseDenoiser` wired into the capture APO; unit-tested (stationary noise suppressed). CI-green.
 - [ ] **Live AEC far-end reference** wiring (render→capture reference) so echo cancel works on real devices  *(NLMS engine done; ⏵ live)*
 - [ ] **Limiter upgrade** — oversampling + look-ahead + inter-sample-peak (ISP) protection + soft clip
 - [ ] **Optional oversampling** (2×/4×/8×) for nonlinear DSP modules (anti-alias)
@@ -126,7 +126,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 
 ## Veyra 1.0 release target
 
-**Required:** Stable APO ⏵ · RNNoise `[~]` · AutoEQ `[ ]` · Parametric EQ ✅ · KEMAR ✅ · Good presets ✅ · Apps page ✅ · Devices page ✅ (polish `[ ]`) · Localization framework ✅ · Documentation `[ ]`
+**Required:** Stable APO ⏵ · RNNoise ✅ · AutoEQ `[ ]` · Parametric EQ ✅ · KEMAR ✅ · Good presets ✅ · Apps page ✅ · Devices page ✅ (polish `[ ]`) · Localization framework ✅ · Documentation `[ ]`
 **Nice-to-have:** CIPIC · IRCAM · Equal-loudness · Advanced crossfeed
 **Future:** Personalized HRTF · Room simulation · Binaural speaker emulation
 
