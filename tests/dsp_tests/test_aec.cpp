@@ -8,6 +8,8 @@
 using namespace veyra::dsp;
 
 namespace {
+constexpr double kPi = 3.14159265358979323846;
+
 float rms(const std::vector<float>& v, int from, int to)
 {
     double acc = 0.0;
@@ -56,7 +58,7 @@ TEST_CASE("AEC: preserves micSig-end speech while removing echo")
     const int n = 40000;
     const int delay = 10;
     uint32_t s = 0xBEEFu;
-    auto speech = [](int i) { return 0.3f * (float) std::sin(2.0 * M_PI * 200.0 * i / 48000.0); };
+    auto speech = [](int i) { return 0.3f * (float) std::sin(2.0 * kPi * 200.0 * i / 48000.0); };
 
     std::vector<float> refSig((size_t) n);
     for (int i = 0; i < n; ++i) { s ^= s << 13; s ^= s >> 17; s ^= s << 5; refSig[(size_t) i] = (float) (int32_t) s / 2147483648.0f * 0.4f; }
