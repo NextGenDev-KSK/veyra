@@ -19,6 +19,7 @@ add_library(veyra-common STATIC
     src/CrashReport.cpp
     src/Hotkeys.cpp
     src/GameDetector.cpp
+    src/AutoEq.cpp
     src/ipc/PipeIo.cpp
     src/ipc/PipeServer.cpp
     src/ipc/PipeClient.cpp
