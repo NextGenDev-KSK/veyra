@@ -4,6 +4,8 @@
 #include "Graphics/GlassBackground.h"
 #include "Theme/Fonts.h"
 
+#include <algorithm>
+
 namespace veyra::ui {
 
 namespace {
@@ -42,12 +44,12 @@ protected:
         g.setFont(fonts::body(12.0f));
         g.drawText(preset_.category, b.removeFromTop(18), juce::Justification::topLeft, false);
 
-        // Tag pill (built-in vs user).
+        // Tag pill: BUILT-IN is white; USER keeps the glass look.
         const bool builtin = preset_.builtIn;
         auto tag = juce::Rectangle<int>(b.getX(), getHeight() - 26, 64, 16);
-        g.setColour(builtin ? palette_.accentSecondaryDim : palette_.bgGlassHover);
+        g.setColour(builtin ? juce::Colours::white : palette_.bgGlassHover);
         g.fillRoundedRectangle(tag.toFloat(), 8.0f);
-        g.setColour(builtin ? palette_.accentSecondary : palette_.textSecondary);
+        g.setColour(builtin ? palette_.bgCanvas : palette_.textSecondary);
         g.setFont(fonts::mono(9.0f, true));
         g.drawText(builtin ? "BUILT-IN" : "USER", tag, juce::Justification::centred, false);
 
@@ -150,17 +152,27 @@ PresetsScreen::PresetsScreen()
     saveBtn_.onClick   = [this] { promptSaveCurrent(); };
     importBtn_.onClick = [this] { if (onImport) onImport(); };
     exportBtn_.onClick = [this] { if (onExport && activeUuid_.isNotEmpty()) onExport(activeUuid_); };
+    dupBtn_.onClick    = [this] { if (onDuplicate && activeUuid_.isNotEmpty()) onDuplicate(activeUuid_); };
     deleteBtn_.onClick = [this] { if (onDelete && activeUuid_.isNotEmpty()) onDelete(activeUuid_); };
-    for (auto* b : {&saveBtn_, &importBtn_, &exportBtn_, &deleteBtn_})
+    for (auto* b : {&saveBtn_, &importBtn_, &exportBtn_, &dupBtn_, &deleteBtn_})
         addAndMakeVisible(b);
 
+    // Oval (pill) search field: transparent editor over a painted pill.
     search_.setTextToShowWhenEmpty("Search presets...", juce::Colours::grey);
+    search_.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+    search_.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+    search_.setColour(juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
+    search_.setIndents(16, 6);
     search_.onTextChange = [this] { applyFilter(); resized(); };
     addAndMakeVisible(search_);
 
     viewToggle_.setItems({"Grid", "List"});
     viewToggle_.onChange = [this](int i) { grid_->setListMode(i == 1); resized(); };
     addAndMakeVisible(viewToggle_);
+
+    sort_.setItems({"A-Z", "Category"});
+    sort_.onChange = [this](int i) { sortMode_ = i; applyFilter(); resized(); };
+    addAndMakeVisible(sort_);
 }
 
 PresetsScreen::~PresetsScreen() = default;
@@ -170,6 +182,7 @@ void PresetsScreen::setPalette(const Palette& p)
     palette_ = p;
     grid_->setPalette(p);
     viewToggle_.setPalette(p);
+    sort_.setPalette(p);
     repaint();
 }
 
@@ -216,6 +229,14 @@ void PresetsScreen::applyFilter()
         if (catOk && qOk)
             filtered.push_back(p);
     }
+
+    std::sort(filtered.begin(), filtered.end(), [this](const veyra::Preset& a, const veyra::Preset& b)
+    {
+        if (sortMode_ == 1 && a.category != b.category)
+            return juce::String(a.category).compareIgnoreCase(juce::String(b.category)) < 0;
+        return juce::String(a.name).compareIgnoreCase(juce::String(b.name)) < 0;
+    });
+
     grid_->setPresets(filtered, activeUuid_);
 }
 
@@ -276,21 +297,28 @@ void PresetsScreen::resized()
     b.removeFromLeft(170);        // category column (painted)
     b.removeFromLeft(20);         // gutter
 
-    auto header = b.removeFromTop(40);
-    int bw = 92, gap = 8;
+    // Row 1: action buttons (right-aligned).
+    auto header = b.removeFromTop(36);
+    int bw = 88, gap = 8;
     auto place = [&](juce::TextButton& btn)
     {
-        btn.setBounds(header.removeFromRight(bw).reduced(0, 4));
+        btn.setBounds(header.removeFromRight(bw).reduced(0, 3));
         header.removeFromRight(gap);
     };
     place(deleteBtn_);
+    place(dupBtn_);
     place(exportBtn_);
     place(importBtn_);
     place(saveBtn_);
-    header.removeFromRight(12);
-    viewToggle_.setBounds(header.removeFromRight(140).reduced(0, 5));
-    header.removeFromRight(12);
-    search_.setBounds(header.removeFromLeft(juce::jmin(260, header.getWidth())).reduced(0, 5));
+
+    // Row 2: oval search (left) + sort + grid/list (right).
+    b.removeFromTop(10);
+    auto bar = b.removeFromTop(32);
+    viewToggle_.setBounds(bar.removeFromRight(120).reduced(0, 2));
+    bar.removeFromRight(10);
+    sort_.setBounds(bar.removeFromRight(150).reduced(0, 2));
+    bar.removeFromRight(14);
+    search_.setBounds(bar.removeFromLeft(juce::jmin(320, bar.getWidth())));
 
     b.removeFromTop(12);
     viewport_.setBounds(b);
@@ -304,6 +332,17 @@ void PresetsScreen::paint(juce::Graphics& g)
     g.setFont(fonts::display(24.0f));
     g.drawText("PRESETS", getLocalBounds().reduced(kPad).removeFromTop(34),
                juce::Justification::centredLeft, false);
+
+    // Oval (pill) search background behind the transparent editor.
+    if (search_.getWidth() > 0)
+    {
+        const auto sb = search_.getBounds().toFloat();
+        const float radius = sb.getHeight() * 0.5f;
+        g.setColour(palette_.bgGlassHover);
+        g.fillRoundedRectangle(sb, radius);
+        g.setColour(palette_.strokeHover);
+        g.drawRoundedRectangle(sb.reduced(0.5f), radius, 1.0f);
+    }
 
     // Category column.
     for (int i = 0; i < categories_.size(); ++i)

@@ -102,6 +102,7 @@ RootComponent::RootComponent()
     presets_.onDelete      = [this](juce::String uuid) { client_.deletePreset(uuid.toStdString()); };
     presets_.onSaveCurrent = [this](juce::String name) { saveCurrentAsPreset(name); };
     presets_.onExport      = [this](juce::String uuid) { exportPreset(uuid); };
+    presets_.onDuplicate   = [this](juce::String uuid) { duplicatePreset(uuid); };
     presets_.onImport      = [this] { importPreset(); };
 
     // Seed the working config from the initial control state.
@@ -416,6 +417,22 @@ void RootComponent::saveCurrentAsPreset(const juce::String& name)
     p.masterVolumeGain = working_.masterVolumeGain;
     p.enhancement      = working_.enhancement;
     client_.savePreset(p);
+}
+
+void RootComponent::duplicatePreset(const juce::String& uuid)
+{
+    for (const auto& src : client_.presets())
+    {
+        if (juce::String(src.uuid) != uuid)
+            continue;
+        veyra::Preset p = src;                 // clone gains + enhancement + EQ
+        p.uuid    = ("u-" + juce::Uuid().toDashedString()).toStdString();
+        p.name    = src.name + " Copy";
+        p.author  = "User";
+        p.builtIn = false;                     // a duplicate is always a user preset
+        client_.savePreset(p);
+        return;
+    }
 }
 
 void RootComponent::exportPreset(const juce::String& uuid)

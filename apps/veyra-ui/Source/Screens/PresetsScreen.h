@@ -35,6 +35,7 @@ public:
     std::function<void(juce::String)> onApply;       // preset uuid
     std::function<void(juce::String)> onDelete;      // preset uuid
     std::function<void(juce::String)> onExport;      // preset uuid
+    std::function<void(juce::String)> onDuplicate;   // preset uuid -> clone as user preset
     std::function<void(juce::String)> onSaveCurrent; // new preset name
     std::function<void()>             onImport;
 
@@ -57,10 +58,12 @@ private:
 
     juce::TextEditor       search_;
     SegmentedControl       viewToggle_;
+    SegmentedControl       sort_;
+    int                    sortMode_ = 0; // 0 = A-Z, 1 = Category
     juce::Viewport         viewport_;
     std::unique_ptr<Grid>  grid_;
     juce::TextButton saveBtn_{"Save Current"}, importBtn_{"Import"},
-                     exportBtn_{"Export"}, deleteBtn_{"Delete"};
+                     exportBtn_{"Export"}, dupBtn_{"Duplicate"}, deleteBtn_{"Delete"};
 };
 
 } // namespace veyra::ui

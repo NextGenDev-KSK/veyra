@@ -62,6 +62,7 @@ private:
     void cyclePreset(int direction);
 
     void saveCurrentAsPreset(const juce::String& name);
+    void duplicatePreset(const juce::String& uuid);
     void exportPreset(const juce::String& uuid);
     void importPreset();
 
