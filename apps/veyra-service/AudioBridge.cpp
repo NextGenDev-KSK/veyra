@@ -1,6 +1,7 @@
 #include "AudioBridge.h"
 
 #include <chrono>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -25,6 +26,17 @@ namespace veyra::service {
 namespace {
 template <class T>
 void safeRelease(T*& p) { if (p) { p->Release(); p = nullptr; } }
+
+// Measured MIT KEMAR set ships next to the service exe at hrtf/diffuse; if it's
+// present the chain uses measured HRTFs, otherwise it falls back to synthetic.
+std::filesystem::path kemarDir()
+{
+    wchar_t buf[MAX_PATH];
+    const DWORD n = GetModuleFileNameW(nullptr, buf, MAX_PATH);
+    if (n == 0 || n >= MAX_PATH)
+        return {};
+    return std::filesystem::path(buf).parent_path() / "hrtf" / "diffuse";
+}
 
 std::wstring utf8ToWide(const std::string& s)
 {
@@ -204,6 +216,7 @@ bool AudioBridge::session()
     dstClient->GetBufferSize(&dstBufFrames);
 
     dsp::DspChain chain;
+    chain.setHrtfDirectory(kemarDir()); // measured HRTF when packaged; synthetic otherwise
     chain.prepare(srcFmt->nSamplesPerSec);
 
     if (FAILED(srcClient->Start()) || FAILED(dstClient->Start()))

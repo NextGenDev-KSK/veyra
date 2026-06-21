@@ -41,6 +41,14 @@ if (Test-Path $lang) {
     Copy-Item (Join-Path $lang "*.json") $dst -ErrorAction SilentlyContinue
 }
 
+# --- Measured MIT KEMAR HRTF set (default spatial); ~0.9 MB ---
+$hrtf = Join-Path $RepoRoot "third_party/hrtf/mit_kemar/diffuse"
+if (Test-Path $hrtf) {
+    $dst = Join-Path $stage "hrtf/diffuse"
+    New-Item -ItemType Directory -Force $dst | Out-Null
+    Copy-Item (Join-Path $hrtf "*") $dst -Recurse -Force
+}
+
 # --- Optional APO developer-registration helpers ---
 $drv = Join-Path $RepoRoot "installer/driver"
 if (Test-Path $drv) {

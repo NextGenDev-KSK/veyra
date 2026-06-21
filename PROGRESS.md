@@ -26,7 +26,7 @@ audit against the engineering spec see [`docs/FEATURE_COVERAGE.md`](docs/FEATURE
 | 4 UI (JUCE) | glass theme (11), TopBar/Sidebar, EQ, knobs, mini, tray | ✅ |
 | 5 Presets / Per-app / Per-device | `.vpreset`, library, rule engine, device profiles | ✅ |
 | 6 Voice / Mic chain | HPF→NS→comp→de-ess→presence→gain, capture APO | ✅ (RNNoise model ⬜) |
-| 7 Spatial / HRTF | partitioned convolver, crossfeed, virtual surround | ✅ (real KEMAR data ⬜) |
+| 7 Spatial / HRTF | partitioned convolver, crossfeed, virtual surround | ✅ (measured MIT KEMAR default; synthetic fallback) |
 | 8 Gamer Mode + Sound Tracker | loopback producer, classifier, direction, overlay | ✅ (live blips ⏵) |
 | 9 Sound Lab + Night + Sleep | 7 tools + tone engine, night mode, sleep fade | ✅ |
 | 10 Sound Sharing | OutputRouter + delay comp; AudioBridge no-driver path | ✅ |
@@ -62,7 +62,7 @@ All CI-green:
 
 **Needs external assets / data — cannot be produced in-repo (would be faking it):**
 - ⬜ **Real RNNoise model** — the mic uses a real custom spectral/expander noise suppressor; dropping in the trained RNNoise model needs its weights + lib vendored behind the existing seam.
-- ⬜ **MIT KEMAR HRTF dataset** — spatial uses a real synthetic HRIR generator; the measured KEMAR WAV set must be vendored to swap in.
+- ✅ **MIT KEMAR HRTF** — the measured diffuse set is vendored + loaded by `HrtfDatabase` and is the default; synthetic HRIR is the fallback. (Done.)
 - ⬜ **Human translations** (ZH-CN, ES, AR, HI, TA) — the localization framework + English exist; accurate catalogs need translators (not machine-faked). RTL pass pending.
 
 **Runtime-only — real code exists, but can't be CI-verified (needs a PC):**

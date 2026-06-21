@@ -4,13 +4,11 @@
 // stereo (headphone) pair by convolving it with a left/right head-related
 // impulse response.
 //
-// makeSyntheticHrir() generates a lightweight physically-motivated HRIR pair
-// (inter-aural time difference + level difference + a head-shadow low-pass on
-// the far ear). It is the default so the engine works with no dataset; the real
-// MIT KEMAR measurements drop in through the same (left, right) IR arrays once
-// the dataset is present (see third_party/hrtf/mit_kemar). BinauralPanner then
-// runs the pair through partitioned convolution — the same path for synthetic
-// and measured IRs.
+// Measured MIT KEMAR responses are the default (loaded by HrtfDatabase and fed
+// to BinauralPanner::prepareWithIr). makeSyntheticHrir() is now the FALLBACK
+// only — a lightweight physically-motivated HRIR pair (inter-aural time + level
+// difference + head-shadow low-pass) used when the dataset isn't present.
+// BinauralPanner runs either pair through the same partitioned convolution.
 
 #include <cmath>
 #include <vector>
@@ -62,6 +60,14 @@ public:
         makeSyntheticHrir(azimuthDeg, sampleRate, irLen, l, r);
         convL_.prepare(blockSize, l.data(), irLen);
         convR_.prepare(blockSize, r.data(), irLen);
+    }
+
+    // Use explicit measured IRs (e.g. MIT KEMAR): lEar/rEar are the left- and
+    // right-ear impulse responses for this virtual speaker's azimuth.
+    void prepareWithIr(int blockSize, const float* lEar, const float* rEar, int irLen)
+    {
+        convL_.prepare(blockSize, lEar, irLen);
+        convR_.prepare(blockSize, rEar, irLen);
     }
 
     void reset()

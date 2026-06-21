@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "spatial/HrtfDatabase.h"
+#include "spatial/VirtualSurround.h"
 #include "spatial/WavReader.h"
 
 using namespace veyra::dsp;
@@ -17,6 +18,7 @@ namespace fs = std::filesystem;
 #endif
 
 namespace {
+constexpr double kPi = 3.14159265358979323846;
 const fs::path kDir{VEYRA_KEMAR_DIR}; // <repo>/third_party/hrtf/mit_kemar/diffuse
 
 double energy(const std::vector<float>& v)
@@ -102,4 +104,32 @@ TEST_CASE("HrtfDatabase: load + query are fast (benchmark)")
                 db.measurementCount(), loadMs, q, qMs);
     CHECK(loadMs < 3000.0);
     CHECK(qMs < 500.0); // cached fetch keeps repeated queries cheap
+}
+
+TEST_CASE("VirtualSurround uses measured KEMAR when a directory is set")
+{
+    VirtualSurround vs;
+    vs.setHrtfDirectory(kDir);
+    vs.prepare(48000.0);
+    vs.setAmount(1.0f);
+    CHECK(vs.usingMeasured());
+
+    const int n = 1024;
+    std::vector<float> l(n), r(n), inL(n);
+    for (int i = 0; i < n; ++i) { const float s = 0.2f * (float) std::sin(2.0 * kPi * 440.0 * i / 48000.0);
+                                  l[i] = s; r[i] = s; inL[i] = s; }
+    vs.processStereo(l.data(), r.data(), n);
+
+    bool finite = true, changed = false;
+    for (int i = 0; i < n; ++i) { if (!std::isfinite(l[i])) finite = false;
+                                  if (std::fabs(l[i] - inL[i]) > 1.0e-4f) changed = true; }
+    CHECK(finite);
+    CHECK(changed); // externalised, not bit-identical to the dry input
+}
+
+TEST_CASE("VirtualSurround falls back to synthetic without a directory")
+{
+    VirtualSurround vs;
+    vs.prepare(48000.0);
+    CHECK_FALSE(vs.usingMeasured());
 }

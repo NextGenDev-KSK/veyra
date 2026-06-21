@@ -16,7 +16,7 @@ gaps are called out so the remaining work is unambiguous.
 | JUCE (UI) | ✅ | JUCE 8.0.13 |
 | DSP | ✅ | custom header-only `veyra-dsp` (not `juce::dsp`, by choice — RT-safe, allocation-free) |
 | RNNoise mic NS | ⬜ | mic uses a custom downward-expander `NoiseSuppressor`, **not** RNNoise. Seam exists to drop RNNoise behind a flag |
-| MIT KEMAR HRTF | 🟡 | synthetic HRIR generator + partitioned convolver; real KEMAR dataset not vendored |
+| MIT KEMAR HRTF | ✅ | measured KEMAR (diffuse set) loaded by HrtfDatabase + fed to the panners; synthetic is now fallback-only |
 | APO COM (native) | ✅ | render `VeyraApoEfx` + capture `VeyraMicApo` |
 | Service (Win32) | ✅ | SCM + `--console` |
 | IPC | 🟡 | custom framed **binary** protocol over named pipes (not FlatBuffers; functionally complete) |
@@ -32,7 +32,7 @@ gaps are called out so the remaining work is unambiguous.
 
 ## §4 DSP chains
 **Output chain:** loudness norm ✅ · mono/balance ✅ · 10-band graphic EQ ✅ · **parametric EQ ✅** (16-band engine + draggable node editor, both render paths) · bass/treble shelves ✅ · compressor ✅ · stereo widener ✅ · **reverb ✅** (Freeverb in the live chain; Home knob wired; unit-tested) · **echo/delay 🟡** (`DelayLine` exists; deliberately not in the chain — no reference UI + low value for an enhancer) · virtual surround/HRTF ✅ · volume gain ✅ · true-peak limiter ✅.
-**Mic chain:** HPF ✅ · NS 🟡 (custom expander, not the RNNoise model) · **noise gate ✅** (config + NS expander) · **AEC ⬜** (config flag only; DSP not implemented) · voice EQ/presence ✅ · de-esser ✅ · **AGC ✅** (−16 LUFS auto-level, unit-tested) · side-tone 🟡 (level field; APO routing ⬜).
+**Mic chain:** HPF ✅ · NS 🟡 (custom expander, not the RNNoise model) · **noise gate ✅** (config + NS expander) · **AEC ✅** (NLMS engine + VoiceChain overload, tested; live far-end feed ⏵) · voice EQ/presence ✅ · de-esser ✅ · **AGC ✅** (−16 LUFS auto-level, unit-tested) · side-tone 🟡 (level field; APO routing ⬜).
 Parameter smoothing (5 ms) ✅.
 
 ## §5 APO
@@ -73,7 +73,7 @@ CMake → 4 binaries ✅ · MSIX ✅ · portable ZIP (CI artifact) ✅ · signin
 ✅ local-first capture. **⬜ UI "recovered from a crash" banner**, "send to developers" flow.
 
 ## §16 Scene-aware adaptive EQ
-⬜ not built (prompt marks it Phase-2 / stub-only); the analyzer stats it would consume do exist.
+✅ v1 — rule-based `SceneDetector` (Silence/Music/Movie/Game/Voice + hysteresis), unit-tested. This is the prompt's "stub the interface, ship without inference" intent; a learned model is ⬜.
 
 ---
 
@@ -83,7 +83,7 @@ CMake → 4 binaries ✅ · MSIX ✅ · portable ZIP (CI artifact) ✅ · signin
 
 **Done since the first audit:** parametric 16-band EQ + node editor · all 8 visualizer modes (2D) · the 7 Sound Lab tools + tone engine · AGC · noise gate · live game detection · Sound Tracker producer · crash UI banner · updater HTTPS check · reverb in the live chain · fixed 1600×900 canvas · Home master polish + active-preset chip · offline app index with EXE icons · Settings Updates section.
 
-**Real remaining gaps (need external assets or are research-scale — not faked):** OpenGL/shader-grade unique visualizers (current are 2D) · real RNNoise model · MIT KEMAR dataset · true AEC · pitch/time · scene-aware ML EQ · 6-language human translations · signature-verified silent updater + download/apply · overlay hold-to-interact + per-game memory · pixel-level per-screen spacing polish (needs visual iteration). Smaller: echo/delay in the chain (intentionally omitted — no reference UI), audio-session per-app detection, side-tone routing.
+**Real remaining gaps (need external assets / are research-scale — not faked):** real **RNNoise** model weights · **6-language human translations** · OpenGL/shader-grade unique visualizers (current are 2D) · pitch/time · scene-aware **learned** model (rule-based v1 ships) · signature-verified silent updater download/apply. **Runtime-only ⏵:** APO endpoint registration, AEC live far-end feed, overlay hold-to-interact + per-game memory, per-screen spacing polish. Smaller/by-choice: echo-delay in the chain (no reference UI), audio-session per-app detection, side-tone routing.
 
 These are tracked and being worked in priority order — see the implementation plan below and `docs/DESIGN_SYSTEM.md` §12.
 

@@ -11,19 +11,46 @@
 // equally, so the dry/wet mix stays phase-aligned. amount 0 = bit-exact dry.
 
 #include <algorithm>
+#include <filesystem>
 #include <vector>
 
 #include "spatial/Hrtf.h"
+#include "spatial/HrtfDatabase.h"
 
 namespace veyra::dsp {
 
 class VirtualSurround {
 public:
+    // Point at the MIT KEMAR "diffuse" directory to use measured HRTFs (the
+    // default in the shipped app); leave empty for the synthetic fallback. Call
+    // before prepare().
+    void setHrtfDirectory(std::filesystem::path dir) { hrtfDir_ = std::move(dir); }
+    bool usingMeasured() const noexcept { return measured_; }
+
     void prepare(double sampleRate)
     {
         block_ = 256;
-        panL_.prepare(block_, sampleRate, -30.0f, 128); // left virtual speaker
-        panR_.prepare(block_, sampleRate, +30.0f, 128); // right virtual speaker
+
+        // Prefer measured KEMAR IRs for the +/-30 virtual speakers; fall back to
+        // the synthetic generator when the dataset isn't present.
+        measured_ = false;
+        if (!hrtfDir_.empty() && db_.load(hrtfDir_))
+        {
+            std::vector<float> lL, lR, rL, rR; // (left-ear, right-ear) per speaker
+            if (db_.getHrir(-30.0f, 0.0f, sampleRate, lL, lR)
+                && db_.getHrir(+30.0f, 0.0f, sampleRate, rL, rR)
+                && !lL.empty() && !rL.empty())
+            {
+                panL_.prepareWithIr(block_, lL.data(), lR.data(), (int) lL.size());
+                panR_.prepareWithIr(block_, rL.data(), rR.data(), (int) rL.size());
+                measured_ = true;
+            }
+        }
+        if (!measured_)
+        {
+            panL_.prepare(block_, sampleRate, -30.0f, 128); // left virtual speaker
+            panR_.prepare(block_, sampleRate, +30.0f, 128); // right virtual speaker
+        }
 
         const size_t n = (size_t) block_;
         inL_.assign(n, 0.0f);  inR_.assign(n, 0.0f);
@@ -90,7 +117,10 @@ private:
     int   block_ = 0;
     float amount_ = 0.0f;
     int   fill_ = 0;
+    bool  measured_ = false;
 
+    std::filesystem::path hrtfDir_;
+    HrtfDatabase          db_;
     BinauralPanner panL_, panR_;
     std::vector<float> inL_, inR_, dryL_, dryR_, wetL_, wetR_;
     std::vector<float> sLL_, sLR_, sRL_, sRR_;

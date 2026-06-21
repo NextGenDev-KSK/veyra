@@ -42,6 +42,13 @@ if (Test-Path $lang) {
     Copy-Item (Join-Path $lang "*.json") (Join-Path $layout "resources/lang") -ErrorAction SilentlyContinue
 }
 
+# Measured MIT KEMAR HRTF set (default spatial)
+$hrtf = Join-Path $RepoRoot "third_party/hrtf/mit_kemar/diffuse"
+if (Test-Path $hrtf) {
+    New-Item -ItemType Directory -Force (Join-Path $layout "hrtf/diffuse") | Out-Null
+    Copy-Item (Join-Path $hrtf "*") (Join-Path $layout "hrtf/diffuse") -Recurse -Force
+}
+
 # Manifest (stamp version) + logo assets (Windows scales the single square mark).
 $manifest = Get-Content (Join-Path $RepoRoot "installer/msix/AppxManifest.xml") -Raw
 $manifest = $manifest -replace 'Version="[0-9.]+"', "Version=`"$Version.0`""

@@ -25,6 +25,10 @@ namespace veyra::dsp {
 
 class DspChain {
 public:
+    // Set the MIT KEMAR "diffuse" directory for measured HRTF virtualisation
+    // (call before prepare()); empty = synthetic fallback.
+    void setHrtfDirectory(std::filesystem::path dir) { hrtfDir_ = std::move(dir); }
+
     void prepare(double sampleRate, int maxBlock = 0)
     {
         eq_.prepare(sampleRate, maxBlock);
@@ -34,6 +38,7 @@ public:
         comp_.prepare(sampleRate);
         reverb_.prepare(sampleRate);
         crossfeed_.prepare(sampleRate);
+        surround_.setHrtfDirectory(hrtfDir_);
         surround_.prepare(sampleRate);
         nightMode_.prepare(sampleRate);
         normalizer_.prepare(sampleRate);
@@ -129,6 +134,7 @@ private:
     bool bypass_ = false;
     bool parametricMode_ = false;
     bool explicitParametric_ = false;
+    std::filesystem::path hrtfDir_;
     GraphicEq        eq_;
     ParametricEq     parametric_;
     ToneControls     tone_;
