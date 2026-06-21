@@ -42,15 +42,11 @@ RootComponent::RootComponent()
     devices_.onBridgeChanged = [this](const veyra::BridgeConfig& b) { working_.bridge = b; pushConfig(); };
     devices_.setBridge(working_.bridge);
 
-    // Sound Lab (Night Mode / Loudness Match / Sleep Timer) -> config.loudness.
-    soundLab_.onLoudnessChanged = [this](const veyra::LoudnessConfig& l) { working_.loudness = l; pushConfig(); };
-    soundLab_.setLoudness(working_.loudness);
-
     // Gamer Mode dashboard -> the gamer / spatial / voice / loudness blocks.
     gamer_.onGamerChanged    = [this](const veyra::GamerModeConfig& g) { working_.gamerMode = g; pushConfig(); };
     gamer_.onSpatialChanged  = [this](const veyra::SpatialConfig& s)   { working_.spatial = s;   settings_.setSpatialConfig(s); pushConfig(); };
     gamer_.onVoiceChanged    = [this](const veyra::VoiceConfig& v)     { working_.voice = v;     settings_.setMicConfig(v); pushConfig(); };
-    gamer_.onLoudnessChanged = [this](const veyra::LoudnessConfig& l)  { working_.loudness = l;  soundLab_.setLoudness(l); settings_.setLoudnessConfig(l); pushConfig(); };
+    gamer_.onLoudnessChanged = [this](const veyra::LoudnessConfig& l)  { working_.loudness = l;  settings_.setLoudnessConfig(l); pushConfig(); };
     gamer_.onTestInSoundLab  = [this] { sidebar_.setActive(4); showScreen(4); };
     gamer_.setGamer(working_.gamerMode);
     gamer_.setSpatial(working_.spatial);
@@ -334,7 +330,6 @@ void RootComponent::applyConfig(const veyra::Config& c)
     settings_.setMicConfig(c.voice);
     settings_.setSpatialConfig(c.spatial);
     settings_.setLoudnessConfig(c.loudness);
-    soundLab_.setLoudness(c.loudness);
     gamer_.setGamer(c.gamerMode);
     gamer_.setSpatial(c.spatial);
     gamer_.setVoice(c.voice);

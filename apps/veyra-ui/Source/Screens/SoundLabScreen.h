@@ -1,22 +1,21 @@
 #pragma once
 
-// Sound Lab screen: the listening/loudness tools — Night Mode compression,
-// EBU R128 Loudness Match (+ target), and the Sleep Timer with fade-out. Drives
-// config.loudness.
+// Sound Lab (matches Reference theme/sounds.png): a top tab bar of the 7 test
+// tools over a central card. Each tool drives the SoundLabEngine to emit a real
+// test signal (sine / sweep / noise / per-channel / polarity) or read the mic.
 
+#include "Components/SegmentedControl.h"
+#include "SoundLabEngine.h"
 #include "Theme/DesignTokens.h"
 #include "VeyraGui.h"
 
-#include "veyra/Config.h"
-
-#include <functional>
 #include <memory>
 
 namespace veyra::ui {
 
 class GlassBackground;
 
-class SoundLabScreen : public juce::Component {
+class SoundLabScreen : public juce::Component, private juce::Timer {
 public:
     SoundLabScreen();
     ~SoundLabScreen() override;
@@ -24,13 +23,31 @@ public:
     void setPalette(const Palette& p);
     void attachBackdrop(GlassBackground* bg);
     void resized() override;
-
-    void setLoudness(const veyra::LoudnessConfig& l); // reflect state, no callback
-    std::function<void(const veyra::LoudnessConfig&)> onLoudnessChanged;
+    void paint(juce::Graphics& g) override;
+    void visibilityChanged() override;
 
 private:
-    class Card;
-    std::unique_ptr<Card> card_;
+    class LabCard;
+    void selectTool(int i);
+    void startCurrentTool();
+    void playTone(double hz);
+    void playChannel(veyra::dsp::TestChannel ch);
+    void playPhase(bool invert);
+    void timerCallback() override;
+
+    static constexpr int kTools = 7;
+    int          tool_ = 0;
+    bool         engineActiveForHearing_ = false;
+    Palette      palette_ = paletteForTheme("midnight");
+
+    SegmentedControl         tabs_;
+    std::unique_ptr<LabCard> card_;
+
+    juce::TextButton start_, stop_, chL_, chR_, chBoth_, phIn_, phInv_;
+    SegmentedControl noiseType_;
+    juce::Slider     freq_;
+
+    SoundLabEngine engine_;
 };
 
 } // namespace veyra::ui

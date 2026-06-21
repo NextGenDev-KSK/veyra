@@ -6,5 +6,8 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
+// Audio I/O for the Sound Lab test-signal engine (AudioDeviceManager + callback).
+#include <juce_audio_devices/juce_audio_devices.h>
+
 // Embedded assets (fonts) from juce_add_binary_data(veyra_assets ...).
 #include "BinaryData.h"

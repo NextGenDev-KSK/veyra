@@ -27,6 +27,7 @@ target_sources(veyra PRIVATE
     Source/ServiceClient.cpp
     Source/AppRuleWatcher.cpp
     Source/HotkeyManager.cpp
+    Source/SoundLabEngine.cpp
     Source/AudioDevices.cpp
     Source/Theme/DesignTokens.cpp
     Source/Theme/Fonts.cpp
@@ -62,6 +63,7 @@ target_link_libraries(veyra PRIVATE
     veyra_assets
     veyra::common
     veyra::dsp
+    juce::juce_audio_devices   # Sound Lab test-signal engine (WASAPI output/input)
     juce::juce_gui_extra
     juce::juce_recommended_config_flags
     juce::juce_recommended_warning_flags
