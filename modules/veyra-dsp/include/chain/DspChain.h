@@ -11,6 +11,7 @@
 #include "chain/SmoothedValue.h"
 #include "dynamics/Compressor.h"
 #include "dynamics/Limiter.h"
+#include "enhancers/Reverb.h"
 #include "enhancers/StereoProcessor.h"
 #include "enhancers/ToneControls.h"
 #include "eq/GraphicEq.h"
@@ -29,6 +30,7 @@ public:
         tone_.prepare(sampleRate);
         stereo_.prepare(sampleRate);
         comp_.prepare(sampleRate);
+        reverb_.prepare(sampleRate);
         crossfeed_.prepare(sampleRate);
         surround_.prepare(sampleRate);
         nightMode_.prepare(sampleRate);
@@ -50,6 +52,7 @@ public:
         stereo_.setBalance(p.balance);
         stereo_.setWidth(p.stereoWidth);
         comp_.setAmount(p.compressionAmount);
+        reverb_.setAmount(p.reverbAmount);
         crossfeed_.setAmount(p.crossfeedAmount);
         surround_.setAmount(p.virtualizationAmount);
         nightMode_.setAmount(p.nightModeAmount);
@@ -72,6 +75,7 @@ public:
         tone_.processStereo(left, right, numSamples);
         comp_.processStereo(left, right, numSamples);
         stereo_.applyWidth(left, right, numSamples);
+        reverb_.processStereo(left, right, numSamples);     // ambience (wet/dry)
         surround_.processStereo(left, right, numSamples);  // HRTF virtualisation
         crossfeed_.processStereo(left, right, numSamples);  // headphone crossfeed
         nightMode_.processStereo(left, right, numSamples);  // late-night loudness
@@ -97,6 +101,7 @@ private:
     ToneControls     tone_;
     StereoProcessor  stereo_;
     Compressor       comp_;
+    Reverb           reverb_;
     Crossfeed        crossfeed_;
     VirtualSurround  surround_;
     NightMode        nightMode_;
