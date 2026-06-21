@@ -51,13 +51,32 @@ add_subdirectory(JUCE)
 option(VEYRA_USE_RNNOISE "Build + link RNNoise for mic noise suppression" ON)
 set(VEYRA_HAVE_RNNOISE OFF CACHE INTERNAL "RNNoise built")
 if(VEYRA_USE_RNNOISE AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/rnnoise/include/rnnoise.h")
+    # v0.1.1's pitch.c/celt_lpc.c use C99 VLAs, which MSVC C rejects. Patch just
+    # those two at configure time (VLA -> alloca) into the build tree, leaving the
+    # pinned submodule untouched and in sync.
+    set(_rnn_src "${CMAKE_CURRENT_SOURCE_DIR}/rnnoise/src")
+    set(_rnn_gen "${CMAKE_CURRENT_BINARY_DIR}/rnnoise_patched")
+    file(MAKE_DIRECTORY "${_rnn_gen}")
+    set(_rnn_shim "#include <malloc.h>\n#if defined(_MSC_VER) && !defined(alloca)\n#define alloca _alloca\n#endif\n")
+
+    file(READ "${_rnn_src}/pitch.c" _pc)
+    string(REPLACE "opus_val16 x_lp4[len>>2];"      "opus_val16 *x_lp4 = (opus_val16*)alloca(sizeof(opus_val16)*(len>>2));"   _pc "${_pc}")
+    string(REPLACE "opus_val16 y_lp4[lag>>2];"      "opus_val16 *y_lp4 = (opus_val16*)alloca(sizeof(opus_val16)*(lag>>2));"   _pc "${_pc}")
+    string(REPLACE "opus_val32 xcorr[max_pitch>>1];" "opus_val32 *xcorr = (opus_val32*)alloca(sizeof(opus_val32)*(max_pitch>>1));" _pc "${_pc}")
+    string(REPLACE "opus_val32 yy_lookup[maxperiod+1];" "opus_val32 *yy_lookup = (opus_val32*)alloca(sizeof(opus_val32)*(maxperiod+1));" _pc "${_pc}")
+    file(WRITE "${_rnn_gen}/pitch.c" "${_rnn_shim}${_pc}")
+
+    file(READ "${_rnn_src}/celt_lpc.c" _lc)
+    string(REPLACE "opus_val16 xx[n];" "opus_val16 *xx = (opus_val16*)alloca(sizeof(opus_val16)*(n));" _lc "${_lc}")
+    file(WRITE "${_rnn_gen}/celt_lpc.c" "${_rnn_shim}${_lc}")
+
     add_library(veyra_rnnoise STATIC
         rnnoise/src/denoise.c
         rnnoise/src/rnn.c
         rnnoise/src/rnn_data.c
-        rnnoise/src/pitch.c
         rnnoise/src/kiss_fft.c
-        rnnoise/src/celt_lpc.c)
+        "${_rnn_gen}/pitch.c"
+        "${_rnn_gen}/celt_lpc.c")
     add_library(veyra::rnnoise ALIAS veyra_rnnoise)
     target_include_directories(veyra_rnnoise PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}/rnnoise/include"
