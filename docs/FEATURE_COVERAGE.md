@@ -31,7 +31,7 @@ gaps are called out so the remaining work is unambiguous.
 ✅ `veyra-apo.dll`, `veyra-service.exe`, `veyra.exe`, `veyra-overlay.exe` all build; shared-memory params + ring buffers + two named pipes. Anti-cheat strategy = layered-window only ✅; D3D-hook opt-in mode ⬜ (intentionally not built).
 
 ## §4 DSP chains
-**Output chain:** loudness norm ✅ · mono/balance ✅ · 10-band graphic EQ ✅ · **parametric EQ ⬜** · bass/treble shelves ✅ · compressor ✅ · stereo widener ✅ · **reverb 🟡** (knob + config; not in the live render chain) · **echo/delay 🟡** (`DelayLine`/`OutputRouter` exist; not in render chain) · virtual surround/HRTF ✅ · volume gain ✅ · true-peak limiter ✅.
+**Output chain:** loudness norm ✅ · mono/balance ✅ · 10-band graphic EQ ✅ · **parametric EQ ⬜** · bass/treble shelves ✅ · compressor ✅ · stereo widener ✅ · **reverb ✅** (Freeverb in the live chain; Home knob wired; unit-tested) · **echo/delay 🟡** (`DelayLine`/`OutputRouter` exist; not in render chain) · virtual surround/HRTF ✅ · volume gain ✅ · true-peak limiter ✅.
 **Mic chain:** HPF ✅ · NS 🟡 (custom, not RNNoise) · **noise gate 🟡** (NS doubles as a gate) · **AEC ⬜** · voice EQ/presence 🟡 · de-esser ✅ · **AGC ⬜** (leveling comp ≠ −16 LUFS AGC) · side-tone 🟡 (level field; routing ⬜).
 Parameter smoothing (5 ms) ✅.
 
@@ -88,8 +88,9 @@ These are tracked and being worked in priority order — see the implementation 
 ## Implementation order (UI-first, each CI-green)
 1. ✅ **Gamer Mode → 2×2 dashboard** (Sound Tracker · Spatial Audio · Voice & Microphone · Night Mode) — folds in spatial + mic + night.
 2. ✅ **Sound Lab → 7-tool tab bar** + UI tone engine (real test signals).
-3. **Home top bar** device selector + output meter; **Reverb/Delay** into the live render chain.
-4. **Parametric EQ** (≤16 nodes) on the existing EQ card.
-5. **Visualizer modes** (Monstercat/Circular/Waveform first, then the GPU-heavy ones).
-6. **Settings sub-nav** + Audio Engine panel; **Presets** category tree; **Apps** table.
-7. Back-end depth: live Sound Tracker producer, game detection, AGC/gate, crash banner, updater fetch.
+3. ✅ **Settings sub-nav** + Audio Engine panel · ✅ **Apps** table (+ extended rule model) · ✅ **Presets** category column + search + grid/list.
+4. ✅ **Reverb** into the live render chain (knob now real). **Delay** into the chain — next.
+5. **Home top bar** device selector + output meter.
+6. **Parametric EQ** (≤16 nodes) on the existing EQ card.
+7. **Visualizer modes** (Monstercat/Circular/Waveform first, then the GPU-heavy ones).
+8. Back-end depth: live Sound Tracker producer, game detection, AGC/gate, crash banner, updater fetch.
