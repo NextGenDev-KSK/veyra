@@ -951,13 +951,13 @@ void SettingsScreen::paint(juce::Graphics& g)
         {"Appearance", "Audio Engine", "Microphone", "Spatial", "Loudness", "About"};
     for (int i = 0; i < kSections; ++i)
     {
-        const auto r = navItemBounds(i).toFloat();
         if (i == section_)
         {
+            auto rr = navItemBounds(i).toFloat();
             g.setColour(palette_.bgGlassActive);
-            g.fillRoundedRectangle(r, 8.0f);
+            g.fillRoundedRectangle(rr, 8.0f);
             g.setColour(palette_.accentPrimary);
-            g.fillRoundedRectangle(r.removeFromLeft(3.0f), 1.5f); // accent rail
+            g.fillRoundedRectangle(rr.removeFromLeft(3.0f), 1.5f); // accent rail
             g.setColour(palette_.textPrimary);
         }
         else
