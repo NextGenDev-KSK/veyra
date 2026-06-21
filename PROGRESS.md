@@ -1,193 +1,78 @@
 # Veyra Sounds — Build Progress Log
 
-A running record of what was done in each phase. Tick marks (`[x]`) advance as
-phases complete and pass CI. Phase acceptance criteria come from the engineering
-spec §17.
+A running, honest record of what's built. For the precise, feature-by-feature
+audit against the engineering spec see [`docs/FEATURE_COVERAGE.md`](docs/FEATURE_COVERAGE.md).
 
 **Repo:** https://github.com/NextGenDev-KSK/veyra
 **Current version:** 0.3.0
-**Last green CI:** [run 27881727927](https://github.com/NextGenDev-KSK/veyra/actions/runs/27881727927) (Phase 15: performance + soak; the full 0–15 roadmap compiles, links, and `dsp_tests` + `common_tests` pass)
 
-> Verification note: this machine has no local C++ toolchain, so every phase is
-> proven by the GitHub Actions `windows-latest` build (compile + link + the
-> "four binaries exist" check). CI green = compiles & links. Runtime behaviour
-> (audio, service install, pipe handshake) still needs a real Windows run.
-
----
-
-## ✅ Phase 0 — Scaffolding  `[x] COMPLETE` (CI green)
-
-Established the full repository and a buildable no-op skeleton.
-
-- [x] Repo tree per spec §3 (apps/, modules/, third_party/, resources/, ipc/, installer/, tests/) with `.gitkeep` placeholders
-- [x] Top-level `CMakeLists.txt` — C++20, `VEYRA_VERSION`, `RC` language, unified `bin/` output, `VEYRA_FETCH_DEPS` option (OFF)
-- [x] `CMakePresets.json` — `windows-release` / `windows-debug` (Ninja + MSVC)
-- [x] Four no-op stub targets build: `veyra.exe`, `veyra-service.exe`, `veyra-apo.dll`, `veyra-overlay.exe`
-- [x] `veyra::common` (static) + `veyra::dsp` (interface) module stubs; generated `version.h`
-- [x] App manifests (UI asInvoker + PerMonitorV2 DPI) embedded via `.rc`; MSVC duplicate-manifest pitfall handled
-- [x] `.gitmodules` + guarded `third_party/CMakeLists.txt` (JUCE/rnnoise/spdlog/flatbuffers/kissfft declared, not fetched)
-- [x] GitHub Actions `build.yml` — configure → build → verify 4 binaries → upload artifacts
-- [x] Docs: `README`, `ARCHITECTURE` (full diagram), `BUILD_GUIDE`, `CONTRIBUTING`; `LICENSE` (verbatim GPLv3); `.gitignore` / `.gitattributes`
-
-**Acceptance met:** `cmake --build` produces all four binaries; CI passes.
+> Verification model: this machine has no local C++ toolchain, so every change is
+> proven by the GitHub Actions `windows-latest` build (compile + link +
+> `dsp_tests` + `common_tests`). **CI green = compiles, links, unit tests pass.**
+> Items marked ⏵ are runtime-only — they need a real Windows audio session
+> (test-signing, devices, live audio) and can't be CI-verified. Items marked ⬜
+> need external assets/data that can't be produced in-repo.
 
 ---
 
-## ✅ Phase 1 — Service + UI + IPC backbone  `[x] COMPLETE` (CI green)
+## Phases 0–15 (spec §17) — all `[x]` and CI-green
 
-The orchestrator service, a minimal UI shell, and the named-pipe IPC between them.
-
-- [x] **IPC protocol** (`veyra-common/ipc/Protocol.h`) — small versioned framed binary protocol (Ping/Pong, GetVersion, GetConfig/SetConfig, Error)
-- [x] **PipeServer** — single-listener `\\.\pipe\veyra-control`, clean `CancelSynchronousIo` shutdown; **PipeClient** — sync request/reply; **PipeIo** — framed message read/write
-- [x] **Config** — `nlohmann/json` (vendored, MIT) load/save with atomic `MoveFileEx` replace; **Paths** (`%APPDATA%\Veyra`); **Logging** (thread-safe file logger)
-- [x] **Service** runs under the SCM (`ServiceMain`) or `--console`; `--install` / `--uninstall` register an auto-start LocalSystem service
-- [x] **ServiceRuntime** wires `ConfigManager` + `ControlServer`; config loads or writes-and-verifies a default (round-trip check)
-- [x] **UI** — minimal native Win32 shell showing live status ("Service connected · v0.1.0" / animated reconnect)
-- [x] **ServiceClient** — background thread, version handshake, keepalive pings, exponential-backoff auto-reconnect (cap 30s)
-- [x] Build fix: `UNICODE`/`_UNICODE`/`NOMINMAX` defined project-wide
-
-**Acceptance (build-verified):** all targets compile & link on CI.
-**Still to runtime-verify:** UI displays "Service connected · v…"; killing the service shows the reconnect spinner.
-
----
-
-## ⬜ Remaining phases (planned)
-
-## ✅ Phase 2 — APO with passthrough + DSP  `[x] COMPLETE` (CI compiles/links; runtime = your PC)
-
-A real output APO built against the base Windows SDK (no WDK), running the
-veyra::dsp chain and reading parameters from the service via shared memory.
-
-- [x] `VeyraApoEfx` implements IAudioProcessingObject / RT / Configuration + IAudioSystemEffects directly (no WDK base class)
-- [x] APOProcess: deinterleave → DspChain → reinterleave; allocation/lock-free RT path (scratch sized in LockForProcess)
-- [x] Shared-memory parameter block (`Local\VeyraAPOParameters_v1`, cache-aligned, **sequence-locked**) + unit test
-- [x] DLL class factory + COM exports (.def) + CLSID self-registration
-- [x] Service `ApoPublisher` writes config-derived params; `ConfigManager` onChanged republishes live
-- [x] INF template + `register-apo.ps1` + BUILD_GUIDE dev-registration steps
-- [ ] Register as EFX on an endpoint + confirm passthrough audio — **runtime-only** (needs your PC: test-signing + admin + endpoint association)
-
-**Acceptance (build-verified):** APO compiles & links; `veyra-apo.dll` produced; seqlock test passes.
-**Still to runtime-verify:** audio actually plays through Veyra with normal `audiodg.exe` CPU.
-
-## ✅ Phase 3 — Core DSP chain  `[x] COMPLETE` (CI green, DSP tests pass)
-
-Header-only, allocation-free, RT-safe DSP in `veyra-dsp`, with a Catch2 suite.
-
-- [x] 10-band graphic EQ (biquad cascade); bass/treble shelves; volume gain; mono/balance
-- [x] Compressor (soft-knee, stereo-linked) + lookahead limiter (guaranteed ceiling)
-- [x] Smooth parameter changes (one-pole, zipper-free); spectrum analyzer + VU + clipping → lock-free ring buffer
-- [x] DSP tests (Catch2): smoothing, biquad response, EQ boost/cut, shelves, stereo, compressor ratio, limiter ceiling, FFT bin, ring-buffer FIFO, analyzer metering, end-to-end chain
-- [x] spdlog integration (header-only, behind the Logger facade; rotating file sink)
-- [x] Wire DSP into the APO real-time path (done in Phase 2)
-
-**Acceptance (build + unit-test verified):** all DSP blocks behave correctly under Catch2.
-**Still to runtime-verify:** sliders move bands and audio reflects it (needs the APO + a real run).
-
-### Phase 4 — UI proper (JUCE) — sub-phased
-
-**✅ 4a — Foundation `[x] COMPLETE` (CI builds the JUCE app)**
-- [x] JUCE 8.0.13 integrated; veyra-ui is a juce_add_gui_app; Orbitron/Inter/JetBrains Mono (OFL) embedded
-- [x] Design-token palettes (Midnight + 10 variants) + ThemeManager with live switching
-- [x] VeyraLookAndFeel; GlassBackground (ambient blobs + grain) + GlassCard recipe
-- [x] Components: ToggleSwitch, Knob, SegmentedControl (+ themed buttons/sliders/combo)
-- [x] Foundations gallery view; runnable veyra.exe artifact for visual verification
-- [ ] **Runtime-verify by running the artifact** (download from CI, eyeball look + theme switch)
-
-**🟡 4b — Home screen (CI builds; awaiting visual check on the artifact)**
-- [x] Real frosted glass (blurred backdrop slice + tint) — fixes the flat 4a look
-- [x] Borderless window + custom glass TopBar (logo/wordmark/master/preset/icons/window controls + drag)
-- [x] Sidebar: 7 nav items + icons + active accent rail + mini + version
-- [x] Visualizer card (animated spectrum + L/R VU + mode dropdown + fullscreen + FPS)
-- [x] 10-band EQ card (band sliders + center detent + response curve + Graphic/Parametric + toggles + reset)
-- [x] 6 effect knobs + More Effects; mockup-matched layout
-- [ ] **Runtime-verify by running the artifact** (look + interactions)
-- [x] ServiceClient re-integrated (callback-based, fetches config, coalescing SetConfig push)
-- [x] EQ/master/effect knobs drive DSP params end-to-end (UI → SetConfig → ConfigManager → ApoPublisher → shared memory)
-- [x] Config extended with `enhancement` block (EQ bands, bass/treble, volume gain, width, compression, reverb); TopBar connection LED
-
-**🟡 4c — Routing + Settings→Appearance + Mini-mode + Tray (CI builds; awaiting visual check)**
-- [x] App shell: chrome (background/top bar/sidebar) promoted out of HomeScreen; single working Config
-- [x] Sidebar routing between content screens (Home, Settings, on-brand placeholders for the rest)
-- [x] Settings→Appearance: 11-theme preview grid (live switch + persisted via config.theme), reduce-motion (freezes visualizer)
-- [x] Opacity + background-mode controls present (deep wiring deferred to a persisted-appearance config pass)
-- [x] Mini-mode bar (master toggle/volume + expand/close, always-on-top, shares config/client)
-- [x] System tray icon + popup menu (open / mini / toggle master / quit); themed standard menu (glass popup later)
-- [ ] **Runtime-verify by running the artifact** (routing, theme switch, mini, tray)
-
-### 🟡 Phase 5 — Presets + Per-App + Per-Device (CI builds + unit tests pass; awaiting runtime check)
-- [x] `.vpreset` model (enhancement + master + metadata), JSON round-trip, atomic save/load, applyTo(Config)
-- [x] 8 built-in presets with stable UUIDs; `presetsToJsonArray`/`presetsFromJsonArray` for the wire
-- [x] Service PresetLibrary (built-ins + user dir CRUD, thread-safe); IPC list/load/save/delete
-- [x] Per-app rule engine (case-insensitive substring + priority resolution) + RateLimiter; IPC get/set + persisted to app_rules.json
-- [x] Per-device profile memory (DeviceProfiles, JSON persistence)
-- [x] Presets UI screen (grid, apply, save-current, import/export, delete) wired through ServiceClient
-- [x] `common_tests`: preset round-trip/built-ins, rule resolution/priority/disabled, rate limiter, device-profile persistence
-- [ ] Live application of per-app rules on focus change (needs foreground tracking — Phase 8)
-- [ ] Per-device recall activation (needs device-change detection — later phase)
-- [ ] **Runtime-verify by running the artifact** (apply preset, save/import/export)
-
-### 🟡 Phase 6 — Voice / Mic chain (CI builds + unit tests pass; awaiting runtime check)
-- [x] Voice DSP chain (HPF → noise suppression → leveling comp → de-esser → presence EQ → output gain), header-only/RT-safe
-- [x] NoiseSuppressor (amount-driven downward-expanding gate); phase-correct dynamic high-shelf de-esser; Biquad HPF/BPF + mono compressor
-- [x] `VoiceConfig` in Config (JSON round-trip), `VeyraMicSharedParameters` seqlock block, service `MicPublisher`
-- [x] Capture APO (`VeyraMicApo`) running the voice chain from the mic shared block; dual-CLSID DLL factory + registration
-- [x] Tests: noise-suppressor gate/pass, voice-chain passthrough/HPF/level/de-esser, voice-config round-trip
-- [x] Mic settings UI (Microphone card in Settings: enable + noise suppression/compression/de-ess/presence/gain/side-tone), wired through ServiceClient → config.voice
-- [ ] RNNoise as a learned-model backend behind a build flag (NoiseSuppressor is the default seam)
-- [ ] Side-tone monitor routing; mic profiles
-- [ ] **Runtime-verify by running the artifact** (mic capture path needs the driver INF + test-signing)
-
-### 🟡 Phase 7 — Spatial / HRTF (CI builds + unit tests pass; awaiting runtime check)
-- [x] PartitionedConvolver (UPOLS overlap-save FFT convolution, own complex FFT), header-only/RT-safe
-- [x] Crossfeed (Bauer-style ITD + head-shadow LPF); wired into the render DspChain + shared params + APO
-- [x] HRTF: synthetic HRIR generator (ITD/ILD/shadow) + BinauralPanner; MIT KEMAR drops into the same IR path
-- [x] SpatialConfig in Config (JSON round-trip); ApoPublisher maps crossfeed to the payload
-- [x] Settings → Spatial card (enable + Off/Cinematic/Competitive modes + crossfeed); presets set crossfeed depth
-- [x] Tests: convolver identity/impulse, crossfeed bypass/bleed, binaural L/R bias, spatial-config round-trip
-- [ ] Real MIT KEMAR dataset load (needs the IR files vendored); full multichannel virtual surround (needs a virtual endpoint)
-- [ ] **Runtime-verify by running the artifact** (crossfeed audible on the headphone path)
-
-### ✅ Phase 8 — Gamer Mode + Sound Tracker  `[x] COMPLETE` (CI green)
-- [x] SoundTracker: WASAPI-loopback feature extraction + DSP SoundClassifier + DirectionEstimator (header-only/RT-safe), TrackerData shared block
-- [x] `veyra-overlay.exe` GDI+ layered window: 3 radar styles (competitive / rich / compass), transparent click-through
-- [x] GamerModeConfig in Config (enable, overlay style, footstep boost); tests for classifier/direction/feature extraction
-- [x] **Gamer Mode UI screen** (enable, overlay style picker, launch overlay, footstep preset) — promoted from placeholder
-- [ ] Live blips need the service's loopback tracker producer thread running — **runtime-only**
-
-### ✅ Phase 9 — Sound Lab + Night Mode + Sleep Timer  `[x] COMPLETE` (CI green)
-- [x] SignalGenerator (sine/sweep/noise/channel-id), NightMode compression, SleepFade + SleepTimer (exponential fade) — header-only, unit-tested
-- [x] LoudnessConfig in Config (night-mode amount, sleep timer + fade); service wiring
-- [x] **Sound Lab UI screen** (test-tone tools + Night Mode + Sleep Timer) — promoted from placeholder
-
-### ✅ Phase 10 — Sound Sharing (multi-output)  `[x] COMPLETE` (CI green)
-- [x] OutputRouter + DelayLine latency compensation; SharingConfig (routes, per-output gain/delay/primary); tests
-- [x] AudioBridge (WASAPI loopback → DspChain → WASAPI render) — the no-driver path to any output incl. Bluetooth; Devices screen pickers
-
-### ✅ Phase 11 — Onboarding + Settings + Hotkeys  `[x] COMPLETE` (CI green)
-- [x] Global-hotkey model (parse/format + defaults, unit-tested) + HotkeyManager (RegisterHotKey thread → master/volume/preset/mini)
-- [x] First-run 4-step onboarding overlay (config.onboardingComplete persists dismissal)
-- [x] Settings sub-screens (Appearance, Microphone, Spatial, Loudness, About)
-
-### ✅ Phase 12 — Loudness Normalization + Loudness Lab  `[x] COMPLETE` (CI green)
-- [x] BS.1770 K-weighted LoudnessMeter (momentary/short-term/integrated LUFS), 4× TruePeakMeter, LoudnessNormalizer (auto make-up); tests
-- [x] LoudnessConfig loudness-match + target LUFS; wired into the render chain
-
-### ✅ Phase 13 — Updater + Crash Reporter + Localization  `[x] COMPLETE` (CI green)
-- [x] UpdateChecker (semver parse/compare, manifest + GitHub-releases feeds), unit-tested
-- [x] CrashReport model + service CrashHandler (SetUnhandledExceptionFilter → JSON report + minidump); previous-crash log on start
-- [x] Localization (base catalog + JSON overlay, `tr()`), es.json sample
-- [ ] Updater HTTPS fetch/apply, crash UI banner, full 6-language catalogs — **runtime follow-ups**
-
-### ✅ Phase 14 — MSIX + Portable + Signing  `[x] COMPLETE` (CI green)
-- [x] Portable ZIP built + uploaded as a CI artifact every push (`make-portable.ps1`)
-- [x] MSIX manifest (full-trust desktop) + `make-msix.ps1` (MakeAppx + optional signtool)
-- [x] `installer/SIGNING.md`: portable / MSIX (dev self-sign + production) / APO driver signing
-
-### ✅ Phase 15 — Polish + Performance Pass  `[x] COMPLETE` (CI green)
-- [x] Benchmark: full render chain + voice chain real-time factor (asserts ≫ real-time)
-- [x] Soak: 30 s full-scale noise stays finite (no NaN/inf) and the true-peak limiter holds the ceiling (no clipping)
-- [ ] 8-hour soak + competitor benchmarks — **runtime-only**
+| Phase | What | Status |
+| --- | --- | --- |
+| 0 Scaffolding | 4 binaries, CMake/presets, CI, docs | ✅ |
+| 1 Service + UI + IPC | SCM service, named-pipe control, config round-trip, reconnect | ✅ |
+| 2 APO passthrough + DSP | render `VeyraApoEfx`, seqlock shared params, COM reg | ✅ (endpoint assoc ⏵) |
+| 3 Core DSP chain | 10-band EQ, tone, comp, limiter, smoothing, analyzer | ✅ (unit-tested) |
+| 4 UI (JUCE) | glass theme (11), TopBar/Sidebar, EQ, knobs, mini, tray | ✅ |
+| 5 Presets / Per-app / Per-device | `.vpreset`, library, rule engine, device profiles | ✅ |
+| 6 Voice / Mic chain | HPF→NS→comp→de-ess→presence→gain, capture APO | ✅ (RNNoise model ⬜) |
+| 7 Spatial / HRTF | partitioned convolver, crossfeed, virtual surround | ✅ (real KEMAR data ⬜) |
+| 8 Gamer Mode + Sound Tracker | loopback producer, classifier, direction, overlay | ✅ (live blips ⏵) |
+| 9 Sound Lab + Night + Sleep | 7 tools + tone engine, night mode, sleep fade | ✅ |
+| 10 Sound Sharing | OutputRouter + delay comp; AudioBridge no-driver path | ✅ |
+| 11 Onboarding + Settings + Hotkeys | 4-step wizard, sub-nav, global RegisterHotKey | ✅ |
+| 12 Loudness | BS.1770 meter, true-peak, loudness-match | ✅ |
+| 13 Updater + Crash + i18n | crash capture+banner, updater check; framework i18n | ✅ (6 langs ⬜, fetch✅/apply ⏵) |
+| 14 MSIX + Portable + Signing | portable ZIP (CI artifact), MSIX, signing docs | ✅ (production signing ⏵) |
+| 15 Performance pass | RT-factor benchmark + soak (no NaN, ceiling held) | ✅ (8 h soak / competitor bench ⏵) |
 
 ---
 
-_Log started 2026-06-14. Update the tick marks and the "Last green CI" line as each phase lands._
+## Beyond the roadmap (delivered to match the reference UI + commercial spec)
+
+All CI-green:
+
+- **Window**: fixed 1200×675 canvas (centered, no resize/maximise); padding-trimmed taskbar icon.
+- **Home**: realigned master cluster (toggle + MASTER label + slider + %), live active-preset chip, per-feature info "ⓘ" tooltips (what / does / shortcut).
+- **Equalizer**: **Parametric EQ end-to-end** — 16-band engine (bell/shelf/notch/HP/LP) + draggable node editor (drag freq/gain, wheel = Q, right-click = type, double-click = reset) + summed response curve; Graphic↔Parametric toggle real on both APO + bridge paths.
+- **Effects DSP in the live chain**: Reverb (Freeverb), loudness, true-peak limiter, width, HRTF — all process audio (delay intentionally omitted).
+- **Visualizers**: all 8 modes (Bars/Monstercat/Circular/Waveform/Particle/Wavy/Ferrofluid/3D) — 2D-canvas (OpenGL/shader rewrite ⬜).
+- **Presets**: 27 built-ins across Gaming/Music/Movies/Streaming/Voice/Night; category column, search (oval), sort (A–Z/Category), grid/list, **Favorites** (★, persisted), **Recently Used** (persisted), duplicate, import/export; white BUILT-IN badge.
+- **Apps**: themed table (App·Detection·Preset·Volume·Auto-mute·Status), Per-App Switching toggle, offline **app index with EXE-icon picker**.
+- **Sound Lab**: 7-tool tab bar + real `SoundLabEngine` (tone/sweep/noise/per-channel/polarity + live mic meter).
+- **Gamer Mode**: 2×2 dashboard (Sound Tracker / Spatial / Voice & Mic / Night) + **game auto-detection** (process-name, anti-cheat-safe).
+- **Mic**: AGC (−16 LUFS), noise gate, **AEC** (NLMS engine, tested), de-esser, presence, side-tone.
+- **Scene-aware detector** (§16 v1): rule-based content classifier (stub interface, no ML), tested.
+- **Settings**: sub-nav (Appearance / Audio Engine / Microphone / Spatial / Loudness / Updates / About), real Audio Engine panel.
+- **Service**: updater HTTPS check (WinHTTP, daily); crash-recovery banner in the UI.
+
+---
+
+## Genuinely remaining
+
+**Needs external assets / data — cannot be produced in-repo (would be faking it):**
+- ⬜ **Real RNNoise model** — the mic uses a real custom spectral/expander noise suppressor; dropping in the trained RNNoise model needs its weights + lib vendored behind the existing seam.
+- ⬜ **MIT KEMAR HRTF dataset** — spatial uses a real synthetic HRIR generator; the measured KEMAR WAV set must be vendored to swap in.
+- ⬜ **Human translations** (ZH-CN, ES, AR, HI, TA) — the localization framework + English exist; accurate catalogs need translators (not machine-faked). RTL pass pending.
+
+**Runtime-only — real code exists, but can't be CI-verified (needs a PC):**
+- ⏵ APO endpoint registration + hearing audio through `audiodg` (test-signing/admin).
+- ⏵ AEC live wiring (far-end render→capture reference feed) — the NLMS engine is done + tested.
+- ⏵ Live Sound-Tracker blips; production code-signing; updater download/apply; 8-hour soak + competitor benchmarks.
+
+**Deferred by the "quality > feature count" rule:**
+- OpenGL/shader-grade visualizer rewrite (8 modes already ship as 2D); echo/delay in the chain (no reference UI, low value); overlay hold-to-interact + per-game memory; pitch/time.
+
+---
+
+_Log started 2026-06-14. `FEATURE_COVERAGE.md` is the detailed §1–§16 audit._

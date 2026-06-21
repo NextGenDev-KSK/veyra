@@ -27,19 +27,19 @@ TEST_CASE("AEC: converges to cancel a delayed echo of the reference")
     const int delay = 12;
     const float echoGain = 0.6f;
 
-    // Far-end reference = deterministic noise; near = echo only (no near speech).
+    // Far-end reference = deterministic noise; micSig = echo only (no micSig speech).
     std::vector<float> error(n, 0.0f);
     uint32_t s = 0x12345u;
-    std::vector<float> far((size_t) n, 0.0f);
+    std::vector<float> refSig((size_t) n, 0.0f);
     for (int i = 0; i < n; ++i)
     {
         s ^= s << 13; s ^= s >> 17; s ^= s << 5;
-        far[(size_t) i] = (float) (int32_t) s / 2147483648.0f * 0.5f;
+        refSig[(size_t) i] = (float) (int32_t) s / 2147483648.0f * 0.5f;
     }
     for (int i = 0; i < n; ++i)
     {
-        const float echo = (i >= delay) ? echoGain * far[(size_t) (i - delay)] : 0.0f;
-        error[(size_t) i] = aec.processSample(echo, far[(size_t) i]);
+        const float echo = (i >= delay) ? echoGain * refSig[(size_t) (i - delay)] : 0.0f;
+        error[(size_t) i] = aec.processSample(echo, refSig[(size_t) i]);
     }
 
     const float before = rms(error, 0, 500);
@@ -47,7 +47,7 @@ TEST_CASE("AEC: converges to cancel a delayed echo of the reference")
     CHECK(after < before * 0.2f); // residual echo strongly reduced after adapting
 }
 
-TEST_CASE("AEC: preserves near-end speech while removing echo")
+TEST_CASE("AEC: preserves micSig-end speech while removing echo")
 {
     AcousticEchoCanceller aec;
     aec.prepare(64);
@@ -58,17 +58,17 @@ TEST_CASE("AEC: preserves near-end speech while removing echo")
     uint32_t s = 0xBEEFu;
     auto speech = [](int i) { return 0.3f * (float) std::sin(2.0 * M_PI * 200.0 * i / 48000.0); };
 
-    std::vector<float> far((size_t) n);
-    for (int i = 0; i < n; ++i) { s ^= s << 13; s ^= s >> 17; s ^= s << 5; far[(size_t) i] = (float) (int32_t) s / 2147483648.0f * 0.4f; }
+    std::vector<float> refSig((size_t) n);
+    for (int i = 0; i < n; ++i) { s ^= s << 13; s ^= s >> 17; s ^= s << 5; refSig[(size_t) i] = (float) (int32_t) s / 2147483648.0f * 0.4f; }
 
     double residErr = 0.0; int cnt = 0;
     for (int i = 0; i < n; ++i)
     {
-        const float echo = (i >= delay) ? 0.5f * far[(size_t) (i - delay)] : 0.0f;
-        const float near = speech(i) + echo;
-        const float out = aec.processSample(near, far[(size_t) i]);
+        const float echo = (i >= delay) ? 0.5f * refSig[(size_t) (i - delay)] : 0.0f;
+        const float micSig = speech(i) + echo;
+        const float out = aec.processSample(micSig, refSig[(size_t) i]);
         if (i > n - 4000) { const float d = out - speech(i); residErr += (double) d * d; ++cnt; }
     }
-    // After convergence the output should track the near-end speech (echo gone).
+    // After convergence the output should track the micSig-end speech (echo gone).
     CHECK(std::sqrt(residErr / cnt) < 0.06f);
 }

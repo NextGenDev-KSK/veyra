@@ -5,6 +5,8 @@
 // subtracts it. Header-only, allocation-free after prepare(), RT-safe (circular
 // reference buffer, no per-sample shifting). Wiring the far-end reference into
 // the live capture path is a service/APO step; this is the tested algorithm.
+//
+// NB: avoid the identifiers `near`/`far` — they are legacy MSVC macros.
 
 #include <algorithm>
 #include <cmath>
@@ -31,11 +33,11 @@ public:
 
     void setStepSize(float mu) noexcept { mu_ = std::clamp(mu, 0.0f, 1.0f); }
 
-    // near = mic sample (near-end speech + echo of far); far = reference sample.
-    // Returns the error signal = near with the estimated echo removed.
-    float processSample(float near, float far) noexcept
+    // micSample = near-end speech + echo of the reference; refSample = far-end
+    // reference. Returns the error signal = mic with the estimated echo removed.
+    float processSample(float micSample, float refSample) noexcept
     {
-        x_[(size_t) pos_] = far;
+        x_[(size_t) pos_] = refSample;
 
         float y = 0.0f;          // estimated echo
         float energy = 1.0e-6f;  // reference energy (NLMS normaliser)
@@ -48,7 +50,7 @@ public:
             idx = (idx == 0) ? taps_ - 1 : idx - 1;
         }
 
-        const float e = near - y;
+        const float e = micSample - y;
         const float g = mu_ * e / energy;
         idx = pos_;
         for (int i = 0; i < taps_; ++i)
@@ -61,10 +63,10 @@ public:
         return e;
     }
 
-    void processBlock(float* mic, const float* far, int numSamples) noexcept
+    void processBlock(float* mic, const float* refSignal, int numSamples) noexcept
     {
         for (int i = 0; i < numSamples; ++i)
-            mic[i] = processSample(mic[i], far[i]);
+            mic[i] = processSample(mic[i], refSignal[i]);
     }
 
 private:
