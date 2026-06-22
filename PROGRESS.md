@@ -106,7 +106,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 
 ### Phase 18 — Sound Lab Pro + Personalization  `[ ]`
 - [ ] **Pro measurement tools** in Sound Lab — frequency-response analysis, channel matching
-- [~] **Hearing-test-based EQ personalization** — correction algorithm done (`personalizeFromHearingTest`, audiology half-gain rule: ~½ measured loss as boost, capped, negligible-loss bands dropped → parametric bands; normal hearing = flat). Tested. CI-green. The interactive multi-tone *capture* wizard in Sound Lab (record per-frequency thresholds → feed this) is the remaining UI piece.
+- [x] **Hearing-test-based EQ personalization** — correction algorithm (`personalizeFromHearingTest`, audiology half-gain rule, tested) **+ the interactive capture wizard** in Sound Lab: a "Personalize EQ" flow steps 250 Hz→8 kHz, the listener lowers each tone to threshold, and a calibration-free self-relative profile (each band vs the most-sensitive one) feeds the algorithm; the resulting parametric bands are applied as the EQ (reflected on Home). CI-green.
 
 ### Phase 19 — UI / Product Polish + Docs + First-run  `[ ]`
 - [ ] **Home** pixel-perfect alignment vs reference

@@ -4,6 +4,9 @@
 #include "Graphics/GlassBackground.h"
 #include "Theme/Fonts.h"
 
+#include <algorithm>
+#include <cmath>
+
 namespace veyra::ui {
 
 using veyra::dsp::LabSignalParams;
@@ -21,6 +24,7 @@ const ToolInfo kTool[] = {
     {"POLARITY / PHASE",  "Compare in-phase against an inverted right channel."},
     {"NOISE GENERATOR",   "Continuous white or pink noise."},
 };
+constexpr float kHpFreqs[] = {250.0f, 500.0f, 1000.0f, 2000.0f, 4000.0f, 8000.0f};
 } // namespace
 
 // Central glass card: title + description, optional mic meter / big readout.
@@ -113,10 +117,23 @@ SoundLabScreen::SoundLabScreen()
         if (engineActiveForHearing_) playTone(freq_.getValue());
     };
 
-    for (auto* b : {&start_, &stop_, &chL_, &chR_, &chBoth_, &phIn_, &phInv_})
+    hpStart_.setButtonText("Personalize EQ");
+    hpStart_.onClick = [this] { hpStartWizard(); };
+    hpNext_.setButtonText("Next");
+    hpNext_.onClick = [this] { hpRecordAndAdvance(); };
+
+    hpLevel_.setSliderStyle(juce::Slider::LinearHorizontal);
+    hpLevel_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    hpLevel_.setRange(0.0, 0.15, 0.001);
+    hpLevel_.setValue(0.06, juce::dontSendNotification);
+    hpLevel_.onValueChange = [this]
+    { if (hpActive()) playToneAt(kHpFreqs[(size_t) wizStep_], (float) hpLevel_.getValue()); };
+
+    for (auto* b : {&start_, &stop_, &chL_, &chR_, &chBoth_, &phIn_, &phInv_, &hpStart_, &hpNext_})
         addAndMakeVisible(b);
     addAndMakeVisible(noiseType_);
     addAndMakeVisible(freq_);
+    addAndMakeVisible(hpLevel_);
 
     selectTool(0);
 }
@@ -156,11 +173,85 @@ void SoundLabScreen::playPhase(bool invert)
 
 void SoundLabScreen::playTone(double hz)
 {
+    playToneAt(hz, 0.35f);
+}
+
+void SoundLabScreen::playToneAt(double hz, float level)
+{
     LabSignalParams p;
     p.type = TestSignal::SineTone;
     p.frequency = (float) hz;
-    p.level = 0.35f;
+    p.level = level;
     engine_.play(p);
+}
+
+void SoundLabScreen::hpStartWizard()
+{
+    wizStep_ = 0;
+    wizThresh_.fill(0.04f);
+    engineActiveForHearing_ = false;
+    hpLevel_.setValue(0.06, juce::dontSendNotification);
+    freq_.setVisible(false); hpStart_.setVisible(false); start_.setVisible(false);
+    hpLevel_.setVisible(true); hpNext_.setVisible(true);
+    hpUpdateCard();
+    playToneAt(kHpFreqs[0], (float) hpLevel_.getValue());
+    resized();
+    repaint();
+}
+
+void SoundLabScreen::hpRecordAndAdvance()
+{
+    if (wizStep_ < 0)
+        return;
+    wizThresh_[(size_t) wizStep_] = (float) hpLevel_.getValue(); // just-audible level
+    ++wizStep_;
+    if (wizStep_ >= kHpSteps)
+    {
+        hpFinish();
+        return;
+    }
+    hpLevel_.setValue(0.06, juce::dontSendNotification);
+    hpUpdateCard();
+    playToneAt(kHpFreqs[(size_t) wizStep_], (float) hpLevel_.getValue());
+}
+
+void SoundLabScreen::hpFinish()
+{
+    engine_.stop();
+    // Self-relative thresholds: the most-sensitive band is the 0 dB reference;
+    // bands needing more level read as loss -> boost (half-gain rule downstream).
+    float best = 1.0f;
+    for (float t : wizThresh_) best = std::min(best, std::max(t, 1.0e-4f));
+    std::vector<veyra::HearingPoint> pts;
+    for (int i = 0; i < kHpSteps; ++i)
+    {
+        const float thr = std::max(wizThresh_[(size_t) i], 1.0e-4f);
+        veyra::HearingPoint hp;
+        hp.freq = kHpFreqs[i];
+        hp.lossDb = 20.0f * std::log10(thr / best);
+        pts.push_back(hp);
+    }
+    const auto bands = veyra::personalizeFromHearingTest(pts);
+
+    wizStep_ = -1;
+    hpLevel_.setVisible(false); hpNext_.setVisible(false);
+    freq_.setVisible(true); hpStart_.setVisible(true); start_.setVisible(true);
+    if (onPersonalized)
+        onPersonalized(bands);
+    card_->setBig({});
+    card_->setText("HEARING RANGE",
+                   bands.empty() ? "All bands even — no correction needed."
+                                 : "Personalized EQ applied from your hearing profile.");
+    resized();
+    repaint();
+}
+
+void SoundLabScreen::hpUpdateCard()
+{
+    card_->setText("HEARING TEST",
+                   "Lower the level until the tone just disappears, then Next.");
+    card_->setBig(juce::String(juce::roundToInt(kHpFreqs[(size_t) wizStep_])) + " Hz  ("
+                  + juce::String(wizStep_ + 1) + "/" + juce::String(kHpSteps) + ")");
 }
 
 void SoundLabScreen::startCurrentTool()
@@ -184,6 +275,7 @@ void SoundLabScreen::selectTool(int i)
 {
     tool_ = juce::jlimit(0, kTools - 1, i);
     engineActiveForHearing_ = false;
+    wizStep_ = -1; // cancel any in-progress hearing test
     engine_.stop();
     card_->setText(kTool[tool_].title, kTool[tool_].desc);
     card_->setMeterVisible(tool_ == 2);
@@ -196,6 +288,9 @@ void SoundLabScreen::selectTool(int i)
     phIn_.setVisible(tool_ == 5); phInv_.setVisible(tool_ == 5);
     noiseType_.setVisible(tool_ == 6);
     freq_.setVisible(tool_ == 4);
+    hpStart_.setVisible(tool_ == 4);
+    hpNext_.setVisible(false);
+    hpLevel_.setVisible(false);
     start_.setVisible(tool_ == 1 || tool_ == 3 || tool_ == 4 || tool_ == 6);
     stop_.setVisible(tool_ != 2);
 
@@ -217,6 +312,7 @@ void SoundLabScreen::visibilityChanged()
         stopTimer();
         engine_.shutdown();
         engineActiveForHearing_ = false;
+        if (hpActive()) selectTool(tool_); // cancel an in-progress hearing test
     }
 }
 
@@ -251,10 +347,19 @@ void SoundLabScreen::resized()
         phIn_.setBounds(x, rowY, w, 40); x += w + gap;
         phInv_.setBounds(x, rowY, w, 40);
     }
-    else if (tool_ == 4) // Hearing: freq slider + Play
+    else if (tool_ == 4) // Hearing
     {
-        freq_.setBounds(cx - 180, rowY - 8, 360, 24);
-        centred(start_, 160, 38, rowY + 28);
+        if (hpActive()) // wizard: level slider + Next
+        {
+            hpLevel_.setBounds(cx - 180, rowY - 8, 360, 24);
+            centred(hpNext_, 160, 38, rowY + 28);
+        }
+        else // range test (freq slider + Start) + Personalize entry
+        {
+            freq_.setBounds(cx - 180, rowY - 16, 360, 24);
+            centred(start_, 160, 38, rowY + 18);
+            centred(hpStart_, 180, 34, rowY + 64);
+        }
     }
     else if (tool_ == 6) // Noise: White|Pink + Start
     {

@@ -39,6 +39,13 @@ RootComponent::RootComponent()
     effects_.attachBackdrop(&background_);
     devices_.attachBackdrop(&background_);
     soundLab_.attachBackdrop(&background_);
+    soundLab_.onPersonalized = [this](const std::vector<veyra::ParametricBand>& bands)
+    {
+        working_.enhancement.parametricBands = bands;
+        working_.enhancement.eqMode = "parametric";
+        home_.applyEnhancement(working_.enhancement); // reflect on the Home EQ
+        pushConfig();
+    };
     gamer_.attachBackdrop(&background_);
     placeholder_.attachBackdrop(&background_);
 
