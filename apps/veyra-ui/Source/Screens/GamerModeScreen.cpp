@@ -112,6 +112,13 @@ protected:
             g.setColour(palette_.success);
             g.fillEllipse(ctr.x - r * 0.5f, ctr.y + r * 0.2f, 5, 5);
         }
+        else // idle: explain the empty radar instead of leaving a bare circle
+        {
+            g.setColour(palette_.textTertiary);
+            g.setFont(fonts::body(10.0f));
+            g.drawText("Enable to track in-game sounds",
+                       radar.withTop(ctr.y + r + 2.0f), juce::Justification::centredTop, false);
+        }
 
         c.removeFromTop(30 + 8); // style seg
         auto sl = c.removeFromTop(24); // sensitivity label/value
