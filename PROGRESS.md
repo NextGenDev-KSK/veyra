@@ -81,10 +81,10 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 
 ### Phase 16 — Sound Quality Engine  `[ ]`
 - [x] **RNNoise** as the default mic NS, custom suppressor as fallback — submodule @ v0.1.1 (small embedded model), builds on MSVC (VLA→alloca patch), opaque RT-safe `RnnoiseDenoiser` wired into the capture APO; unit-tested (stationary noise suppressed). CI-green.
-- [ ] **Live AEC far-end reference** wiring (render→capture reference) so echo cancel works on real devices  *(NLMS engine done; ⏵ live)*
-- [ ] **Limiter upgrade** — oversampling + look-ahead + inter-sample-peak (ISP) protection + soft clip
+- [x] **Limiter upgrade** — 4× oversampled true-peak (inter-sample) limiting: feeds `max(|sample|, ISP)` into the look-ahead window so the exact sample-peak guarantee is kept while inter-sample overshoots are tamed; no added latency. Tested. CI-green.
 - [ ] **Optional oversampling** (2×/4×/8×) for nonlinear DSP modules (anti-alias)
-- [ ] **Equal-loudness (ISO 226)** compensation — natural bass/treble at low volume
+- [ ] **Live AEC far-end** wiring (NLMS engine exists)
+- [x] **Equal-loudness (ISO 226)** compensation — volume-dependent low/high-shelf lift (`EqualLoudness`) wired after the compressor; carried through the APO + Bridge paths + a Settings→Loudness toggle. Tested. CI-green.
 - [ ] **Harmonic exciter** (transparent presence/clarity)
 - [ ] **Saturation** modes — tape / tube / transparent (subtle harmonics)
 - [ ] **Multiband stereo width** — mono lows, widen highs
