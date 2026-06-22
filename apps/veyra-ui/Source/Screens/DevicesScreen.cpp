@@ -4,6 +4,7 @@
 #include "Components/GlassPanel.h"
 #include "Components/ToggleSwitch.h"
 #include "Graphics/GlassBackground.h"
+#include "Graphics/Icons.h"
 #include "Theme/Fonts.h"
 
 #include <vector>
@@ -37,10 +38,13 @@ protected:
         auto c = getLocalBounds().reduced(16);
         auto top = c.removeFromTop(38);
 
-        // Icon chip.
+        // Icon chip + device glyph (accented on the active device).
         auto chip = top.removeFromLeft(38).toFloat();
         g.setColour(palette_.bgInput);
         g.fillRoundedRectangle(chip, 9.0f);
+        icons::devices(g, chip.reduced(9.0f),
+                       bar_ >= 0.0f || detailLabel_.isNotEmpty() ? palette_.accentPrimary
+                                                                 : palette_.textSecondary);
 
         // Type badge (top-right pill).
         if (badge_.isNotEmpty())
