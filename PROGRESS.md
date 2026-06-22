@@ -112,7 +112,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 - [ ] **Home** pixel-perfect alignment vs reference
 - [ ] **Eliminate dead space** across Presets / Devices / Apps / Gamer Mode / Sound Lab
 - [ ] **GPU/OpenGL visualizer** rendering (replace 2D)
-- [ ] **Docs** — screenshots, demo videos, architecture diagrams, per-feature docs
+- [~] **Docs** — per-feature `docs/USER_GUIDE.md` + ARCHITECTURE/BUILD_GUIDE/VERIFY/TRANSLATIONS/FEATURE_COVERAGE. Screenshots + demo videos still need a runtime capture pass.
 - [ ] **Polished first-run** — auto-detect devices/headphones + recommend presets
 
 ### Phase 20 — Release Validation (runtime / hardware)  `[ ]`
@@ -126,7 +126,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 
 ## Veyra 1.0 release target
 
-**Required:** Stable APO ⏵ · RNNoise ✅ · AutoEQ ✅ · Parametric EQ ✅ · KEMAR ✅ · Good presets ✅ · Apps page ✅ · Devices page ✅ · Localization framework ✅ (+ 5 locale templates) · Documentation `[ ]`
+**Required:** Stable APO ⏵ · RNNoise ✅ · AutoEQ ✅ · Parametric EQ ✅ · KEMAR ✅ · Good presets ✅ · Apps page ✅ · Devices page ✅ · Localization framework ✅ (+ 5 locale templates) · Documentation 🟡 (USER_GUIDE done; screenshots/video pending)
 **Nice-to-have:** CIPIC · IRCAM · Equal-loudness · Advanced crossfeed
 **Future:** Personalized HRTF · Room simulation · Binaural speaker emulation
 
