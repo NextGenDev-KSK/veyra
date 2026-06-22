@@ -6,11 +6,37 @@
 #include "veyra/Paths.h"
 #include "veyra/Preset.h"
 
+#include <cmath>
+
 namespace veyra::ui {
 
 namespace {
 const char* kScreenNames[] = {"Home", "Presets", "Apps", "Devices",
                               "Sound Lab", "Gamer Mode", "Settings"};
+
+// True if the live enhancement matches a preset's (i.e. the user hasn't tweaked
+// it). Floats compared with a small tolerance; parametric bands element-wise.
+bool enhancementMatches(const veyra::EnhancementConfig& a, const veyra::EnhancementConfig& b)
+{
+    auto eqf = [](float x, float y) { return std::abs(x - y) < 0.01f; };
+    if (a.eqMode != b.eqMode || a.saturationMode != b.saturationMode) return false;
+    for (size_t i = 0; i < a.eqBandsDb.size(); ++i)
+        if (! eqf(a.eqBandsDb[i], b.eqBandsDb[i])) return false;
+    if (! (eqf(a.bassBoostDb, b.bassBoostDb) && eqf(a.trebleDb, b.trebleDb)
+        && eqf(a.volumeGain, b.volumeGain) && eqf(a.stereoWidth, b.stereoWidth)
+        && eqf(a.compressionAmount, b.compressionAmount) && eqf(a.reverbAmount, b.reverbAmount)
+        && eqf(a.exciterAmount, b.exciterAmount) && eqf(a.saturationAmount, b.saturationAmount)
+        && eqf(a.multibandWidth, b.multibandWidth) && eqf(a.transientAmount, b.transientAmount)
+        && eqf(a.bassEnhanceAmount, b.bassEnhanceAmount))) return false;
+    if (a.parametricBands.size() != b.parametricBands.size()) return false;
+    for (size_t i = 0; i < a.parametricBands.size(); ++i)
+    {
+        const auto& x = a.parametricBands[i]; const auto& y = b.parametricBands[i];
+        if (x.enabled != y.enabled || x.type != y.type
+            || ! eqf(x.freq, y.freq) || ! eqf(x.gainDb, y.gainDb) || ! eqf(x.q, y.q)) return false;
+    }
+    return true;
+}
 } // namespace
 
 RootComponent::RootComponent()
@@ -463,6 +489,24 @@ void RootComponent::applyConfig(const veyra::Config& c)
 void RootComponent::pushConfig()
 {
     client_.updateConfig(working_);
+    updatePresetChip(); // reflect "modified" the moment any control diverges
+}
+
+void RootComponent::updatePresetChip()
+{
+    juce::String name = "Custom";
+    bool modified = false;
+    for (const auto& p : client_.presets())
+        if (p.uuid == working_.activePresetUuid)
+        {
+            name = juce::String(p.name);
+            modified = ! enhancementMatches(working_.enhancement, p.enhancement);
+            break;
+        }
+    const juce::String chip = modified ? name + "  *" : name; // '*' = unsaved changes
+    topBar_.setActivePreset(chip);
+    mini_->content().setPreset(chip);
+    devices_.setActivePreset(name);
 }
 
 void RootComponent::refreshFromService()
@@ -477,14 +521,8 @@ void RootComponent::refreshFromService()
     presets_.setPresets(client_.presets(), juce::String(working_.activePresetUuid));
     apps_.setPresets(client_.presets());
 
-    // Reflect the active preset name in the mini widget + the top-bar chip.
-    juce::String presetName = "Custom";
-    for (const auto& p : client_.presets())
-        if (p.uuid == working_.activePresetUuid)
-            presetName = juce::String(p.name);
-    mini_->content().setPreset(presetName);
-    topBar_.setActivePreset(presetName);
-    devices_.setActivePreset(presetName);
+    // Reflect the active preset name (+ "modified" marker) on the chips.
+    updatePresetChip();
     devices_.setMasterVolume(working_.masterVolumeGain);
     devices_.setMicProfile(juce::String(working_.voice.profile));
 }
