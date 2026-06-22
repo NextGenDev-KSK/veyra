@@ -41,6 +41,7 @@ void SoundLabEngine::stop()
 void SoundLabEngine::audioDeviceAboutToStart(juce::AudioIODevice* device)
 {
     gen_.prepare(device->getCurrentSampleRate());
+    bands_.prepare(device->getCurrentSampleRate());
     scratch_.setSize(2, 8192, false, false, true);
     inputLevel_.store(0.0f);
 }
@@ -60,8 +61,13 @@ void SoundLabEngine::audioDeviceIOCallbackWithContext(const float* const* inputC
     // Live input peak (Mic Test).
     float peak = 0.0f;
     if (numInputChannels > 0 && inputChannelData[0] != nullptr)
+    {
         for (int i = 0; i < numSamples; ++i)
             peak = juce::jmax(peak, std::abs(inputChannelData[0][i]));
+        bands_.process(inputChannelData[0], numSamples); // live FR analysis
+        for (int b = 0; b < kBands; ++b)
+            bandLevel_[(size_t) b].store(bands_.levelLinear(b), std::memory_order_relaxed);
+    }
     inputLevel_.store(peak, std::memory_order_relaxed);
 
     for (int c = 0; c < numOutputChannels; ++c)

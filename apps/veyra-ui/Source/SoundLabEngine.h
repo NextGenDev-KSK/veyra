@@ -7,6 +7,7 @@
 
 #include "VeyraGui.h"
 
+#include "analyzer/MeasureBands.h"
 #include "lab/SignalGenerator.h"
 
 #include <atomic>
@@ -24,6 +25,12 @@ public:
     void stop();                                        // silence (device stays open)
 
     float inputLevel() const noexcept { return inputLevel_.load(std::memory_order_relaxed); }
+
+    // Live per-band input level (Mic Test FR analysis), 10 octave bands.
+    static constexpr int kBands = veyra::dsp::MeasureBands::kBands;
+    float bandLevel(int b) const noexcept
+    { return (b >= 0 && b < kBands) ? bandLevel_[(size_t) b].load(std::memory_order_relaxed) : 0.0f; }
+    static float bandCentreHz(int b) noexcept { return 31.25f * (float) (1 << b); }
 
     // juce::AudioIODeviceCallback
     void audioDeviceIOCallbackWithContext(const float* const* inputChannelData,
@@ -46,6 +53,8 @@ private:
     bool                         lastPlaying_ = false;
     bool                         started_ = false;
     std::atomic<float>           inputLevel_{0.0f};
+    veyra::dsp::MeasureBands     bands_;                  // audio-thread only
+    std::atomic<float>           bandLevel_[kBands] = {}; // published for the UI
 };
 
 } // namespace veyra::ui

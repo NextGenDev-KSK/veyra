@@ -18,7 +18,7 @@ struct ToolInfo { const char* title; const char* desc; };
 const ToolInfo kTool[] = {
     {"SPEAKER TEST",      "Confirm each channel plays from the correct direction."},
     {"7.1 SURROUND TEST", "Plays a positioned test tone (stereo virtualization on headphones)."},
-    {"MICROPHONE TEST",   "Speak — your live input level is shown below."},
+    {"MICROPHONE TEST",   "Speak — live level + a 10-band frequency-response spectrum."},
     {"FREQUENCY SWEEP",   "A 20 Hz to 20 kHz logarithmic sweep."},
     {"HEARING RANGE",     "Raise the frequency until you can no longer hear the tone."},
     {"POLARITY / PHASE",  "Compare in-phase against an inverted right channel."},
@@ -35,6 +35,8 @@ public:
     void setMeter(float level)   { level_ = level; if (meterVisible_) repaint(); }
     void setBig(juce::String s)  { big_ = std::move(s); repaint(); }
     void setBigVisible(bool v)   { bigVisible_ = v; repaint(); }
+    void setBandsVisible(bool v) { bandsVisible_ = v; repaint(); }
+    void setBands(const std::array<float, 10>& b) { bands_ = b; if (bandsVisible_) repaint(); }
 
 protected:
     void paintContent(juce::Graphics& g) override
@@ -54,6 +56,34 @@ protected:
             g.setFont(fonts::mono(40.0f));
             g.drawText(big_, getLocalBounds().reduced(28).withTrimmedBottom(120),
                        juce::Justification::centred, false);
+        }
+
+        if (bandsVisible_)
+        {
+            auto area = getLocalBounds().reduced(40);
+            area.removeFromTop(130);
+            area.removeFromBottom(150);
+            if (area.getHeight() > 24)
+            {
+                const int nb = (int) bands_.size();
+                const float bw = (float) area.getWidth() / (float) nb;
+                for (int b = 0; b < nb; ++b)
+                {
+                    const float db = bands_[(size_t) b] > 1.0e-5f
+                                         ? 20.0f * std::log10(bands_[(size_t) b]) : -80.0f;
+                    const float h = juce::jlimit(0.0f, 1.0f, (db + 60.0f) / 60.0f);
+                    const float bh = h * (float) area.getHeight();
+                    juce::Rectangle<float> bar(area.getX() + b * bw + 2.0f,
+                                               area.getBottom() - bh, bw - 4.0f, bh);
+                    g.setColour(palette_.accentPrimary.withAlpha(0.85f));
+                    g.fillRoundedRectangle(bar, 3.0f);
+                }
+                g.setColour(palette_.textTertiary);
+                g.setFont(fonts::mono(10.0f));
+                g.drawText("31  63 125 250 500  1k  2k  4k  8k 16k",
+                           area.withY(area.getBottom() + 4).withHeight(14),
+                           juce::Justification::centred, false);
+            }
         }
 
         if (meterVisible_)
@@ -76,8 +106,9 @@ protected:
 
 private:
     juce::String title_, desc_, big_;
-    bool  meterVisible_ = false, bigVisible_ = false;
+    bool  meterVisible_ = false, bigVisible_ = false, bandsVisible_ = false;
     float level_ = 0.0f;
+    std::array<float, 10> bands_{};
 };
 
 // ---------------------------------------------------------------------------
@@ -279,6 +310,7 @@ void SoundLabScreen::selectTool(int i)
     engine_.stop();
     card_->setText(kTool[tool_].title, kTool[tool_].desc);
     card_->setMeterVisible(tool_ == 2);
+    card_->setBandsVisible(tool_ == 2); // live FR spectrum during the Mic Test
     card_->setBigVisible(tool_ == 4);
     if (tool_ == 4)
         card_->setBig(juce::String(juce::roundToInt(freq_.getValue())) + " Hz");
@@ -302,7 +334,13 @@ void SoundLabScreen::selectTool(int i)
 void SoundLabScreen::timerCallback()
 {
     if (tool_ == 2)
+    {
         card_->setMeter(engine_.inputLevel());
+        std::array<float, 10> bands{};
+        for (int b = 0; b < SoundLabEngine::kBands && b < 10; ++b)
+            bands[(size_t) b] = engine_.bandLevel(b);
+        card_->setBands(bands);
+    }
 }
 
 void SoundLabScreen::visibilityChanged()

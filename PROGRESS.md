@@ -105,7 +105,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 - [x] **Binaural speaker emulation** (Waves NX / Dolby Headphone style) — the Cinematic spatial mode now combines `VirtualSurround` (measured-KEMAR HRTF virtualisation) + `RoomSimulator` (early reflections) + advanced crossfeed, i.e. virtual speakers in a room. (Head-*tracked* emulation needs a head-tracker sensor — out of scope without hardware.)
 
 ### Phase 18 — Sound Lab Pro + Personalization  `[ ]`
-- [ ] **Pro measurement tools** in Sound Lab — frequency-response analysis, channel matching
+- [x] **Pro measurement tools** in Sound Lab — `MeasureBands` analyzer (10 octave band-pass filters + leaky-integrated RMS) drives a **live frequency-response spectrum** from mic capture in the Mic Test (feed flat noise to read room/system response). Engine processes input → per-band levels → spectrum display. Tested. CI-green.
 - [x] **Hearing-test-based EQ personalization** — correction algorithm (`personalizeFromHearingTest`, audiology half-gain rule, tested) **+ the interactive capture wizard** in Sound Lab: a "Personalize EQ" flow steps 250 Hz→8 kHz, the listener lowers each tone to threshold, and a calibration-free self-relative profile (each band vs the most-sensitive one) feeds the algorithm; the resulting parametric bands are applied as the EQ (reflected on Home). CI-green.
 
 ### Phase 19 — UI / Product Polish + Docs + First-run  `[ ]`
