@@ -254,6 +254,7 @@ void VeyraApoEfx::refreshParametersFromShared() noexcept
     dp.bassBoostDb = p.bassBoostDb;
     dp.trebleDb = p.trebleDb;
     dp.compressionAmount = p.compressionAmount;
+    dp.exciterAmount = p.exciterAmount;
     dp.stereoWidth = p.stereoWidth;
     dp.volumeGain = p.volumeGain;
     dp.crossfeedAmount = p.crossfeedAmount;

@@ -30,6 +30,7 @@ inline dsp::DspParameters dspParamsFromConfig(const Config& c)
     p.trebleDb          = e.trebleDb;
     p.compressionAmount = e.compressionAmount;
     p.reverbAmount      = e.reverbAmount;
+    p.exciterAmount     = e.exciterAmount;
     p.stereoWidth       = e.stereoWidth;
     // Effective output gain = master trim x the Volume Gain knob (clamped 0..3).
     p.volumeGain        = std::clamp(static_cast<float>(c.masterVolumeGain) * e.volumeGain, 0.0f, 3.0f);

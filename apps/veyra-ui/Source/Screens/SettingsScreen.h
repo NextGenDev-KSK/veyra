@@ -47,6 +47,9 @@ public:
     std::function<void(const veyra::AudioEngineConfig&)> onAudioEngineChanged;
     std::function<void(bool)> onReferenceModeChanged; // flat A/B listening
 
+    // Sound Quality interactions (advanced enhancement, beyond the Home knobs).
+    std::function<void(float)> onExciterChanged; // harmonic exciter amount 0..1
+
     // About: reset all settings to defaults.
     std::function<void()> onResetSettings;
 
@@ -58,6 +61,7 @@ public:
     void setLoudnessConfig(const veyra::LoudnessConfig& loud);
     void setAudioEngineConfig(const veyra::AudioEngineConfig& engine);
     void setReferenceMode(bool on);
+    void setExciter(float amount);
     void setServiceStatus(bool connected, juce::String version);
 
 private:
@@ -66,6 +70,7 @@ private:
     class MicrophoneCard;
     class SpatialCard;
     class LoudnessCard;
+    class SoundQualityCard;
     class UpdatesCard;
     class AboutCard;
 
@@ -73,16 +78,17 @@ private:
     juce::Rectangle<int> navItemBounds(int i) const;
     juce::Component* cardForSection(int i) const;
 
-    static constexpr int kSections = 7; // Appearance, Audio Engine, Microphone, Spatial, Loudness, Updates, About
+    static constexpr int kSections = 8; // Appearance, Audio Engine, Microphone, Spatial, Loudness, Sound Quality, Updates, About
     int section_ = 0;
 
-    std::unique_ptr<AppearanceCard>  appearance_;
-    std::unique_ptr<AudioEngineCard> audioEngine_;
-    std::unique_ptr<MicrophoneCard>  microphone_;
-    std::unique_ptr<SpatialCard>     spatial_;
-    std::unique_ptr<LoudnessCard>    loudness_;
-    std::unique_ptr<UpdatesCard>     updates_;
-    std::unique_ptr<AboutCard>       about_;
+    std::unique_ptr<AppearanceCard>   appearance_;
+    std::unique_ptr<AudioEngineCard>  audioEngine_;
+    std::unique_ptr<MicrophoneCard>   microphone_;
+    std::unique_ptr<SpatialCard>      spatial_;
+    std::unique_ptr<LoudnessCard>     loudness_;
+    std::unique_ptr<SoundQualityCard> soundQuality_;
+    std::unique_ptr<UpdatesCard>      updates_;
+    std::unique_ptr<AboutCard>        about_;
     Palette palette_ = paletteForTheme("midnight");
 };
 

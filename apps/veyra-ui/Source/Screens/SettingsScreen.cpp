@@ -965,6 +965,65 @@ private:
     juce::TextButton releases_;
 };
 
+// ===========================================================================
+// Sound Quality: advanced enhancement controls beyond the six Home knobs.
+// ===========================================================================
+class SettingsScreen::SoundQualityCard : public GlassPanel {
+public:
+    std::function<void(float)> onExciterChanged;
+
+    SoundQualityCard()
+    {
+        exciter_.setSliderStyle(juce::Slider::LinearHorizontal);
+        exciter_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        exciter_.setRange(0.0, 1.0, 0.01);
+        exciter_.onValueChange = [this]
+        { if (onExciterChanged) onExciterChanged((float) exciter_.getValue()); repaint(); };
+        addAndMakeVisible(exciter_);
+    }
+
+    void setExciter(float a)
+    {
+        exciter_.setValue(a, juce::dontSendNotification);
+        repaint();
+    }
+
+    void resized() override
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        c.removeFromTop(28 + 18); // title + subtitle
+        c.removeFromTop(18);      // exciter label row (painted)
+        exciter_.setBounds(c.removeFromTop(24));
+    }
+
+protected:
+    void paintContent(juce::Graphics& g) override
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::display(18.0f));
+        g.drawText("SOUND QUALITY", c.removeFromTop(28), juce::Justification::centredLeft, false);
+        g.setColour(palette_.textTertiary);
+        g.setFont(fonts::body(11.0f));
+        g.drawText("Subtle harmonic enhancement.", c.removeFromTop(18),
+                   juce::Justification::topLeft, false);
+
+        auto lr = c.removeFromTop(18);
+        g.setColour(palette_.textSecondary);
+        g.setFont(fonts::body(13.0f));
+        g.drawText("Harmonic Exciter", lr.removeFromLeft(lr.getWidth() - 56),
+                   juce::Justification::centredLeft, false);
+        g.setColour(palette_.textTertiary);
+        g.setFont(fonts::mono(11.0f));
+        g.drawText(juce::String(juce::roundToInt(exciter_.getValue() * 100.0)) + "%", lr,
+                   juce::Justification::centredRight, false);
+    }
+
+private:
+    static constexpr int kPad = 24;
+    juce::Slider exciter_;
+};
+
 SettingsScreen::SettingsScreen()
 {
     appearance_ = std::make_unique<AppearanceCard>();
@@ -991,6 +1050,10 @@ SettingsScreen::SettingsScreen()
     loudness_->onLoudnessChanged = [this](const veyra::LoudnessConfig& l) { if (onLoudnessChanged) onLoudnessChanged(l); };
     addAndMakeVisible(*loudness_);
 
+    soundQuality_ = std::make_unique<SoundQualityCard>();
+    soundQuality_->onExciterChanged = [this](float a) { if (onExciterChanged) onExciterChanged(a); };
+    addAndMakeVisible(*soundQuality_);
+
     updates_ = std::make_unique<UpdatesCard>();
     addAndMakeVisible(*updates_);
 
@@ -1010,7 +1073,8 @@ juce::Component* SettingsScreen::cardForSection(int i) const
     case 2: return microphone_.get();
     case 3: return spatial_.get();
     case 4: return loudness_.get();
-    case 5: return updates_.get();
+    case 5: return soundQuality_.get();
+    case 6: return updates_.get();
     default: return about_.get();
     }
 }
@@ -1056,7 +1120,7 @@ void SettingsScreen::paint(juce::Graphics& g)
                juce::Justification::topLeft, false);
 
     static const char* kNames[kSections] =
-        {"Appearance", "Audio Engine", "Microphone", "Spatial", "Loudness", "Updates", "About"};
+        {"Appearance", "Audio Engine", "Microphone", "Spatial", "Loudness", "Sound Quality", "Updates", "About"};
     for (int i = 0; i < kSections; ++i)
     {
         if (i == section_)
@@ -1088,6 +1152,7 @@ void SettingsScreen::setPalette(const Palette& p)
     microphone_->setPalette(p);
     spatial_->setPalette(p);
     loudness_->setPalette(p);
+    soundQuality_->setPalette(p);
     updates_->setPalette(p);
     about_->setPalette(p);
     repaint();
@@ -1100,6 +1165,7 @@ void SettingsScreen::attachBackdrop(GlassBackground* b)
     microphone_->setBackdrop(b);
     spatial_->setBackdrop(b);
     loudness_->setBackdrop(b);
+    soundQuality_->setBackdrop(b);
     updates_->setBackdrop(b);
     about_->setBackdrop(b);
 }
@@ -1114,6 +1180,7 @@ void SettingsScreen::setSpatialConfig(const veyra::SpatialConfig& s) { spatial_-
 void SettingsScreen::setLoudnessConfig(const veyra::LoudnessConfig& l) { loudness_->setLoudnessConfig(l); }
 void SettingsScreen::setAudioEngineConfig(const veyra::AudioEngineConfig& e) { audioEngine_->setConfig(e); }
 void SettingsScreen::setReferenceMode(bool on) { audioEngine_->setReferenceMode(on); }
+void SettingsScreen::setExciter(float a) { soundQuality_->setExciter(a); }
 void SettingsScreen::setServiceStatus(bool connected, juce::String version)
 {
     about_->setServiceStatus(connected, std::move(version));

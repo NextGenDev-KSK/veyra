@@ -27,6 +27,7 @@ struct VeyraParamsPayload {
     float    bassBoostDb = 0.0f;
     float    trebleDb = 0.0f;
     float    compressionAmount = 0.0f;
+    float    exciterAmount = 0.0f;
     float    stereoWidth = 1.0f;
     float    volumeGain = 1.0f;
     float    crossfeedAmount = 0.0f;

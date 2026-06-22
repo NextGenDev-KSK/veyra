@@ -22,6 +22,7 @@ inline void to_json(nlohmann::json& j, const EnhancementConfig& e)
         {"stereo_width",       e.stereoWidth},
         {"compression_amount", e.compressionAmount},
         {"reverb_amount",      e.reverbAmount},
+        {"exciter_amount",     e.exciterAmount},
     };
     auto bands = nlohmann::json::array();
     for (const auto& b : e.parametricBands)
@@ -45,6 +46,7 @@ inline void from_json(const nlohmann::json& j, EnhancementConfig& e)
     e.stereoWidth       = j.value("stereo_width", e.stereoWidth);
     e.compressionAmount = j.value("compression_amount", e.compressionAmount);
     e.reverbAmount      = j.value("reverb_amount", e.reverbAmount);
+    e.exciterAmount     = j.value("exciter_amount", e.exciterAmount);
     e.parametricBands.clear();
     if (const auto it = j.find("parametric_bands"); it != j.end() && it->is_array())
         for (const auto& b : *it)

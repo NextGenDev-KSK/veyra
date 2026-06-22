@@ -47,6 +47,7 @@ struct EnhancementConfig {
     float stereoWidth       = 1.0f; // 0 (mono) .. 2 (wide)
     float compressionAmount = 0.0f; // 0..1
     float reverbAmount      = 0.0f; // 0..1 ambience wet/dry
+    float exciterAmount     = 0.0f; // 0..1 harmonic exciter (presence/air)
 };
 
 // Spatial / headphone parameters. crossfeed is the realtime render-side effect;
