@@ -99,10 +99,10 @@ void ParametricEqEditor::paint(juce::Graphics& g)
     g.setColour(palette_.bgInput.withAlpha(0.35f));
     g.fillRoundedRectangle(r, 10.0f);
 
-    // Live FFT underlay behind the curve. The analyzer bars are already
-    // log-spaced (geometric in FFT-bin index), matching this editor's
-    // log-frequency x-axis, so a direct index->x mapping lines up.
-    if (! spectrum_.empty())
+    // Live FFT underlay behind the curve (gated by the Show spectrum toggle). The
+    // analyzer bars are already log-spaced (geometric in FFT-bin index), matching
+    // this editor's log-frequency x-axis, so a direct index->x mapping lines up.
+    if (spectrumVisible_ && ! spectrum_.empty())
     {
         const int n = (int) spectrum_.size();
         const float bw = r.getWidth() / (float) n;

@@ -76,7 +76,8 @@ public:
     explicit MainWindow(bool startHidden)
         : juce::DocumentWindow("Veyra Sounds",
                                juce::Colours::transparentBlack, // let the acrylic show
-                               juce::DocumentWindow::allButtons)
+                               // Fixed premium size: minimise + close only, no maximise.
+                               juce::DocumentWindow::minimiseButton | juce::DocumentWindow::closeButton)
     {
         setIcon(taskbarIcon()); // larger, padding-trimmed taskbar mark
         // Borderless: our TopBar is the custom glass title bar.

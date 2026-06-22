@@ -35,7 +35,6 @@ public:
     std::function<void(const EnhancementConfig&)> onEnhancementChanged;
 
     // "More Effects" tile clicked — opens the effects rack.
-    std::function<void()> onMoreEffects;
 
     // Apply enhancement state from config without firing the callback.
     void applyEnhancement(const EnhancementConfig& e);
@@ -65,7 +64,6 @@ private:
     std::array<std::unique_ptr<Knob>, kKnobs> knobs_;
     std::array<InfoIcon, kKnobs> knobInfo_;
     InfoIcon eqInfo_, vizInfo_;
-    std::unique_ptr<GlassPanel> moreCard_;
 
     EnhancementConfig enh_;
     int specTick_ = 0; // throttles the EQ FFT-underlay feed

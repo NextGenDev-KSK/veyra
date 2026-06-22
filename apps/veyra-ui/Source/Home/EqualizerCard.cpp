@@ -21,12 +21,16 @@ EqualizerCard::EqualizerCard()
     }
 
     modeToggle_.setItems({"Graphic", "Parametric"});
-    modeToggle_.onChange = [this](int i) { if (onModeChanged) onModeChanged(i == 1); repaint(); };
+    // Switch the view locally too (don't wait on a config round-trip) so Graphic
+    // <-> Parametric is always immediate and never feels locked (e.g. after AutoEQ).
+    modeToggle_.onChange = [this](int i) { setMode(i == 1); if (onModeChanged) onModeChanged(i == 1); };
     addAndMakeVisible(modeToggle_);
 
     showCurve_.setToggleState(true, juce::dontSendNotification);
     showCurve_.onClick = [this] { repaint(); };
     addAndMakeVisible(showCurve_);
+    showSpectrum_.onClick = [this]
+    { paramEditor_->setSpectrumVisible(showSpectrum_.getToggleState()); repaint(); };
     addAndMakeVisible(showSpectrum_);
 
     reset_.getProperties().set("variant", "ghost");
@@ -111,8 +115,10 @@ void EqualizerCard::setParametricBands(std::vector<veyra::ParametricBand> bands)
 
 void EqualizerCard::setSpectrum(const float* bars, int n)
 {
-    // The editor is only visible in parametric mode, so this only repaints there.
-    paramEditor_->setSpectrum(bars, n);
+    spectrum_.assign(bars, bars + n);  // kept for the graphic-mode underlay
+    paramEditor_->setSpectrum(bars, n); // and the parametric editor
+    if (! parametric_ && showSpectrum_.getToggleState())
+        repaint();
 }
 
 void EqualizerCard::resized()
@@ -166,6 +172,22 @@ void EqualizerCard::paintContent(juce::Graphics& g)
     const int gridL = bands_[0]->getX();
     const int gridR = bands_[(size_t) kBands - 1]->getRight();
     const int band0Y = bands_[0]->getPosition().y;
+
+    // Live FFT spectrum behind the bands (log-spaced bars; gated by Show spectrum).
+    if (showSpectrum_.getToggleState() && ! spectrum_.empty())
+    {
+        const int n = (int) spectrum_.size();
+        const int top = band0Y;
+        const int bot = band0Y + bands_[0]->getHeight();
+        const float bw = (float) (gridR - gridL) / (float) n;
+        g.setColour(palette_.accentSecondary.withAlpha(0.16f));
+        for (int i = 0; i < n; ++i)
+        {
+            const float bh = juce::jlimit(0.0f, 1.0f, spectrum_[(size_t) i]) * (float) (bot - top);
+            if (bh > 0.5f)
+                g.fillRect((float) gridL + i * bw, (float) bot - bh, bw + 1.0f, bh);
+        }
+    }
 
     auto lineForDb = [&](float db) -> float { return (float) band0Y + bands_[0]->yForGain(db); };
     struct Grid { float db; const char* label; };

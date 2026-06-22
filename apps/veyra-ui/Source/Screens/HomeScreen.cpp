@@ -44,34 +44,6 @@ juce::String dbText(float db)  { return (db >= 0 ? "+" : "") + juce::String(juce
 juce::String pctText(float fr) { return juce::String(juce::roundToInt(fr * 100.0f)) + "%"; }
 
 // "More Effects" tile — opens the effects rack overview.
-class MoreEffectsCard : public GlassPanel {
-public:
-    std::function<void()> onClick;
-    void mouseUp(const juce::MouseEvent& e) override
-    {
-        if (onClick && getLocalBounds().contains(e.getPosition()))
-            onClick();
-    }
-    void mouseEnter(const juce::MouseEvent&) override { hover_ = true; repaint(); }
-    void mouseExit(const juce::MouseEvent&) override { hover_ = false; repaint(); }
-
-protected:
-    void paintContent(juce::Graphics& g) override
-    {
-        const juce::Colour tint = hover_ ? palette_.accentPrimary : palette_.textSecondary;
-        auto b = getLocalBounds();
-        auto top = b.removeFromTop(b.getHeight() / 2);
-        icons::plus(g, juce::Rectangle<float>(0, 0, 26, 26)
-                            .withCentre(top.toFloat().getCentre().translated(0, 8)),
-                    tint);
-        g.setColour(tint);
-        g.setFont(fonts::body(12.0f));
-        g.drawText("More Effects", b, juce::Justification::centred, false);
-    }
-
-private:
-    bool hover_ = false;
-};
 } // namespace
 
 HomeScreen::HomeScreen()
@@ -119,13 +91,6 @@ HomeScreen::HomeScreen()
                         "or open fullscreen.");
     addAndMakeVisible(eqInfo_);
     addAndMakeVisible(vizInfo_);
-
-    {
-        auto more = std::make_unique<MoreEffectsCard>();
-        more->onClick = [this] { if (onMoreEffects) onMoreEffects(); };
-        moreCard_ = std::move(more);
-    }
-    addAndMakeVisible(*moreCard_);
 
     eq_.onBandChanged = [this](int i, float db)
     {
@@ -187,7 +152,6 @@ void HomeScreen::setPalette(const Palette& p)
     }
     eqInfo_.setPalette(p);
     vizInfo_.setPalette(p);
-    moreCard_->setPalette(p);
 }
 
 void HomeScreen::attachBackdrop(GlassBackground* bg)
@@ -196,7 +160,6 @@ void HomeScreen::attachBackdrop(GlassBackground* bg)
     eq_.setBackdrop(bg);
     for (auto& card : knobCards_)
         card->setBackdrop(bg);
-    moreCard_->setBackdrop(bg);
 }
 
 void HomeScreen::onKnobChanged(int index, double v01)
@@ -256,9 +219,8 @@ void HomeScreen::resized()
     eqInfo_.setBounds(eq_.getX() + 128, eq_.getY() + 24, 15, 15);
     vizInfo_.setBounds(viz_.getRight() - 172, viz_.getY() + 12, 15, 15);
 
-    const int n = kKnobs + 1;
     const int gap = 16;
-    const int cw = (knobsRow.getWidth() - gap * (n - 1)) / n;
+    const int cw = (knobsRow.getWidth() - gap * (kKnobs - 1)) / kKnobs;
     int x = knobsRow.getX();
     for (int i = 0; i < kKnobs; ++i)
     {
@@ -267,7 +229,6 @@ void HomeScreen::resized()
         knobInfo_[(size_t) i].setBounds(x + cw - 22, knobsRow.getY() + 6, 14, 14);
         x += cw + gap;
     }
-    moreCard_->setBounds(x, knobsRow.getY(), cw, knobsRow.getHeight());
 }
 
 } // namespace veyra::ui

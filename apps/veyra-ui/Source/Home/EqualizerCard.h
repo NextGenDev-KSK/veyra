@@ -53,6 +53,7 @@ private:
     juce::TextButton reset_{"Reset"};
     juce::TextButton autoEqBtn_{"AutoEQ"};
     std::vector<veyra::AutoEqProfile> autoEq_;
+    std::vector<float> spectrum_; // live FFT bars for the graphic-mode underlay
 };
 
 } // namespace veyra::ui

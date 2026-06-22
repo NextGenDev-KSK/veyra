@@ -143,15 +143,9 @@ RootComponent::RootComponent()
         onboarding_.setVisible(false);
     };
 
-    // Home "More Effects" tile -> effects rack overview; back returns Home.
-    home_.onMoreEffects = [this]
-    {
-        effects_.setConfig(working_);
-        if (current_ != nullptr) current_->setVisible(false);
-        current_ = &effects_;
-        effects_.setVisible(true);
-        resized();
-    };
+    // "More Effects" card removed (unfinished). The advanced Sound Quality DSP is
+    // reached via Settings -> Sound Quality. The effects rack stays wired for a
+    // future re-entry but is not surfaced from Home.
     effects_.onBack = [this] { sidebar_.setActive(0); showScreen(0); };
     effects_.onOpenSoundQuality = [this] // surface the advanced DSP from the Effects rack
     { sidebar_.setActive(6); showScreen(6); settings_.openSection(5); }; // 6=Settings, 5=Sound Quality
