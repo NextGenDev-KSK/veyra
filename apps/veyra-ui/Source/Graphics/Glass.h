@@ -16,8 +16,11 @@ inline void paintGlass(juce::Graphics& g, juce::Component& card, GlassBackground
 {
     const auto b = card.getLocalBounds().toFloat();
 
-    juce::DropShadow(juce::Colours::black.withAlpha(0.35f), 24, {0, 8})
-        .drawForRectangle(g, card.getLocalBounds());
+    // Shadow follows the rounded shape (drawForRectangle left a square corner
+    // fringe that ignored the radius).
+    juce::Path shape;
+    shape.addRoundedRectangle(b, radius);
+    juce::DropShadow(juce::Colours::black.withAlpha(0.35f), 24, {0, 8}).drawForPath(g, shape);
 
     if (backdrop != nullptr && backdrop->blurred().isValid())
     {
@@ -25,19 +28,17 @@ inline void paintGlass(juce::Graphics& g, juce::Component& card, GlassBackground
         const auto origin = backdrop->getLocalPoint(&card, juce::Point<int>(0, 0));
         const float sx = (float) backdrop->getWidth() / (float) bl.getWidth();
         const float sy = (float) backdrop->getHeight() / (float) bl.getHeight();
-
-        juce::Path rr;
-        rr.addRoundedRectangle(b, radius);
-
-        juce::Graphics::ScopedSaveState save(g);
-        g.reduceClipRegion(rr);
-
         const auto t = juce::AffineTransform::scale(sx, sy)
                            .translated((float) -origin.x, (float) -origin.y);
-        g.drawImageTransformed(bl, t, false);
 
-        g.setColour(elevated ? p.bgGlassElevated : p.bgGlass);
-        g.fillRect(b); // tint over the frosted slice (clipped to the rounded rect)
+        // Fill the rounded rect *with* the blurred backdrop as the fill type, then
+        // the tint on top — both via fillRoundedRectangle, which is anti-aliased
+        // (the old reduceClipRegion(path) clip was not, hence the jagged/leaky
+        // corners). The shape's corners are now mathematically clean.
+        g.setFillType(juce::FillType(bl, t));
+        g.fillRoundedRectangle(b, radius);
+        g.setColour(elevated ? p.bgGlassElevated : p.bgGlass); // resets fill to solid
+        g.fillRoundedRectangle(b, radius);
     }
     else
     {
