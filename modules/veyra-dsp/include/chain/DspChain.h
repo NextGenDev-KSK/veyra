@@ -27,6 +27,7 @@
 #include "loudness/LoudnessNormalizer.h"
 #include "loudness/NightMode.h"
 #include "spatial/Crossfeed.h"
+#include "spatial/RoomSimulator.h"
 #include "spatial/VirtualSurround.h"
 
 namespace veyra::dsp {
@@ -52,6 +53,7 @@ public:
         bassEnh_.prepare(sampleRate);
         headphoneSafe_.prepare(sampleRate);
         fieldComp_.prepare(sampleRate);
+        room_.prepare(sampleRate);
         reverb_.prepare(sampleRate);
         crossfeed_.prepare(sampleRate);
         surround_.setHrtfDirectory(hrtfDir_);
@@ -107,6 +109,7 @@ public:
         bassEnh_.setAmount(p.bassEnhanceAmount);
         headphoneSafe_.setEnabled(p.headphoneSafe);
         fieldComp_.setMode(p.fieldComp);
+        room_.setAmount(p.roomAmount);
         normalizer_.setEnabled(p.loudnessMatch);
         normalizer_.setTargetLufs(p.loudnessTargetLufs);
         volume_.setTarget(p.volumeGain);
@@ -143,6 +146,7 @@ public:
             stereo_.applyWidth(left, right, numSamples);
             reverb_.processStereo(left, right, numSamples);     // ambience (wet/dry)
             surround_.processStereo(left, right, numSamples);  // HRTF virtualisation
+            room_.processStereo(left, right, numSamples);       // cinematic early reflections
             crossfeed_.processStereo(left, right, numSamples);  // headphone crossfeed
             fieldComp_.processStereo(left, right, numSamples);  // diffuse/free-field target
             nightMode_.processStereo(left, right, numSamples);  // late-night loudness
@@ -194,6 +198,7 @@ private:
     FieldCompensation fieldComp_;
     Reverb           reverb_;
     Crossfeed        crossfeed_;
+    RoomSimulator    room_;
     VirtualSurround  surround_;
     NightMode        nightMode_;
     LoudnessNormalizer normalizer_;

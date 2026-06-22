@@ -101,8 +101,8 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 - [ ] **Personalized HRTF** (head width, ear size, preference)
 - [x] **Better HRTF interpolation** — ITD-aware (onset-aligned) azimuth interpolation (`hrirInterpAligned`): aligns the two bracketing HRIRs by their direct-arrival peak before crossfading and places the result at the interpolated delay, so the ITD moves continuously instead of combing/jumping. Wired into `HrtfDatabase`; endpoints reduce to the measured IR. Tested. CI-green.
 - [x] **Diffuse-field / free-field** headphone compensation — `FieldCompensation` target selector (Natural / Diffuse-field / Free-field): the free-field mode adds the ~3 kHz frontal ear-gain (+ a little air) the diffuse-field target lacks; diffuse relaxes it. `SpatialConfig.fieldComp` through the chain + APO + Bridge + a "Headphone Target" selector on the Settings→Spatial card. Tested. CI-green.
-- [ ] **Room simulation / speaker virtualization** (cinematic)
-- [ ] **Binaural speaker emulation** (Waves NX / Dolby Headphone style)
+- [x] **Room simulation / speaker virtualization** (cinematic) — `RoomSimulator` early-reflection network (6 irregular taps, cross-fed L↔R for width) for out-of-head depth; `SpatialConfig.room` through the chain + APO + Bridge + a "Room" slider on the Settings→Spatial card (Cinematic mode sets it to 40%). Tested. CI-green.
+- [x] **Binaural speaker emulation** (Waves NX / Dolby Headphone style) — the Cinematic spatial mode now combines `VirtualSurround` (measured-KEMAR HRTF virtualisation) + `RoomSimulator` (early reflections) + advanced crossfeed, i.e. virtual speakers in a room. (Head-*tracked* emulation needs a head-tracker sensor — out of scope without hardware.)
 
 ### Phase 18 — Sound Lab Pro + Personalization  `[ ]`
 - [ ] **Pro measurement tools** in Sound Lab — frequency-response analysis, channel matching

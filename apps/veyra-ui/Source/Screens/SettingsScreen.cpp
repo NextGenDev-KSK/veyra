@@ -403,6 +403,12 @@ public:
         field_.setSelectedIndex(0, false);
         field_.onChange = [this](int i) { spatial_.fieldComp = juce::jlimit(0, 2, i); emit(); };
         addAndMakeVisible(field_);
+
+        room_.setSliderStyle(juce::Slider::LinearHorizontal);
+        room_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        room_.setRange(0.0, 1.0, 0.01);
+        room_.onValueChange = [this] { spatial_.room = (float) room_.getValue(); emit(); };
+        addAndMakeVisible(room_);
     }
 
     std::function<void(const veyra::SpatialConfig&)> onSpatialChanged;
@@ -423,6 +429,7 @@ public:
         cf_.setValue(s.crossfeed, juce::dontSendNotification);
         vs_.setValue(s.virtualization, juce::dontSendNotification);
         field_.setSelectedIndex(juce::jlimit(0, 2, s.fieldComp), false);
+        room_.setValue(s.room, juce::dontSendNotification);
         repaint();
     }
 
@@ -440,6 +447,10 @@ public:
         vrow.removeFromRight(52);
         vs_.setBounds(vrow.withSizeKeepingCentre(vrow.getWidth(), 18));
         field_.setBounds(fieldRow());
+        auto rr = roomRow();
+        rr.removeFromLeft(110);
+        rr.removeFromRight(52);
+        room_.setBounds(rr.withSizeKeepingCentre(rr.getWidth(), 18));
     }
 
 protected:
@@ -473,6 +484,16 @@ protected:
         g.setColour(palette_.textSecondary);
         g.setFont(fonts::body(13.0f));
         g.drawText("Headphone Target", fieldLabelRow(), juce::Justification::centredLeft, false);
+
+        auto rr = roomRow();
+        g.setColour(spatial_.enabled ? palette_.textSecondary : palette_.textTertiary);
+        g.setFont(fonts::body(13.0f));
+        g.drawText("Room", rr.removeFromLeft(110).withTrimmedRight(8),
+                   juce::Justification::centredLeft, false);
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::mono(12.0f));
+        g.drawText(juce::String(juce::roundToInt(room_.getValue() * 100.0)) + "%",
+                   rr.removeFromRight(52), juce::Justification::centredRight, false);
     }
 
 private:
@@ -506,16 +527,23 @@ private:
         c.removeFromTop(28 + 8 + 34 + 12 + 36 + 10 + 36 + 12 + 16 + 4);
         return c.removeFromTop(30);
     }
+    juce::Rectangle<int> roomRow() const
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        c.removeFromTop(28 + 8 + 34 + 12 + 36 + 10 + 36 + 12 + 16 + 4 + 30 + 12);
+        return c.removeFromTop(36);
+    }
 
     void applyMode(int i)
     {
         spatial_.mode = i;
-        if (i == 1)      { spatial_.enabled = true;  spatial_.crossfeed = 0.55f; spatial_.virtualization = 0.70f; } // Cinematic
-        else if (i == 2) { spatial_.enabled = true;  spatial_.crossfeed = 0.25f; spatial_.virtualization = 0.0f;  } // Competitive
-        else             { spatial_.enabled = false; spatial_.crossfeed = 0.0f;  spatial_.virtualization = 0.0f;  } // Off
+        if (i == 1)      { spatial_.enabled = true;  spatial_.crossfeed = 0.55f; spatial_.virtualization = 0.70f; spatial_.room = 0.40f; } // Cinematic
+        else if (i == 2) { spatial_.enabled = true;  spatial_.crossfeed = 0.25f; spatial_.virtualization = 0.0f;  spatial_.room = 0.0f;  } // Competitive
+        else             { spatial_.enabled = false; spatial_.crossfeed = 0.0f;  spatial_.virtualization = 0.0f;  spatial_.room = 0.0f;  } // Off
         enable_.setToggleState(spatial_.enabled, juce::dontSendNotification);
         cf_.setValue(spatial_.crossfeed, juce::dontSendNotification);
         vs_.setValue(spatial_.virtualization, juce::dontSendNotification);
+        room_.setValue(spatial_.room, juce::dontSendNotification);
         emit();
     }
 
@@ -534,6 +562,7 @@ private:
     juce::Slider         cf_;
     juce::Slider         vs_;
     SegmentedControl     field_;
+    juce::Slider         room_;
 };
 
 // ---------------------------------------------------------------------------

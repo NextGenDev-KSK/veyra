@@ -44,6 +44,7 @@ inline dsp::DspParameters dspParamsFromConfig(const Config& c)
     p.crossfeedAmount      = c.spatial.enabled ? c.spatial.crossfeed : 0.0f;
     p.virtualizationAmount = c.spatial.enabled ? c.spatial.virtualization : 0.0f;
     p.fieldComp            = c.spatial.enabled ? c.spatial.fieldComp : 0;
+    p.roomAmount           = c.spatial.enabled ? c.spatial.room : 0.0f;
     p.nightModeAmount      = c.loudness.nightModeAmount;
     p.loudnessMatch        = c.loudness.loudnessMatch;
     p.loudnessTargetLufs   = c.loudness.targetLufs;

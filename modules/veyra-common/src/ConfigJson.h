@@ -80,6 +80,7 @@ inline void to_json(nlohmann::json& j, const SpatialConfig& s)
         {"virtualization", s.virtualization},
         {"mode",           s.mode},
         {"field_comp",     s.fieldComp},
+        {"room",           s.room},
     };
 }
 
@@ -92,6 +93,7 @@ inline void from_json(const nlohmann::json& j, SpatialConfig& s)
     s.virtualization = j.value("virtualization", s.virtualization);
     s.mode           = j.value("mode", s.mode);
     s.fieldComp      = j.value("field_comp", s.fieldComp);
+    s.room           = j.value("room", s.room);
 }
 
 inline void to_json(nlohmann::json& j, const VoiceConfig& v)
