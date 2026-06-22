@@ -38,6 +38,10 @@ struct Preset {
 // The curated set shipped with the app (stable UUIDs, in display order).
 const std::vector<Preset>& builtInPresets();
 
+// First-run recommendation: a built-in preset uuid for an output's form factor
+// (e.g. "Headphones", "HDMI", "Speakers"). Always returns a valid built-in uuid.
+std::string recommendedPresetForOutput(const std::string& formFactor);
+
 // Serialise / parse a list of presets as a JSON array (used over IPC).
 std::string         presetsToJsonArray(const std::vector<Preset>& presets);
 std::vector<Preset> presetsFromJsonArray(const std::string& text);

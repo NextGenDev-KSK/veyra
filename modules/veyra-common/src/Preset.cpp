@@ -1,5 +1,6 @@
 #include "veyra/Preset.h"
 
+#include <cctype>
 #include <fstream>
 #include <sstream>
 #include <system_error>
@@ -141,6 +142,18 @@ std::vector<Preset> presetsFromJsonArray(const std::string& text)
             if (auto p = Preset::fromJson(e.dump()))
                 out.push_back(std::move(*p));
     return out;
+}
+
+std::string recommendedPresetForOutput(const std::string& formFactor)
+{
+    std::string f;
+    for (char c : formFactor) f += (char) std::tolower((unsigned char) c);
+    if (f.find("headphone") != std::string::npos || f.find("headset") != std::string::npos)
+        return "v-audiophile-reference"; // clean reference tuning for headphones
+    if (f.find("hdmi") != std::string::npos || f.find("digital") != std::string::npos
+        || f.find("spdif") != std::string::npos)
+        return "v-movie-surround"; // TV / receiver -> cinematic
+    return "v-studio-flat";        // speakers / unknown -> neutral
 }
 
 const std::vector<Preset>& builtInPresets()

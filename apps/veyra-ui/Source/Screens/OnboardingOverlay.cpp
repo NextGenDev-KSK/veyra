@@ -18,7 +18,9 @@ const Step kStepContent[] = {
      "with the Audio Bridge. No driver required."},
     {"Quick keys",
      "Global hotkeys: Ctrl+Alt+M mute, Ctrl+Alt+Up/Down volume, "
-     "Ctrl+Alt+Left/Right cycle presets, Ctrl+Alt+N mini mode. You're all set."},
+     "Ctrl+Alt+Left/Right cycle presets, Ctrl+Alt+N mini mode."},
+    {"Your setup",
+     "Detecting your devices…"}, // body replaced by setDetectedSetup()
 };
 } // namespace
 
@@ -38,6 +40,12 @@ void OnboardingOverlay::setPalette(const Palette& p)
 {
     // The TextButtons are themed by the global VeyraLookAndFeel; just repaint.
     palette_ = p;
+    repaint();
+}
+
+void OnboardingOverlay::setDetectedSetup(juce::String body)
+{
+    setupBody_ = std::move(body);
     repaint();
 }
 
@@ -107,7 +115,9 @@ void OnboardingOverlay::paint(juce::Graphics& g)
 
     g.setColour(palette_.textSecondary);
     g.setFont(fonts::body(15.0f));
-    g.drawFittedText(kStepContent[step_].body, inner, juce::Justification::topLeft, 5);
+    const juce::String body = (step_ == kSteps - 1 && setupBody_.isNotEmpty())
+                                  ? setupBody_ : juce::String(kStepContent[step_].body);
+    g.drawFittedText(body, inner, juce::Justification::topLeft, 6);
 
     // Step dots.
     const float dy = card.getBottom() - 30.0f;

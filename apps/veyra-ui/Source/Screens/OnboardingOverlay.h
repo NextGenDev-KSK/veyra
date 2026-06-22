@@ -16,6 +16,7 @@ public:
     OnboardingOverlay();
 
     void setPalette(const Palette& p);
+    void setDetectedSetup(juce::String body); // fills the "Your setup" step
     std::function<void()> onFinished;
 
     void paint(juce::Graphics&) override;
@@ -26,9 +27,10 @@ private:
     void finish();
     juce::Rectangle<int> cardBounds() const;
 
-    static constexpr int kSteps = 4;
-    int     step_ = 0;
-    Palette palette_ = paletteForTheme("midnight");
+    static constexpr int kSteps = 5;
+    int          step_ = 0;
+    juce::String setupBody_;
+    Palette      palette_ = paletteForTheme("midnight");
 
     juce::TextButton back_{"Back"}, next_{"Next"}, skip_{"Skip"};
 };

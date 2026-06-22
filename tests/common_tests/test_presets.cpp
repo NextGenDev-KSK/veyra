@@ -84,3 +84,21 @@ TEST_CASE("Built-in presets are present, identifiable and unique")
         CHECK(rt->uuid == p.uuid);
     }
 }
+
+TEST_CASE("recommendedPresetForOutput maps form factor to a real built-in")
+{
+    CHECK(recommendedPresetForOutput("Headphones") == "v-audiophile-reference");
+    CHECK(recommendedPresetForOutput("Headset") == "v-audiophile-reference");
+    CHECK(recommendedPresetForOutput("HDMI") == "v-movie-surround");
+    CHECK(recommendedPresetForOutput("Speakers") == "v-studio-flat");
+    CHECK(recommendedPresetForOutput("") == "v-studio-flat");
+
+    // Every recommendation must be a real built-in uuid.
+    const auto& presets = builtInPresets();
+    for (const char* ff : {"Headphones", "HDMI", "Speakers", "Line", ""})
+    {
+        const auto uuid = recommendedPresetForOutput(ff);
+        CHECK(std::any_of(presets.begin(), presets.end(),
+                          [&](const Preset& p) { return p.uuid == uuid; }));
+    }
+}

@@ -1,5 +1,7 @@
 #include "RootComponent.h"
 
+#include "AudioDevices.h"
+
 #include "veyra/CrashReport.h"
 #include "veyra/Paths.h"
 #include "veyra/Preset.h"
@@ -75,13 +77,38 @@ RootComponent::RootComponent()
 
     // First-run onboarding overlay (on top; shown until finished/skipped).
     addAndMakeVisible(onboarding_);
-    onboarding_.onFinished = [this]
+    onboarding_.setVisible(!working_.onboardingComplete);
+
+    // Auto-detect the default devices + recommend a preset for the first run.
+    std::string recommended;
+    if (!working_.onboardingComplete)
+    {
+        juce::String outName = "(none)", outType, inName = "(none)";
+        for (const auto& d : listRenderEndpoints())
+            if (d.isDefault) { outName = d.name; outType = d.type; }
+        for (const auto& d : listCaptureEndpoints())
+            if (d.isDefault) inName = d.name;
+
+        recommended = veyra::recommendedPresetForOutput(outType.toStdString());
+        juce::String recName = "Studio Flat";
+        for (const auto& p : client_.presets())
+            if (p.uuid == recommended) recName = juce::String(p.name);
+
+        onboarding_.setDetectedSetup(
+            "Output:  " + outName + (outType.isNotEmpty() ? " (" + outType + ")" : juce::String()) + "\n"
+            + "Microphone:  " + inName + "\n\n"
+            + "Recommended preset:  " + recName + "\n"
+            + "We'll apply it when you finish — change it anytime in Presets.");
+    }
+
+    onboarding_.onFinished = [this, recommended]
     {
         working_.onboardingComplete = true;
+        if (!recommended.empty())
+            client_.loadPreset(recommended); // apply the recommended preset
         pushConfig();
         onboarding_.setVisible(false);
     };
-    onboarding_.setVisible(!working_.onboardingComplete);
 
     // Home "More Effects" tile -> effects rack overview; back returns Home.
     home_.onMoreEffects = [this]
