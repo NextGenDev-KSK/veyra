@@ -109,9 +109,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 - [x] **Hearing-test-based EQ personalization** — correction algorithm (`personalizeFromHearingTest`, audiology half-gain rule, tested) **+ the interactive capture wizard** in Sound Lab: a "Personalize EQ" flow steps 250 Hz→8 kHz, the listener lowers each tone to threshold, and a calibration-free self-relative profile (each band vs the most-sensitive one) feeds the algorithm; the resulting parametric bands are applied as the EQ (reflected on Home). CI-green.
 
 ### Phase 19 — UI / Product Polish + Docs + First-run  `[ ]`
-- [ ] **Home** pixel-perfect alignment vs reference
-- [ ] **Eliminate dead space** across Presets / Devices / Apps / Gamer Mode / Sound Lab
-- [ ] **GPU/OpenGL visualizer** rendering (replace 2D)
+- [~] **Home** pixel-perfect alignment vs reference — needs a runtime screenshot pass to compare against `Reference theme/` (can't be verified headless).
+- [~] **Eliminate dead space** across Presets / Devices / Apps / Gamer Mode / Sound Lab — Devices reworked (scrollable grid + fixed Bridge); the rest is a runtime visual pass.
+- [x] **GPU/OpenGL visualizer** rendering — `juce::juce_opengl` linked; an `OpenGLContext` attaches to the RootComponent so the whole UI incl. the visualizer composites on the GPU, gated by the Hardware Acceleration setting (clean detach to the 2D path when off). CI-green (compile/link); visual result confirmed at runtime on hardware.
 - [~] **Docs** — per-feature `docs/USER_GUIDE.md` + ARCHITECTURE/BUILD_GUIDE/VERIFY/TRANSLATIONS/FEATURE_COVERAGE. Screenshots + demo videos still need a runtime capture pass.
 - [x] **Polished first-run** — onboarding's "Your setup" step detects the default output (form factor) + mic and applies a recommended preset (`recommendedPresetForOutput`, tested) on finish.
 
