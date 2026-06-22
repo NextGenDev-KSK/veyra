@@ -72,9 +72,10 @@ protected:
             {"Stereo Width", "Mid/side widening",                 pctText(e.stereoWidth), std::fabs(e.stereoWidth - 1.0f) > 0.01f, false},
             {"Volume Gain",  "Pre-amp / make-up gain",            pctText(e.volumeGain),  std::fabs(e.volumeGain - 1.0f) > 0.01f, false},
             {"Crossfeed",    "Headphone spatialisation",          pctText(cfg_.spatial.crossfeed), cfg_.spatial.enabled && cfg_.spatial.crossfeed > 0.01f, false},
+            {"Equal Loudness", "Low-volume tonal compensation",   cfg_.loudness.equalLoudness ? juce::String("On") : juce::String("Off"), cfg_.loudness.equalLoudness, false},
             {"Night Mode",   "Late-night loudness compression",   pctText(cfg_.loudness.nightModeAmount), cfg_.loudness.nightModeAmount > 0.01f, false},
-            {"Reverb",       "Room / ambience",                   "Coming soon",        false, true},
-            {"Limiter",      "True-peak output protection",       "Always on",          true,  false},
+            {"Reverb",       "Room / ambience",                   pctText(e.reverbAmount), e.reverbAmount > 0.01f, false},
+            {"Limiter",      "True-peak (4x oversampled) ceiling", "Always on",         true,  false},
         };
 
         const int rowH = 44;
