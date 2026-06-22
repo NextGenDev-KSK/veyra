@@ -37,6 +37,7 @@ inline dsp::DspParameters dspParamsFromConfig(const Config& c)
     p.nightModeAmount      = c.loudness.nightModeAmount;
     p.loudnessMatch        = c.loudness.loudnessMatch;
     p.loudnessTargetLufs   = c.loudness.targetLufs;
+    p.equalLoudness        = c.loudness.equalLoudness;
     p.limiterCeilingDb  = -0.3f;
     return p;
 }

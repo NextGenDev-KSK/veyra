@@ -16,6 +16,7 @@
 #include "enhancers/ToneControls.h"
 #include "eq/GraphicEq.h"
 #include "eq/ParametricEq.h"
+#include "loudness/EqualLoudness.h"
 #include "loudness/LoudnessNormalizer.h"
 #include "loudness/NightMode.h"
 #include "spatial/Crossfeed.h"
@@ -36,6 +37,7 @@ public:
         tone_.prepare(sampleRate);
         stereo_.prepare(sampleRate);
         comp_.prepare(sampleRate);
+        equalLoudness_.prepare(sampleRate);
         reverb_.prepare(sampleRate);
         crossfeed_.prepare(sampleRate);
         surround_.setHrtfDirectory(hrtfDir_);
@@ -79,6 +81,8 @@ public:
         crossfeed_.setAmount(p.crossfeedAmount);
         surround_.setAmount(p.virtualizationAmount);
         nightMode_.setAmount(p.nightModeAmount);
+        equalLoudness_.setEnabled(p.equalLoudness);
+        equalLoudness_.setReference(p.volumeGain);
         normalizer_.setEnabled(p.loudnessMatch);
         normalizer_.setTargetLufs(p.loudnessTargetLufs);
         volume_.setTarget(p.volumeGain);
@@ -100,6 +104,7 @@ public:
             eq_.processStereo(left, right, numSamples);
         tone_.processStereo(left, right, numSamples);
         comp_.processStereo(left, right, numSamples);
+        equalLoudness_.processStereo(left, right, numSamples); // low-volume tonal compensation
         stereo_.applyWidth(left, right, numSamples);
         reverb_.processStereo(left, right, numSamples);     // ambience (wet/dry)
         surround_.processStereo(left, right, numSamples);  // HRTF virtualisation
@@ -140,6 +145,7 @@ private:
     ToneControls     tone_;
     StereoProcessor  stereo_;
     Compressor       comp_;
+    EqualLoudness    equalLoudness_;
     Reverb           reverb_;
     Crossfeed        crossfeed_;
     VirtualSurround  surround_;

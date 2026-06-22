@@ -53,6 +53,7 @@ void ApoPublisher::publish(const Config& config)
     p.nightModeAmount     = config.loudness.nightModeAmount;
     p.loudnessMatch       = config.loudness.loudnessMatch ? 1u : 0u;
     p.loudnessTargetLufs  = config.loudness.targetLufs;
+    p.equalLoudness       = config.loudness.equalLoudness ? 1u : 0u;
     // Reverb has no DSP stage yet; e.reverbAmount is carried in Config for the UI.
 
     ipc::publishParameters(params_, p);

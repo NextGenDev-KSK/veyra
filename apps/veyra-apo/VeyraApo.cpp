@@ -261,6 +261,7 @@ void VeyraApoEfx::refreshParametersFromShared() noexcept
     dp.nightModeAmount = p.nightModeAmount;
     dp.loudnessMatch = p.loudnessMatch != 0;
     dp.loudnessTargetLufs = p.loudnessTargetLufs;
+    dp.equalLoudness = p.equalLoudness != 0;
     dp.limiterCeilingDb = p.limiterCeilingDb;
     chain_.setParameters(dp);
 }

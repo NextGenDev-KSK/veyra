@@ -27,6 +27,7 @@ struct DspParameters {
     float nightModeAmount = 0.0f;      // 0..1 late-night loudness compression
     bool  loudnessMatch = false;       // EBU R128 loudness-match (auto make-up)
     float loudnessTargetLufs = -14.0f; // target for loudness-match
+    bool  equalLoudness = false;       // ISO-226 low-volume tonal compensation
     float limiterCeilingDb = -0.3f;    // true output ceiling
 };
 

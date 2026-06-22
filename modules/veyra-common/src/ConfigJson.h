@@ -149,6 +149,7 @@ inline void to_json(nlohmann::json& j, const LoudnessConfig& l)
         {"sleep_fade_seconds",  l.sleepFadeSeconds},
         {"loudness_match",      l.loudnessMatch},
         {"target_lufs",         l.targetLufs},
+        {"equal_loudness",      l.equalLoudness},
     };
 }
 
@@ -162,6 +163,7 @@ inline void from_json(const nlohmann::json& j, LoudnessConfig& l)
     l.sleepFadeSeconds  = j.value("sleep_fade_seconds", l.sleepFadeSeconds);
     l.loudnessMatch     = j.value("loudness_match", l.loudnessMatch);
     l.targetLufs        = j.value("target_lufs", l.targetLufs);
+    l.equalLoudness     = j.value("equal_loudness", l.equalLoudness);
 }
 
 inline void to_json(nlohmann::json& j, const OutputRoute& r)

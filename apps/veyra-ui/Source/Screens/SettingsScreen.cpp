@@ -536,6 +536,9 @@ public:
 
         matchEnable_.onClick = [this] { loud_.loudnessMatch = matchEnable_.getToggleState(); emit(); };
         addAndMakeVisible(matchEnable_);
+
+        eqLoud_.onClick = [this] { loud_.equalLoudness = eqLoud_.getToggleState(); emit(); };
+        addAndMakeVisible(eqLoud_);
     }
 
     std::function<void(const veyra::LoudnessConfig&)> onLoudnessChanged;
@@ -545,6 +548,7 @@ public:
         GlassPanel::setPalette(p);
         sleepEnable_.setPalette(p);
         matchEnable_.setPalette(p);
+        eqLoud_.setPalette(p);
     }
 
     void setLoudnessConfig(const veyra::LoudnessConfig& l)
@@ -554,6 +558,7 @@ public:
         sleepEnable_.setToggleState(l.sleepTimerEnabled, juce::dontSendNotification);
         minutes_.setValue(l.sleepTimerMinutes, juce::dontSendNotification);
         matchEnable_.setToggleState(l.loudnessMatch, juce::dontSendNotification);
+        eqLoud_.setToggleState(l.equalLoudness, juce::dontSendNotification);
         repaint();
     }
 
@@ -576,6 +581,9 @@ public:
 
         auto mt = matchRow();
         matchEnable_.setBounds(mt.removeFromRight(40).withSizeKeepingCentre(40, 20));
+
+        auto er = eqLoudRow();
+        eqLoud_.setBounds(er.removeFromRight(40).withSizeKeepingCentre(40, 20));
     }
 
 protected:
@@ -623,6 +631,15 @@ protected:
         g.setFont(fonts::body(11.0f));
         g.drawText("Auto-match to " + juce::String(juce::roundToInt(loud_.targetLufs)) + " LUFS",
                    mt, juce::Justification::topLeft, false);
+
+        // Equal Loudness row.
+        auto er = eqLoudRow();
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::body(14.0f, true));
+        g.drawText("Equal Loudness", er.removeFromTop(20), juce::Justification::topLeft, false);
+        g.setColour(palette_.textTertiary);
+        g.setFont(fonts::body(11.0f));
+        g.drawText("Natural bass + treble at low volume", er, juce::Justification::topLeft, false);
     }
 
 private:
@@ -650,6 +667,12 @@ private:
         c.removeFromTop(28 + 10 + 36 + 14 + 24 + 6 + 36 + 10);
         return c.removeFromTop(36);
     }
+    juce::Rectangle<int> eqLoudRow() const
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        c.removeFromTop(28 + 10 + 36 + 14 + 24 + 6 + 36 + 10 + 36 + 10);
+        return c.removeFromTop(36);
+    }
 
     void emit()
     {
@@ -665,6 +688,7 @@ private:
     ToggleSwitch          sleepEnable_;
     juce::Slider          minutes_;
     ToggleSwitch          matchEnable_;
+    ToggleSwitch          eqLoud_;
 };
 
 // ---------------------------------------------------------------------------
