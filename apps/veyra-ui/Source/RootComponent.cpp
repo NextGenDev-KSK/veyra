@@ -312,15 +312,19 @@ RootComponent::~RootComponent()
     setLookAndFeel(nullptr);
 }
 
-void RootComponent::setHardwareAcceleration(bool on)
+void RootComponent::setHardwareAcceleration(bool /*on*/)
 {
-    if (on == glAttached_)
-        return;
-    if (on)
-        glContext_.attachTo(*this); // GPU-composite the whole UI incl. the visualizer
-    else
+    // OpenGL compositing is DISABLED: attaching a juce::OpenGLContext to the
+    // window blanks the UI (only the acrylic backdrop renders) because GL does
+    // not composite with the Windows-11 DWM acrylic/transparency this app uses.
+    // The "Hardware Acceleration" setting therefore no longer attaches GL; the
+    // proven CPU 2D path is always used. Re-enable only after it's verified to
+    // render correctly against the backdrop on real hardware.
+    if (glAttached_)
+    {
         glContext_.detach();
-    glAttached_ = on;
+        glAttached_ = false;
+    }
 }
 
 void RootComponent::handleHotkey(veyra::HotkeyAction action)

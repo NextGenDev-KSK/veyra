@@ -111,7 +111,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 ### Phase 19 — UI / Product Polish + Docs + First-run  `[ ]`
 - [~] **Home** pixel-perfect alignment vs reference — needs a runtime screenshot pass to compare against `Reference theme/` (can't be verified headless).
 - [~] **Eliminate dead space** across Presets / Devices / Apps / Gamer Mode / Sound Lab — Devices reworked (scrollable grid + fixed Bridge); the rest is a runtime visual pass.
-- [x] **GPU/OpenGL visualizer** rendering — `juce::juce_opengl` linked; an `OpenGLContext` attaches to the RootComponent so the whole UI incl. the visualizer composites on the GPU, gated by the Hardware Acceleration setting (clean detach to the 2D path when off). CI-green (compile/link); visual result confirmed at runtime on hardware.
+- [~] **GPU/OpenGL visualizer** rendering — `juce::juce_opengl` linked + an `OpenGLContext` path built, but **disabled**: at runtime, attaching GL to the window blanks the UI (only the acrylic backdrop paints — GL doesn't composite with the Windows-11 DWM acrylic this app uses). `setHardwareAcceleration` no longer attaches GL; the proven CPU 2D path is always used. Re-enable only after the GL/acrylic compositing is solved (likely needs an opaque GL render target or dropping DWM acrylic when GL is on).
 - [~] **Docs** — per-feature `docs/USER_GUIDE.md` + ARCHITECTURE/BUILD_GUIDE/VERIFY/TRANSLATIONS/FEATURE_COVERAGE. Screenshots + demo videos still need a runtime capture pass.
 - [x] **Polished first-run** — onboarding's "Your setup" step detects the default output (form factor) + mic and applies a recommended preset (`recommendedPresetForOutput`, tested) on finish.
 
