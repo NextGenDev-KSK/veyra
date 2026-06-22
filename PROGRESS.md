@@ -91,7 +91,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 - [ ] **Transient enhancement** (attack/detail)
 - [ ] **Adaptive bass management** (punch without clipping)
 - [ ] **Headphone-safe listening mode** (loudness norm + fatigue reduction)
-- [ ] **Reference Listening Mode** (flat, bypass all coloration)
+- [x] **Reference Listening Mode** — global flat A/B: bypasses all coloration (EQ/tone/dynamics/width/reverb/spatial/loudness), keeps master volume + safety limiter; through Config + APO + Bridge + a Settings→Audio Engine toggle. Tested. CI-green.
 
 ### Phase 17 — Headphone & Spatial Suite  `[ ]`
 - [x] **AutoEQ database** — pick headphone model → auto-load parametric corrections. Parser (`veyra::AutoEq`) for the AutoEq ParametricEQ.txt format + 16 vendored oratory1990 corrections (BinaryData-embedded) + an "AutoEQ" picker on the EQ card. Tested. CI-green. *(1.0 Required)*
