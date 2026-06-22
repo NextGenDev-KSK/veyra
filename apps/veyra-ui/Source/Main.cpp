@@ -73,7 +73,7 @@ static juce::Image taskbarIcon()
 
 class MainWindow : public juce::DocumentWindow {
 public:
-    MainWindow()
+    explicit MainWindow(bool startHidden)
         : juce::DocumentWindow("Veyra Sounds",
                                juce::Colours::transparentBlack, // let the acrylic show
                                juce::DocumentWindow::allButtons)
@@ -84,20 +84,41 @@ public:
         setTitleBarHeight(0);
         setBackgroundColour(juce::Colours::transparentBlack);
         setContentOwned(new veyra::ui::RootComponent(), true);
-        // Fixed canvas (1600x900), like Spotify / SteelSeries Sonar: the layout is
-        // designed around one size, so no resize and no maximise.
+        // Fixed canvas, like Spotify / SteelSeries Sonar: the layout is designed
+        // around one size, so no resize and no maximise.
         setResizable(false, false);
         centreWithSize(1200, 675);
-        setVisible(true);
-
-        if (auto* peer = getPeer())
-            enableAcrylicBackdrop(static_cast<HWND>(peer->getNativeHandle()));
+        // Autostart-minimized: stay hidden (the tray icon is up); the user opens
+        // from the tray. The acrylic backdrop is applied on first show.
+        setVisible(! startHidden);
+        if (! startHidden)
+            applyAcrylic();
     }
 
     void closeButtonPressed() override
     {
         juce::JUCEApplication::getInstance()->systemRequestedQuit();
     }
+
+    void visibilityChanged() override
+    {
+        if (isVisible())
+            applyAcrylic(); // restored from the tray after an autostart-minimized launch
+    }
+
+private:
+    void applyAcrylic()
+    {
+        if (acrylicApplied_)
+            return;
+        if (auto* peer = getPeer())
+        {
+            enableAcrylicBackdrop(static_cast<HWND>(peer->getNativeHandle()));
+            acrylicApplied_ = true;
+        }
+    }
+
+    bool acrylicApplied_ = false;
 };
 
 class VeyraApplication : public juce::JUCEApplication {
@@ -106,10 +127,11 @@ public:
     const juce::String getApplicationVersion() override { return veyra::kVersionString; }
     bool moreThanOneInstanceAllowed() override { return false; }
 
-    void initialise(const juce::String&) override
+    void initialise(const juce::String& commandLine) override
     {
         veyra::ui::fonts::initialise();
-        mainWindow_ = std::make_unique<MainWindow>();
+        const bool startHidden = commandLine.contains("--minimized");
+        mainWindow_ = std::make_unique<MainWindow>(startHidden);
     }
 
     void shutdown() override { mainWindow_ = nullptr; }

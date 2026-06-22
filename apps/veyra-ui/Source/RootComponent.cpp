@@ -250,6 +250,10 @@ RootComponent::RootComponent()
         applyConfig(veyra::Config{}); // restore all defaults across the UI
         pushConfig();                 // persist the reset
     };
+    settings_.onLaunchAtStartup = [this](bool on)
+    { working_.launchAtStartup = on; updateStartupRegistration(); pushConfig(); };
+    settings_.onStartMinimized = [this](bool on)
+    { working_.startMinimized = on; updateStartupRegistration(); pushConfig(); };
 
     applyPalette();
     settings_.setCurrentTheme(themeManager_.currentId());
@@ -260,6 +264,7 @@ RootComponent::RootComponent()
     settings_.setAudioEngineConfig(working_.audioEngine);
     settings_.setReferenceMode(working_.referenceMode);
     settings_.setHeadphoneSafe(working_.headphoneSafe);
+    settings_.setStartupOptions(working_.launchAtStartup, working_.startMinimized);
     settings_.setOversample(working_.nonlinearOversampling);
     settings_.setExciter(working_.enhancement.exciterAmount);
     settings_.setSaturation(working_.enhancement.saturationAmount, working_.enhancement.saturationMode);
@@ -460,6 +465,7 @@ void RootComponent::applyConfig(const veyra::Config& c)
     setHardwareAcceleration(c.audioEngine.hardwareAcceleration);
     settings_.setReferenceMode(c.referenceMode);
     settings_.setHeadphoneSafe(c.headphoneSafe);
+    settings_.setStartupOptions(c.launchAtStartup, c.startMinimized);
     settings_.setOversample(c.nonlinearOversampling);
     settings_.setExciter(c.enhancement.exciterAmount);
     settings_.setSaturation(c.enhancement.saturationAmount, c.enhancement.saturationMode);
@@ -494,6 +500,27 @@ void RootComponent::pushConfig()
 {
     client_.updateConfig(working_);
     updatePresetChip(); // reflect "modified" the moment any control diverges
+}
+
+void RootComponent::updateStartupRegistration()
+{
+    // Run-at-login via the per-user Run key (no admin). Includes --minimized so an
+    // autostarted instance comes up hidden in the tray.
+    const juce::String key =
+        "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\Veyra Sounds";
+    if (working_.launchAtStartup)
+    {
+        const auto exe = juce::File::getSpecialLocation(juce::File::currentExecutableFile)
+                             .getFullPathName();
+        juce::String cmd = "\"" + exe + "\"";
+        if (working_.startMinimized)
+            cmd += " --minimized";
+        juce::WindowsRegistry::setValue(key, cmd);
+    }
+    else
+    {
+        juce::WindowsRegistry::deleteValue(key);
+    }
 }
 
 void RootComponent::updatePresetChip()

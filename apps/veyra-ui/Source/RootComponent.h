@@ -56,7 +56,8 @@ private:
     void applyConfig(const veyra::Config& c);
     void pushConfig();
     void refreshFromService();
-    void updatePresetChip(); // active-preset name + "modified" marker on the chips
+    void updatePresetChip();          // active-preset name + "modified" marker on the chips
+    void updateStartupRegistration(); // write/remove the Windows "run at login" entry
 
     void setMasterEnabled(bool on); // sync top bar + mini, push
     void setMasterVolume(double gain);

@@ -30,7 +30,7 @@ public:
 
         opacity_.setSliderStyle(juce::Slider::LinearHorizontal);
         opacity_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-        opacity_.setRange(0.30, 1.0, 0.01);
+        opacity_.setRange(0.10, 1.0, 0.01);
         opacity_.setValue(0.85, juce::dontSendNotification);
         opacity_.onValueChange = [this] { repaint(); if (onOpacity) onOpacity(opacity_.getValue()); };
         addAndMakeVisible(opacity_);
@@ -787,11 +787,30 @@ public:
                 { if (ok == 1 && onResetSettings) onResetSettings(); }));
         };
         addAndMakeVisible(reset_);
+
+        startup_.onClick  = [this] { if (onLaunchAtStartup) onLaunchAtStartup(startup_.getToggleState()); };
+        startMin_.onClick = [this] { if (onStartMinimized) onStartMinimized(startMin_.getToggleState()); };
+        addAndMakeVisible(startup_);
+        addAndMakeVisible(startMin_);
     }
 
     std::function<void()> onResetSettings;
+    std::function<void(bool)> onLaunchAtStartup, onStartMinimized;
 
-    void setPalette(const Palette& p) override { GlassPanel::setPalette(p); repaint(); }
+    void setPalette(const Palette& p) override
+    {
+        GlassPanel::setPalette(p);
+        startup_.setPalette(p);
+        startMin_.setPalette(p);
+        repaint();
+    }
+
+    void setStartupOptions(bool launch, bool minimized)
+    {
+        startup_.setToggleState(launch, juce::dontSendNotification);
+        startMin_.setToggleState(minimized, juce::dontSendNotification);
+        repaint();
+    }
 
     void setServiceStatus(bool connected, juce::String version)
     {
@@ -807,6 +826,9 @@ public:
         reset_.setBounds(buttons.removeFromBottom(34));
         buttons.removeFromBottom(10);
         openLogs_.setBounds(buttons.removeFromBottom(34));
+
+        startup_.setBounds(startupRow(0).removeFromRight(46).withSizeKeepingCentre(46, 22));
+        startMin_.setBounds(startupRow(1).removeFromRight(46).withSizeKeepingCentre(46, 22));
     }
 
 protected:
@@ -843,11 +865,30 @@ protected:
                    b.removeFromTop(16), juce::Justification::centredLeft, false);
         g.drawText("JUCE  \xc2\xb7  spdlog  \xc2\xb7  nlohmann/json  \xc2\xb7  Catch2  \xc2\xb7  Orbitron/Inter/JetBrains Mono (OFL)",
                    b.removeFromTop(16), juce::Justification::centredLeft, false);
+
+        const char* labels[] = {"Launch at startup", "Start minimized in tray"};
+        for (int i = 0; i < 2; ++i)
+        {
+            auto row = startupRow(i);
+            g.setColour(palette_.textSecondary);
+            g.setFont(fonts::body(13.0f));
+            g.drawText(labels[i], row.withTrimmedRight(56), juce::Justification::centredLeft, false);
+        }
+    }
+
+private:
+    juce::Rectangle<int> startupRow(int i) const
+    {
+        // Two toggle rows under the about text (left column, clear of the buttons).
+        auto c = getLocalBounds().reduced(kPad);
+        c.removeFromRight(170);
+        return {c.getX(), c.getBottom() - 28 - (1 - i) * 36, c.getWidth(), 28};
     }
 
 private:
     static constexpr int kPad = 24;
     juce::TextButton openLogs_, reset_;
+    ToggleSwitch startup_, startMin_;
     bool         connected_ = false;
     juce::String version_;
 };
@@ -1266,6 +1307,8 @@ SettingsScreen::SettingsScreen()
 
     about_ = std::make_unique<AboutCard>();
     about_->onResetSettings = [this] { if (onResetSettings) onResetSettings(); };
+    about_->onLaunchAtStartup = [this](bool on) { if (onLaunchAtStartup) onLaunchAtStartup(on); };
+    about_->onStartMinimized = [this](bool on) { if (onStartMinimized) onStartMinimized(on); };
     addAndMakeVisible(*about_);
 
     setSection(0);
@@ -1388,6 +1431,7 @@ void SettingsScreen::setLoudnessConfig(const veyra::LoudnessConfig& l) { loudnes
 void SettingsScreen::setAudioEngineConfig(const veyra::AudioEngineConfig& e) { audioEngine_->setConfig(e); }
 void SettingsScreen::openSection(int i) { setSection(i); }
 void SettingsScreen::setReferenceMode(bool on) { audioEngine_->setReferenceMode(on); }
+void SettingsScreen::setStartupOptions(bool launch, bool mini) { about_->setStartupOptions(launch, mini); }
 void SettingsScreen::setHeadphoneSafe(bool on) { audioEngine_->setHeadphoneSafe(on); }
 void SettingsScreen::setOversample(bool on) { audioEngine_->setOversample(on); }
 void SettingsScreen::setExciter(float a) { soundQuality_->setExciter(a); }

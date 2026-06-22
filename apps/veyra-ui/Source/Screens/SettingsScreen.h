@@ -59,6 +59,10 @@ public:
     // About: reset all settings to defaults.
     std::function<void()> onResetSettings;
 
+    // Startup behaviour (About card).
+    std::function<void(bool)> onLaunchAtStartup;
+    std::function<void(bool)> onStartMinimized;
+
     // Reflect current state without firing callbacks.
     void setCurrentTheme(const juce::String& id);
     void setAppearance(double opacity, int backgroundMode, bool reduceMotion);
@@ -68,6 +72,7 @@ public:
     void setAudioEngineConfig(const veyra::AudioEngineConfig& engine);
     void setReferenceMode(bool on);
     void setHeadphoneSafe(bool on);
+    void setStartupOptions(bool launchAtStartup, bool startMinimized);
     void setOversample(bool on);
     void setExciter(float amount);
     void setSaturation(float amount, int mode);

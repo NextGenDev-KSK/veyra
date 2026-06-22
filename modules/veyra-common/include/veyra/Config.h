@@ -150,6 +150,8 @@ struct Config {
     bool        appSwitching       = true;  // master enable for per-app rule auto-switching
     bool        referenceMode      = false; // bypass all coloration (flat A/B listening)
     bool        headphoneSafe      = false; // fatigue-reduction high-shelf for long sessions
+    bool        launchAtStartup    = false; // register the UI to run at Windows login
+    bool        startMinimized     = false; // when autostarted, start hidden in the tray
     bool        nonlinearOversampling = false; // 2x oversample the saturator (anti-alias)
     AudioEngineConfig audioEngine;
     EnhancementConfig enhancement;
