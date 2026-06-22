@@ -404,6 +404,9 @@ void RootComponent::refreshFromService()
             presetName = juce::String(p.name);
     mini_->content().setPreset(presetName);
     topBar_.setActivePreset(presetName);
+    devices_.setActivePreset(presetName);
+    devices_.setMasterVolume(working_.masterVolumeGain);
+    devices_.setMicProfile(juce::String(working_.voice.profile));
 }
 
 void RootComponent::saveCurrentAsPreset(const juce::String& name)

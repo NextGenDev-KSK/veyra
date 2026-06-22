@@ -14,9 +14,11 @@ namespace veyra::ui {
 struct OutputDevice {
     std::string  id;        // MMDevice endpoint id (matches config.bridge.*DeviceId)
     juce::String name;      // friendly name for display
+    juce::String type;      // form-factor label (Headphones / Speakers / HDMI / Mic / …)
     bool         isDefault = false;
 };
 
 std::vector<OutputDevice> listRenderEndpoints();
+std::vector<OutputDevice> listCaptureEndpoints();
 
 } // namespace veyra::ui

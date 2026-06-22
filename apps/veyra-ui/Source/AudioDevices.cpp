@@ -21,7 +21,16 @@ std::string wideToUtf8(const wchar_t* w)
 }
 } // namespace
 
-std::vector<OutputDevice> listRenderEndpoints()
+namespace {
+juce::String formFactorLabel(unsigned f)
+{
+    // EndpointFormFactor enum order (mmdeviceapi.h).
+    static const char* k[] = {"Network", "Speakers", "Line", "Headphones", "Mic",
+                              "Headset", "Handset", "Digital", "SPDIF", "HDMI", ""};
+    return f < 11 ? juce::String(k[f]) : juce::String();
+}
+
+std::vector<OutputDevice> enumerate(EDataFlow flow)
 {
     std::vector<OutputDevice> out;
 
@@ -32,7 +41,7 @@ std::vector<OutputDevice> listRenderEndpoints()
                                    __uuidof(IMMDeviceEnumerator), reinterpret_cast<void**>(&en))))
     {
         std::string defaultId;
-        if (IMMDevice* def = nullptr; SUCCEEDED(en->GetDefaultAudioEndpoint(eRender, eConsole, &def)) && def)
+        if (IMMDevice* def = nullptr; SUCCEEDED(en->GetDefaultAudioEndpoint(flow, eConsole, &def)) && def)
         {
             LPWSTR id = nullptr;
             if (SUCCEEDED(def->GetId(&id))) { defaultId = wideToUtf8(id); CoTaskMemFree(id); }
@@ -40,7 +49,7 @@ std::vector<OutputDevice> listRenderEndpoints()
         }
 
         IMMDeviceCollection* coll = nullptr;
-        if (SUCCEEDED(en->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &coll)) && coll)
+        if (SUCCEEDED(en->EnumAudioEndpoints(flow, DEVICE_STATE_ACTIVE, &coll)) && coll)
         {
             UINT count = 0;
             coll->GetCount(&count);
@@ -60,6 +69,11 @@ std::vector<OutputDevice> listRenderEndpoints()
                     if (SUCCEEDED(props->GetValue(PKEY_Device_FriendlyName, &pv)) && pv.vt == VT_LPWSTR)
                         dev.name = juce::String(wideToUtf8(pv.pwszVal));
                     PropVariantClear(&pv);
+
+                    PROPVARIANT ff; PropVariantInit(&ff);
+                    if (SUCCEEDED(props->GetValue(PKEY_AudioEndpoint_FormFactor, &ff)) && ff.vt == VT_UI4)
+                        dev.type = formFactorLabel(ff.uintVal);
+                    PropVariantClear(&ff);
                     props->Release();
                 }
                 if (dev.name.isEmpty())
@@ -77,5 +91,9 @@ std::vector<OutputDevice> listRenderEndpoints()
         CoUninitialize();
     return out;
 }
+} // namespace
+
+std::vector<OutputDevice> listRenderEndpoints()  { return enumerate(eRender); }
+std::vector<OutputDevice> listCaptureEndpoints() { return enumerate(eCapture); }
 
 } // namespace veyra::ui
