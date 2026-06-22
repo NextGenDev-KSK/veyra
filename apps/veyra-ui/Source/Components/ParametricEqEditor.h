@@ -22,6 +22,7 @@ public:
 
     void setPalette(const Palette& p) { palette_ = p; repaint(); }
     void setBands(std::vector<veyra::ParametricBand> bands);
+    void setSpectrum(const float* bars, int n); // live FFT underlay (log-spaced bars)
     const std::vector<veyra::ParametricBand>& bands() const { return bands_; }
 
     std::function<void(const std::vector<veyra::ParametricBand>&)> onChanged;
@@ -50,6 +51,7 @@ private:
 
     Palette palette_ = paletteForTheme("midnight");
     std::vector<veyra::ParametricBand> bands_;
+    std::vector<float> spectrum_; // live FFT underlay
     int dragging_ = -1;
     int selected_ = -1;
     int hovered_  = -1;

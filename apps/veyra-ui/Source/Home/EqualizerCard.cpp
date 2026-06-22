@@ -109,6 +109,12 @@ void EqualizerCard::setParametricBands(std::vector<veyra::ParametricBand> bands)
     paramEditor_->setBands(std::move(bands));
 }
 
+void EqualizerCard::setSpectrum(const float* bars, int n)
+{
+    // The editor is only visible in parametric mode, so this only repaints there.
+    paramEditor_->setSpectrum(bars, n);
+}
+
 void EqualizerCard::resized()
 {
     auto content = getLocalBounds().reduced(24);

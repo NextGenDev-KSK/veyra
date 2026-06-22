@@ -40,6 +40,7 @@ public:
     float bandGain(int index) const;
     void setMode(bool parametric); // reflect graphic/parametric, no callback
     void setParametricBands(std::vector<veyra::ParametricBand> bands);
+    void setSpectrum(const float* bars, int n); // live FFT underlay for the curve
 
     static constexpr int kBands = 10;
 

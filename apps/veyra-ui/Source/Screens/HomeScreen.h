@@ -48,6 +48,9 @@ public:
                              float vuL, float vuR, float peakL, float peakR, bool clip)
     {
         viz_.setLiveFrame(bars, n, vuL, vuR, peakL, peakR, clip);
+        // FFT underlay for the EQ curve, throttled to ~20 Hz (the spectrum is a
+        // faint backdrop; full 60 Hz repaint of the curve editor isn't needed).
+        if (++specTick_ >= 3) { specTick_ = 0; eq_.setSpectrum(bars, n); }
     }
 
 private:
@@ -65,6 +68,7 @@ private:
     std::unique_ptr<GlassPanel> moreCard_;
 
     EnhancementConfig enh_;
+    int specTick_ = 0; // throttles the EQ FFT-underlay feed
 };
 
 } // namespace veyra::ui

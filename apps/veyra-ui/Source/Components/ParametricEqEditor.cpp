@@ -46,6 +46,13 @@ void ParametricEqEditor::setBands(std::vector<veyra::ParametricBand> bands)
     repaint();
 }
 
+void ParametricEqEditor::setSpectrum(const float* bars, int n)
+{
+    if (bars == nullptr || n <= 0) { spectrum_.clear(); return; }
+    spectrum_.assign(bars, bars + n);
+    repaint();
+}
+
 float ParametricEqEditor::freqToX(float f) const
 {
     const float t = std::log(juce::jlimit(kFMin, kFMax, f) / kFMin) / std::log(kFMax / kFMin);
@@ -91,6 +98,22 @@ void ParametricEqEditor::paint(juce::Graphics& g)
     auto r = getLocalBounds().toFloat();
     g.setColour(palette_.bgInput.withAlpha(0.35f));
     g.fillRoundedRectangle(r, 10.0f);
+
+    // Live FFT underlay behind the curve. The analyzer bars are already
+    // log-spaced (geometric in FFT-bin index), matching this editor's
+    // log-frequency x-axis, so a direct index->x mapping lines up.
+    if (! spectrum_.empty())
+    {
+        const int n = (int) spectrum_.size();
+        const float bw = r.getWidth() / (float) n;
+        g.setColour(palette_.accentSecondary.withAlpha(0.16f));
+        for (int i = 0; i < n; ++i)
+        {
+            const float bh = juce::jlimit(0.0f, 1.0f, spectrum_[(size_t) i]) * r.getHeight();
+            if (bh > 0.5f)
+                g.fillRect((float) i * bw, r.getHeight() - bh, bw + 1.0f, bh);
+        }
+    }
 
     // Grid: 0 dB line + a few freq guides.
     g.setColour(palette_.strokeHover.withAlpha(0.5f));
