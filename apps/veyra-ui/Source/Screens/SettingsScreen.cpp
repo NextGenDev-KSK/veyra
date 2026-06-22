@@ -783,11 +783,15 @@ private:
 class SettingsScreen::AudioEngineCard : public GlassPanel {
 public:
     std::function<void(const veyra::AudioEngineConfig&)> onChanged;
+    std::function<void(bool)> onReferenceModeChanged;
 
     AudioEngineCard()
     {
         hwAccel_.onClick = [this] { cfg_.hardwareAcceleration = hwAccel_.getToggleState(); emit(); };
         addAndMakeVisible(hwAccel_);
+        reference_.onClick = [this]
+        { if (onReferenceModeChanged) onReferenceModeChanged(reference_.getToggleState()); };
+        addAndMakeVisible(reference_);
         lowLatency_.onClick = [this]
         { cfg_.latencyMode = lowLatency_.getToggleState() ? "UltraLow" : "Standard"; emit(); };
         addAndMakeVisible(lowLatency_);
@@ -808,7 +812,14 @@ public:
         GlassPanel::setPalette(p);
         hwAccel_.setPalette(p);
         lowLatency_.setPalette(p);
+        reference_.setPalette(p);
         rate_.setPalette(p);
+    }
+
+    void setReferenceMode(bool on)
+    {
+        reference_.setToggleState(on, juce::dontSendNotification);
+        repaint();
     }
 
     void setConfig(const veyra::AudioEngineConfig& e)
@@ -839,6 +850,9 @@ public:
         c.removeFromTop(18);
         c.removeFromTop(18);                 // "Buffer Size" label
         buffer_.setBounds(c.removeFromTop(24));
+        c.removeFromTop(16);
+        auto tr = c.removeFromTop(28);
+        reference_.setBounds(tr.removeFromRight(46).withSizeKeepingCentre(46, 22));
     }
 
 protected:
@@ -873,6 +887,18 @@ protected:
         g.setColour(palette_.textTertiary);
         g.setFont(fonts::mono(11.0f));
         g.drawText(juce::String(cfg_.bufferSize) + " smp", bl, juce::Justification::centredRight, false);
+
+        c.removeFromTop(24); // buffer slider
+        c.removeFromTop(16);
+        auto rr = c.removeFromTop(28);
+        g.setColour(palette_.textSecondary);
+        g.setFont(fonts::body(13.0f));
+        g.drawText("Reference Mode", rr.removeFromLeft(rr.getWidth() - 56),
+                   juce::Justification::centredLeft, false);
+        g.setColour(palette_.textTertiary);
+        g.setFont(fonts::body(11.0f));
+        g.drawText("Bypass all coloration — flat A/B", c.removeFromTop(16),
+                   juce::Justification::topLeft, false);
     }
 
 private:
@@ -881,7 +907,7 @@ private:
     static constexpr int kRates[4] = {44100, 48000, 96000, 192000};
 
     veyra::AudioEngineConfig cfg_;
-    ToggleSwitch     hwAccel_, lowLatency_;
+    ToggleSwitch     hwAccel_, lowLatency_, reference_;
     SegmentedControl rate_;
     juce::Slider     buffer_;
 };
@@ -950,6 +976,7 @@ SettingsScreen::SettingsScreen()
 
     audioEngine_ = std::make_unique<AudioEngineCard>();
     audioEngine_->onChanged = [this](const veyra::AudioEngineConfig& e) { if (onAudioEngineChanged) onAudioEngineChanged(e); };
+    audioEngine_->onReferenceModeChanged = [this](bool on) { if (onReferenceModeChanged) onReferenceModeChanged(on); };
     addAndMakeVisible(*audioEngine_);
 
     microphone_ = std::make_unique<MicrophoneCard>();
@@ -1086,6 +1113,7 @@ void SettingsScreen::setMicConfig(const veyra::VoiceConfig& v) { microphone_->se
 void SettingsScreen::setSpatialConfig(const veyra::SpatialConfig& s) { spatial_->setSpatialConfig(s); }
 void SettingsScreen::setLoudnessConfig(const veyra::LoudnessConfig& l) { loudness_->setLoudnessConfig(l); }
 void SettingsScreen::setAudioEngineConfig(const veyra::AudioEngineConfig& e) { audioEngine_->setConfig(e); }
+void SettingsScreen::setReferenceMode(bool on) { audioEngine_->setReferenceMode(on); }
 void SettingsScreen::setServiceStatus(bool connected, juce::String version)
 {
     about_->setServiceStatus(connected, std::move(version));

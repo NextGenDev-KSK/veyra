@@ -53,6 +53,7 @@ public:
     void setParameters(const DspParameters& p) noexcept
     {
         bypass_ = p.bypass;
+        referenceMode_ = p.referenceMode;
         parametricMode_ = p.parametricMode;
         for (int b = 0; b < GraphicEq::kNumBands; ++b)
             eq_.setBandGainDb(b, p.eqBandsDb[static_cast<size_t>(b)]);
@@ -97,19 +98,25 @@ public:
             return;
         }
 
-        stereo_.applyMonoBalance(left, right, numSamples);
-        if (parametricMode_)
-            parametric_.processStereo(left, right, numSamples);
-        else
-            eq_.processStereo(left, right, numSamples);
-        tone_.processStereo(left, right, numSamples);
-        comp_.processStereo(left, right, numSamples);
-        equalLoudness_.processStereo(left, right, numSamples); // low-volume tonal compensation
-        stereo_.applyWidth(left, right, numSamples);
-        reverb_.processStereo(left, right, numSamples);     // ambience (wet/dry)
-        surround_.processStereo(left, right, numSamples);  // HRTF virtualisation
-        crossfeed_.processStereo(left, right, numSamples);  // headphone crossfeed
-        nightMode_.processStereo(left, right, numSamples);  // late-night loudness
+        // Reference mode: bypass all coloration (EQ, tone, dynamics, spatial,
+        // loudness) and pass the program straight to master volume + the safety
+        // limiter, for a flat A/B against the processed sound.
+        if (!referenceMode_)
+        {
+            stereo_.applyMonoBalance(left, right, numSamples);
+            if (parametricMode_)
+                parametric_.processStereo(left, right, numSamples);
+            else
+                eq_.processStereo(left, right, numSamples);
+            tone_.processStereo(left, right, numSamples);
+            comp_.processStereo(left, right, numSamples);
+            equalLoudness_.processStereo(left, right, numSamples); // low-volume tonal compensation
+            stereo_.applyWidth(left, right, numSamples);
+            reverb_.processStereo(left, right, numSamples);     // ambience (wet/dry)
+            surround_.processStereo(left, right, numSamples);  // HRTF virtualisation
+            crossfeed_.processStereo(left, right, numSamples);  // headphone crossfeed
+            nightMode_.processStereo(left, right, numSamples);  // late-night loudness
+        }
 
         for (int i = 0; i < numSamples; ++i)
         {
@@ -118,7 +125,8 @@ public:
             right[i] *= g;
         }
 
-        normalizer_.processStereo(left, right, numSamples); // EBU R128 loudness match
+        if (!referenceMode_)
+            normalizer_.processStereo(left, right, numSamples); // EBU R128 loudness match
         limiter_.processStereo(left, right, numSamples);
         analyzer_.processStereo(left, right, numSamples);
     }
@@ -137,6 +145,7 @@ public:
 
 private:
     bool bypass_ = false;
+    bool referenceMode_ = false;
     bool parametricMode_ = false;
     bool explicitParametric_ = false;
     std::filesystem::path hrtfDir_;

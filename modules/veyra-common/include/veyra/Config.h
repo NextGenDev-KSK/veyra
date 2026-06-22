@@ -140,6 +140,7 @@ struct Config {
     bool        telemetryOptIn     = false;
     bool        onboardingComplete = false; // first-run wizard shown + dismissed
     bool        appSwitching       = true;  // master enable for per-app rule auto-switching
+    bool        referenceMode      = false; // bypass all coloration (flat A/B listening)
     AudioEngineConfig audioEngine;
     EnhancementConfig enhancement;
     VoiceConfig       voice;

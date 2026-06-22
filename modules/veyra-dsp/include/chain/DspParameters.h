@@ -28,6 +28,7 @@ struct DspParameters {
     bool  loudnessMatch = false;       // EBU R128 loudness-match (auto make-up)
     float loudnessTargetLufs = -14.0f; // target for loudness-match
     bool  equalLoudness = false;       // ISO-226 low-volume tonal compensation
+    bool  referenceMode = false;       // bypass all coloration (flat A/B)
     float limiterCeilingDb = -0.3f;    // true output ceiling
 };
 

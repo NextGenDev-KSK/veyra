@@ -35,6 +35,7 @@ struct VeyraParamsPayload {
     uint32_t loudnessMatch = 0;
     float    loudnessTargetLufs = -14.0f;
     uint32_t equalLoudness = 0;
+    uint32_t referenceMode = 0;
     float    limiterCeilingDb = -0.3f;
 };
 

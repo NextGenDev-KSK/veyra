@@ -45,6 +45,7 @@ public:
 
     // Audio Engine interactions.
     std::function<void(const veyra::AudioEngineConfig&)> onAudioEngineChanged;
+    std::function<void(bool)> onReferenceModeChanged; // flat A/B listening
 
     // About: reset all settings to defaults.
     std::function<void()> onResetSettings;
@@ -56,6 +57,7 @@ public:
     void setSpatialConfig(const veyra::SpatialConfig& spatial);
     void setLoudnessConfig(const veyra::LoudnessConfig& loud);
     void setAudioEngineConfig(const veyra::AudioEngineConfig& engine);
+    void setReferenceMode(bool on);
     void setServiceStatus(bool connected, juce::String version);
 
 private:

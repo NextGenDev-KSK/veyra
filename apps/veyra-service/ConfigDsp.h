@@ -20,6 +20,7 @@ inline dsp::DspParameters dspParamsFromConfig(const Config& c)
     const auto& e = c.enhancement;
     dsp::DspParameters p;
     p.bypass   = !c.masterEnabled;
+    p.referenceMode = c.referenceMode;
     p.monoMode = false;
     p.balance  = 0.0f;
     for (size_t i = 0; i < e.eqBandsDb.size() && i < p.eqBandsDb.size(); ++i)
