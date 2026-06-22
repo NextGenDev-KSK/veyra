@@ -973,10 +973,11 @@ public:
     std::function<void(float)> onExciterChanged;
     std::function<void(float, int)> onSaturationChanged;
     std::function<void(float)> onMultibandChanged;
+    std::function<void(float)> onTransientChanged;
 
     SoundQualityCard()
     {
-        for (auto* s : {&exciter_, &saturation_, &mbWidth_})
+        for (auto* s : {&exciter_, &saturation_, &mbWidth_, &transient_})
         {
             s->setSliderStyle(juce::Slider::LinearHorizontal);
             s->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
@@ -988,6 +989,8 @@ public:
         saturation_.onValueChange = [this] { emitSaturation(); repaint(); };
         mbWidth_.onValueChange = [this]
         { if (onMultibandChanged) onMultibandChanged((float) mbWidth_.getValue()); repaint(); };
+        transient_.onValueChange = [this]
+        { if (onTransientChanged) onTransientChanged((float) transient_.getValue()); repaint(); };
 
         satMode_.setItems({"Transparent", "Tape", "Tube"});
         satMode_.onChange = [this](int i) { satModeVal_ = juce::jlimit(0, 2, i); emitSaturation(); };
@@ -1005,6 +1008,7 @@ public:
     }
 
     void setMultiband(float a) { mbWidth_.setValue(a, juce::dontSendNotification); repaint(); }
+    void setTransient(float a) { transient_.setValue(a, juce::dontSendNotification); repaint(); }
 
     void setPalette(const Palette& p) override
     {
@@ -1027,6 +1031,9 @@ public:
         c.removeFromTop(16);
         c.removeFromTop(18);                   // multiband width label
         mbWidth_.setBounds(c.removeFromTop(24));
+        c.removeFromTop(16);
+        c.removeFromTop(18);                   // transient label
+        transient_.setBounds(c.removeFromTop(24));
     }
 
 protected:
@@ -1053,6 +1060,9 @@ protected:
         c.removeFromTop(30); // mode segmented control
         c.removeFromTop(16);
         labelRow(g, c.removeFromTop(18), "Multiband Width", mbWidth_.getValue());
+        c.removeFromTop(24); // multiband slider
+        c.removeFromTop(16);
+        labelRow(g, c.removeFromTop(18), "Transient Punch", transient_.getValue());
     }
 
 private:
@@ -1070,7 +1080,7 @@ private:
     }
 
     static constexpr int kPad = 24;
-    juce::Slider     exciter_, saturation_, mbWidth_;
+    juce::Slider     exciter_, saturation_, mbWidth_, transient_;
     SegmentedControl satMode_;
     int satModeVal_ = 0;
 };
@@ -1105,6 +1115,7 @@ SettingsScreen::SettingsScreen()
     soundQuality_->onExciterChanged = [this](float a) { if (onExciterChanged) onExciterChanged(a); };
     soundQuality_->onSaturationChanged = [this](float a, int m) { if (onSaturationChanged) onSaturationChanged(a, m); };
     soundQuality_->onMultibandChanged = [this](float a) { if (onMultibandChanged) onMultibandChanged(a); };
+    soundQuality_->onTransientChanged = [this](float a) { if (onTransientChanged) onTransientChanged(a); };
     addAndMakeVisible(*soundQuality_);
 
     updates_ = std::make_unique<UpdatesCard>();
@@ -1236,6 +1247,7 @@ void SettingsScreen::setReferenceMode(bool on) { audioEngine_->setReferenceMode(
 void SettingsScreen::setExciter(float a) { soundQuality_->setExciter(a); }
 void SettingsScreen::setSaturation(float a, int m) { soundQuality_->setSaturation(a, m); }
 void SettingsScreen::setMultiband(float a) { soundQuality_->setMultiband(a); }
+void SettingsScreen::setTransient(float a) { soundQuality_->setTransient(a); }
 void SettingsScreen::setServiceStatus(bool connected, juce::String version)
 {
     about_->setServiceStatus(connected, std::move(version));

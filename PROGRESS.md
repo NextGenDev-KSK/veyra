@@ -88,7 +88,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 - [x] **Harmonic exciter** — high-band tanh saturation synthesising upper harmonics (presence/air), `EnhancementConfig.exciterAmount` through the chain + APO + Bridge + a new Settings→**Sound Quality** section. Tested. CI-green.
 - [x] **Saturation modes** — transparent (odd) / tape (algebraic) / tube (even, asymmetric) full-band waveshaper with DC blocker, `EnhancementConfig.saturationAmount`+`saturationMode` through the chain + APO + Bridge + the Settings→Sound Quality section. Tested (mode-specific harmonics). CI-green.
 - [x] **Multiband stereo width** — phase-perfect low/high split (~300 Hz): low band collapsed toward mono + high band widened by amount (`EnhancementConfig.multibandWidth`) through the chain + APO + Bridge + the Sound Quality section. Tested (low-side collapse, high-mid preserved). CI-green.
-- [ ] **Transient enhancement** (attack/detail)
+- [x] **Transient enhancement** — fast/slow envelope-difference attack detector applies a fading gain boost on onsets (`EnhancementConfig.transientAmount`) through the chain + APO + Bridge + the Sound Quality section. Tested (attack emphasised over sustain). CI-green.
 - [ ] **Adaptive bass management** (punch without clipping)
 - [ ] **Headphone-safe listening mode** (loudness norm + fatigue reduction)
 - [x] **Reference Listening Mode** — global flat A/B: bypasses all coloration (EQ/tone/dynamics/width/reverb/spatial/loudness), keeps master volume + safety limiter; through Config + APO + Bridge + a Settings→Audio Engine toggle. Tested. CI-green.

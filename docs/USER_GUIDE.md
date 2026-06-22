@@ -73,10 +73,19 @@ side-tone), and **Night Mode**.
 
 ### Settings
 Sub-nav: Appearance (11 themes, opacity, reduce-motion), Audio Engine (sample
-rate / buffer / latency / hardware accel), Microphone, Spatial, Loudness,
-Updates (version + GitHub releases), About (version/build, diagnostics, open
-logs, reset). Language packs live in `resources/lang` (see
-[TRANSLATIONS.md](TRANSLATIONS.md)).
+rate / buffer / latency / hardware accel + **Reference Mode** — a flat A/B that
+bypasses all coloration), Microphone, Spatial, Loudness (Night Mode, Sleep
+Timer, Loudness Match, **Equal Loudness**), **Sound Quality** (Harmonic Exciter,
+Saturation + mode, Multiband Width, Transient Punch), Updates (version + GitHub
+releases), About (version/build, diagnostics, open logs, reset). Language packs
+live in `resources/lang` (see [TRANSLATIONS.md](TRANSLATIONS.md)).
+
+### Sound Quality (advanced)
+Beyond the six Home knobs, Settings → Sound Quality adds: **Harmonic Exciter**
+(high-band tanh harmonics for air/presence), **Saturation** (transparent / tape /
+tube voicings for warmth), **Multiband Width** (mono lows + wider highs), and
+**Transient Punch** (attack emphasis). All are subtle by design and run in both
+the system-wide APO and the no-driver Audio Bridge paths.
 
 ## Mic processing
 RNNoise is the default suppressor (custom expander is the fallback), then noise

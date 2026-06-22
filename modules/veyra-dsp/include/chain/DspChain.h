@@ -19,6 +19,7 @@
 #include "enhancers/Exciter.h"
 #include "enhancers/MultibandWidth.h"
 #include "enhancers/Saturator.h"
+#include "enhancers/TransientShaper.h"
 #include "loudness/EqualLoudness.h"
 #include "loudness/LoudnessNormalizer.h"
 #include "loudness/NightMode.h"
@@ -44,6 +45,7 @@ public:
         exciter_.prepare(sampleRate);
         saturator_.prepare(sampleRate);
         mbWidth_.prepare(sampleRate);
+        transient_.prepare(sampleRate);
         reverb_.prepare(sampleRate);
         crossfeed_.prepare(sampleRate);
         surround_.setHrtfDirectory(hrtfDir_);
@@ -94,6 +96,7 @@ public:
         saturator_.setAmount(p.saturationAmount);
         saturator_.setMode(p.saturationMode);
         mbWidth_.setAmount(p.multibandWidth);
+        transient_.setAmount(p.transientAmount);
         normalizer_.setEnabled(p.loudnessMatch);
         normalizer_.setTargetLufs(p.loudnessTargetLufs);
         volume_.setTarget(p.volumeGain);
@@ -120,6 +123,7 @@ public:
                 eq_.processStereo(left, right, numSamples);
             tone_.processStereo(left, right, numSamples);
             comp_.processStereo(left, right, numSamples);
+            transient_.processStereo(left, right, numSamples);  // attack emphasis
             equalLoudness_.processStereo(left, right, numSamples); // low-volume tonal compensation
             exciter_.processStereo(left, right, numSamples);    // harmonic presence/air
             saturator_.processStereo(left, right, numSamples);  // full-band warmth
@@ -171,6 +175,7 @@ private:
     Exciter          exciter_;
     Saturator        saturator_;
     MultibandWidth   mbWidth_;
+    TransientShaper  transient_;
     Reverb           reverb_;
     Crossfeed        crossfeed_;
     VirtualSurround  surround_;

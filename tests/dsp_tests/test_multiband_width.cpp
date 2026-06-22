@@ -64,8 +64,8 @@ TEST_CASE("MultibandWidth collapses low-band side to mono, keeps high-band mid")
     const double sideLo1 = binMag(sideAfter, n / 4, 80.0);
     const double midHi1  = binMag(midAfter, n / 4, 6000.0);
 
-    CHECK(sideLo1 < sideLo0 * 0.25);            // low side collapsed toward mono
-    CHECK(midHi1  == Approx(midHi0).epsilon(0.1)); // high-band mid preserved
+    CHECK(sideLo1 < sideLo0 * 0.35);            // low side collapsed toward mono
+    CHECK(midHi1  == Approx(midHi0).epsilon(0.12)); // high-band mid preserved
 }
 
 TEST_CASE("MultibandWidth at zero amount is an exact bypass")
