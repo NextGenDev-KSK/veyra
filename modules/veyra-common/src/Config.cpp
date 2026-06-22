@@ -36,6 +36,7 @@ std::string Config::toJson() const
     j["app_switching"]      = appSwitching;
     j["reference_mode"]     = referenceMode;
     j["headphone_safe"]     = headphoneSafe;
+    j["nonlinear_oversampling"] = nonlinearOversampling;
     j["audio_engine"]       = {
         {"sample_rate",   audioEngine.sampleRate},
         {"bit_depth",     audioEngine.bitDepth},
@@ -72,6 +73,7 @@ std::optional<Config> Config::fromJson(const std::string& text)
     c.appSwitching     = j.value("app_switching", c.appSwitching);
     c.referenceMode    = j.value("reference_mode", c.referenceMode);
     c.headphoneSafe    = j.value("headphone_safe", c.headphoneSafe);
+    c.nonlinearOversampling = j.value("nonlinear_oversampling", c.nonlinearOversampling);
 
     if (const auto it = j.find("appearance"); it != j.end() && it->is_object())
     {

@@ -57,6 +57,29 @@ TEST_CASE("Saturator tube mode adds even (2nd) harmonics")
     CHECK(tube.first > clean.first * 4.0);   // far more even harmonics than transparent
 }
 
+TEST_CASE("Saturator 2x oversampling reduces aliasing")
+{
+    // 13 kHz tone, transparent: the 3rd harmonic (39 kHz) folds to 9 kHz at 48 k.
+    auto aliasBin = [](bool oversample)
+    {
+        Saturator s;
+        s.prepare(kFs);
+        s.setMode(0);
+        s.setAmount(0.9f);
+        s.setOversample(oversample);
+        const int n = 16384;
+        std::vector<float> l(n), r(n);
+        for (int i = 0; i < n; ++i)
+            l[(size_t) i] = r[(size_t) i] = 0.6f * (float) std::sin(2.0 * kPi * 13000.0 * i / kFs);
+        s.processStereo(l.data(), r.data(), n);
+        return binMag(l, n / 4, 9000.0);
+    };
+    const double off = aliasBin(false);
+    const double on  = aliasBin(true);
+    CHECK(off > 1.0);        // aliased image present at the original rate
+    CHECK(on < off * 0.7);   // oversampling filters it out before decimation
+}
+
 TEST_CASE("Saturator at zero amount is an exact bypass")
 {
     Saturator s;

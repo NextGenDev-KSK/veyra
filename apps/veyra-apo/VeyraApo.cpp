@@ -270,6 +270,7 @@ void VeyraApoEfx::refreshParametersFromShared() noexcept
     dp.equalLoudness = p.equalLoudness != 0;
     dp.referenceMode = p.referenceMode != 0;
     dp.headphoneSafe = p.headphoneSafe != 0;
+    dp.nonlinearOversampling = p.nonlinearOversampling != 0;
     dp.limiterCeilingDb = p.limiterCeilingDb;
     chain_.setParameters(dp);
 }

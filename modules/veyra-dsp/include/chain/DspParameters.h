@@ -36,6 +36,7 @@ struct DspParameters {
     bool  equalLoudness = false;       // ISO-226 low-volume tonal compensation
     bool  referenceMode = false;       // bypass all coloration (flat A/B)
     bool  headphoneSafe = false;       // fatigue-reduction high-shelf
+    bool  nonlinearOversampling = false; // 2x oversample the saturator
     float limiterCeilingDb = -0.3f;    // true output ceiling
 };
 

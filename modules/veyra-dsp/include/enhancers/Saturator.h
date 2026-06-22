@@ -7,9 +7,17 @@
 // Each curve is normalised so a full-scale input maps to ~full scale, then mixed
 // dry/wet by amount. A DC blocker removes the offset the asymmetric (tube) curve
 // introduces. Header-only, RT-safe, allocation-free. amount 0..1 (0 = bypass).
+//
+// Optional 2x oversampling: the waveshaper is the chain's main alias source — a
+// nonlinearity makes harmonics above Nyquist fold back into the audband. With
+// oversampling on, only the *shaped* signal is run at 2x (linear-interpolated up,
+// shaped, low-passed below Nyquist, decimated) so those harmonics are filtered
+// out instead of aliasing; the dry path stays untouched.
 
 #include <algorithm>
 #include <cmath>
+
+#include "eq/Biquad.h"
 
 namespace veyra::dsp {
 
@@ -17,16 +25,28 @@ class Saturator {
 public:
     void prepare(double sampleRate) noexcept
     {
-        // DC blocker pole (~5 Hz high-pass).
-        const double fc = 5.0;
-        r_ = (float) std::exp(-2.0 * 3.14159265358979323846 * fc / (sampleRate > 0 ? sampleRate : 48000.0));
+        const double fs = sampleRate > 0 ? sampleRate : 48000.0;
+        const double pi = 3.14159265358979323846;
+        r_ = (float) std::exp(-2.0 * pi * 5.0 / fs); // DC blocker pole (~5 Hz)
+        // Anti-alias / decimation low-pass, run in the 2x domain (fs2 = 2*fs),
+        // cutoff just under the original Nyquist.
+        const auto lp = makeLowPass(2.0 * fs, 0.45 * fs, 0.707);
+        osLpfL_.setCoeffs(lp);
+        osLpfR_.setCoeffs(lp);
         reset();
     }
 
-    void reset() noexcept { x1L_ = y1L_ = x1R_ = y1R_ = 0.0f; }
+    void reset() noexcept
+    {
+        x1L_ = y1L_ = x1R_ = y1R_ = 0.0f;
+        prevL_ = prevR_ = 0.0f;
+        osLpfL_.reset();
+        osLpfR_.reset();
+    }
 
     void setAmount(float a) noexcept { amount_ = std::clamp(a, 0.0f, 1.0f); }
     void setMode(int m) noexcept { mode_ = std::clamp(m, 0, 2); }
+    void setOversample(bool on) noexcept { oversample_ = on; }
 
     void processStereo(float* left, float* right, int numSamples) noexcept
     {
@@ -36,14 +56,31 @@ public:
         const float mix = amount_;
         for (int i = 0; i < numSamples; ++i)
         {
-            float wl = (1.0f - mix) * left[i]  + mix * shape(left[i], drive);
-            float wr = (1.0f - mix) * right[i] + mix * shape(right[i], drive);
-            left[i]  = dcBlock(wl, x1L_, y1L_);
-            right[i] = dcBlock(wr, x1R_, y1R_);
+            left[i]  = dcBlock(blend(left[i],  drive, mix, prevL_, osLpfL_), x1L_, y1L_);
+            right[i] = dcBlock(blend(right[i], drive, mix, prevR_, osLpfR_), x1R_, y1R_);
         }
     }
 
 private:
+    // Dry/wet blend; the wet (shaped) part is optionally 2x oversampled.
+    float blend(float x, float drive, float mix, float& prev, Biquad& lp) noexcept
+    {
+        float wet;
+        if (oversample_)
+        {
+            const float sh0 = shape(0.5f * (prev + x), drive); // interpolated sub-sample
+            const float sh1 = shape(x, drive);                 // on-grid sub-sample
+            lp.process(sh0);          // advance the 2x-rate filter over both...
+            wet = lp.process(sh1);    // ...then keep the on-grid one (decimate by 2)
+            prev = x;
+        }
+        else
+        {
+            wet = shape(x, drive);
+        }
+        return (1.0f - mix) * x + mix * wet;
+    }
+
     float shape(float x, float drive) const noexcept
     {
         switch (mode_)
@@ -75,9 +112,12 @@ private:
     }
 
     int   mode_ = 0;
+    bool  oversample_ = false;
     float amount_ = 0.0f;
     float r_ = 0.9995f;
     float x1L_ = 0.0f, y1L_ = 0.0f, x1R_ = 0.0f, y1R_ = 0.0f;
+    float prevL_ = 0.0f, prevR_ = 0.0f;
+    Biquad osLpfL_, osLpfR_;
 };
 
 } // namespace veyra::dsp

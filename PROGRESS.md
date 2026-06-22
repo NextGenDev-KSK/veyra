@@ -82,7 +82,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 ### Phase 16 — Sound Quality Engine  `[ ]`
 - [x] **RNNoise** as the default mic NS, custom suppressor as fallback — submodule @ v0.1.1 (small embedded model), builds on MSVC (VLA→alloca patch), opaque RT-safe `RnnoiseDenoiser` wired into the capture APO; unit-tested (stationary noise suppressed). CI-green.
 - [x] **Limiter upgrade** — 4× oversampled true-peak (inter-sample) limiting: feeds `max(|sample|, ISP)` into the look-ahead window so the exact sample-peak guarantee is kept while inter-sample overshoots are tamed; no added latency. Tested. CI-green.
-- [ ] **Optional oversampling** (2×/4×/8×) for nonlinear DSP modules (anti-alias)
+- [x] **Optional oversampling** — 2× oversampled saturator path (linear-interp up → shape → sub-Nyquist LP → decimate) so waveshaper harmonics are filtered instead of aliasing; top-level `nonlinearOversampling` toggle through the chain + APO + Bridge + a Settings→Audio Engine toggle. Tested (aliased image reduced). CI-green.
 - [ ] **Live AEC far-end** wiring (NLMS engine exists)
 - [x] **Equal-loudness (ISO 226)** compensation — volume-dependent low/high-shelf lift (`EqualLoudness`) wired after the compressor; carried through the APO + Bridge paths + a Settings→Loudness toggle. Tested. CI-green.
 - [x] **Harmonic exciter** — high-band tanh saturation synthesising upper harmonics (presence/air), `EnhancementConfig.exciterAmount` through the chain + APO + Bridge + a new Settings→**Sound Quality** section. Tested. CI-green.

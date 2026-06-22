@@ -148,6 +148,7 @@ struct Config {
     bool        appSwitching       = true;  // master enable for per-app rule auto-switching
     bool        referenceMode      = false; // bypass all coloration (flat A/B listening)
     bool        headphoneSafe      = false; // fatigue-reduction high-shelf for long sessions
+    bool        nonlinearOversampling = false; // 2x oversample the saturator (anti-alias)
     AudioEngineConfig audioEngine;
     EnhancementConfig enhancement;
     VoiceConfig       voice;

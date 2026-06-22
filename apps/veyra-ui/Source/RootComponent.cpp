@@ -199,6 +199,7 @@ RootComponent::RootComponent()
     settings_.onAudioEngineChanged = [this](const veyra::AudioEngineConfig& e) { working_.audioEngine = e; pushConfig(); };
     settings_.onReferenceModeChanged = [this](bool on) { working_.referenceMode = on; pushConfig(); };
     settings_.onHeadphoneSafeChanged = [this](bool on) { working_.headphoneSafe = on; pushConfig(); };
+    settings_.onOversampleChanged = [this](bool on) { working_.nonlinearOversampling = on; pushConfig(); };
     settings_.onExciterChanged = [this](float a) { working_.enhancement.exciterAmount = a; pushConfig(); };
     settings_.onSaturationChanged = [this](float a, int m)
     { working_.enhancement.saturationAmount = a; working_.enhancement.saturationMode = m; pushConfig(); };
@@ -220,6 +221,7 @@ RootComponent::RootComponent()
     settings_.setAudioEngineConfig(working_.audioEngine);
     settings_.setReferenceMode(working_.referenceMode);
     settings_.setHeadphoneSafe(working_.headphoneSafe);
+    settings_.setOversample(working_.nonlinearOversampling);
     settings_.setExciter(working_.enhancement.exciterAmount);
     settings_.setSaturation(working_.enhancement.saturationAmount, working_.enhancement.saturationMode);
     settings_.setMultiband(working_.enhancement.multibandWidth);
@@ -400,6 +402,7 @@ void RootComponent::applyConfig(const veyra::Config& c)
     settings_.setAudioEngineConfig(c.audioEngine);
     settings_.setReferenceMode(c.referenceMode);
     settings_.setHeadphoneSafe(c.headphoneSafe);
+    settings_.setOversample(c.nonlinearOversampling);
     settings_.setExciter(c.enhancement.exciterAmount);
     settings_.setSaturation(c.enhancement.saturationAmount, c.enhancement.saturationMode);
     settings_.setMultiband(c.enhancement.multibandWidth);

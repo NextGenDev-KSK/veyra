@@ -47,6 +47,7 @@ public:
     std::function<void(const veyra::AudioEngineConfig&)> onAudioEngineChanged;
     std::function<void(bool)> onReferenceModeChanged; // flat A/B listening
     std::function<void(bool)> onHeadphoneSafeChanged; // fatigue-reduction shelf
+    std::function<void(bool)> onOversampleChanged;    // 2x nonlinear oversampling
 
     // Sound Quality interactions (advanced enhancement, beyond the Home knobs).
     std::function<void(float)> onExciterChanged;        // harmonic exciter amount 0..1
@@ -67,6 +68,7 @@ public:
     void setAudioEngineConfig(const veyra::AudioEngineConfig& engine);
     void setReferenceMode(bool on);
     void setHeadphoneSafe(bool on);
+    void setOversample(bool on);
     void setExciter(float amount);
     void setSaturation(float amount, int mode);
     void setMultiband(float amount);

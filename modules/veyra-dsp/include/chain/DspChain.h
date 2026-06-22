@@ -99,6 +99,7 @@ public:
         exciter_.setAmount(p.exciterAmount);
         saturator_.setAmount(p.saturationAmount);
         saturator_.setMode(p.saturationMode);
+        saturator_.setOversample(p.nonlinearOversampling);
         mbWidth_.setAmount(p.multibandWidth);
         transient_.setAmount(p.transientAmount);
         bassEnh_.setAmount(p.bassEnhanceAmount);
