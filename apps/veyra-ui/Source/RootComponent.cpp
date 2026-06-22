@@ -228,6 +228,12 @@ RootComponent::RootComponent()
         background_.setBackgroundMode(m);
         pushConfig();
     };
+    settings_.onBackgroundImage = [this](juce::String path)
+    {
+        working_.backgroundImagePath = path.toStdString();
+        background_.setImagePath(path);
+        pushConfig();
+    };
     // Settings and Gamer Mode edit the same config; keep them in sync both ways so
     // there is a single source of truth (changing crossfeed/night-mode/mic in one
     // place is reflected in the other instead of going stale).
@@ -274,6 +280,7 @@ RootComponent::RootComponent()
 
     // Apply the initial appearance to the live background.
     background_.setOpacity((float) working_.uiOpacity);
+    background_.setImagePath(juce::String(working_.backgroundImagePath));
     background_.setBackgroundMode(working_.backgroundMode);
     home_.setReduceMotion(working_.reduceMotion);
 
@@ -485,6 +492,7 @@ void RootComponent::applyConfig(const veyra::Config& c)
     // Appearance: opacity / background mode / reduce-motion.
     settings_.setAppearance(c.uiOpacity, c.backgroundMode, c.reduceMotion);
     background_.setOpacity((float) c.uiOpacity);
+    background_.setImagePath(juce::String(c.backgroundImagePath));
     background_.setBackgroundMode(c.backgroundMode);
     home_.setReduceMotion(c.reduceMotion);
 

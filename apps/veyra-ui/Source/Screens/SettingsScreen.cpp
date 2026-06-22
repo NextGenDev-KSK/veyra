@@ -25,7 +25,11 @@ public:
 
         bgMode_.setItems({"Ambient", "Solid", "Image"});
         bgMode_.setSelectedIndex(0, false);
-        bgMode_.onChange = [this](int i) { if (onBackgroundMode) onBackgroundMode(i); };
+        bgMode_.onChange = [this](int i)
+        {
+            if (onBackgroundMode) onBackgroundMode(i);
+            if (i == 2) pickImage(); // let the user choose a background picture
+        };
         addAndMakeVisible(bgMode_);
 
         opacity_.setSliderStyle(juce::Slider::LinearHorizontal);
@@ -42,7 +46,22 @@ public:
     std::function<void(const juce::String&)> onThemeSelected;
     std::function<void(double)>              onOpacity;
     std::function<void(int)>                 onBackgroundMode;
+    std::function<void(juce::String)>        onBackgroundImage;
     std::function<void(bool)>                onReduceMotion;
+
+    void pickImage()
+    {
+        chooser_ = std::make_unique<juce::FileChooser>(
+            "Choose a background image", juce::File(), "*.png;*.jpg;*.jpeg;*.bmp;*.gif");
+        chooser_->launchAsync(
+            juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+            [this](const juce::FileChooser& fc)
+            {
+                const auto f = fc.getResult();
+                if (f.existsAsFile() && onBackgroundImage)
+                    onBackgroundImage(f.getFullPathName());
+            });
+    }
 
     void setPalette(const Palette& p) override
     {
@@ -238,6 +257,7 @@ private:
     ToggleSwitch           reduceMotion_;
     juce::Slider           opacity_;
     juce::String           current_{"midnight"};
+    std::unique_ptr<juce::FileChooser> chooser_;
     int                    hover_ = -1;
 };
 
@@ -1272,6 +1292,7 @@ SettingsScreen::SettingsScreen()
     appearance_->onThemeSelected  = [this](const juce::String& id) { if (onThemeSelected) onThemeSelected(id); };
     appearance_->onOpacity        = [this](double v) { if (onOpacity) onOpacity(v); };
     appearance_->onBackgroundMode = [this](int i) { if (onBackgroundMode) onBackgroundMode(i); };
+    appearance_->onBackgroundImage = [this](juce::String p) { if (onBackgroundImage) onBackgroundImage(p); };
     appearance_->onReduceMotion   = [this](bool b) { if (onReduceMotion) onReduceMotion(b); };
     addAndMakeVisible(*appearance_);
 

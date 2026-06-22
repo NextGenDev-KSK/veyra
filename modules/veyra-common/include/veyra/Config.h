@@ -143,6 +143,7 @@ struct Config {
     std::string theme              = "midnight";
     double      uiOpacity          = 0.85;  // glass translucency 0.3..1
     int         backgroundMode     = 0;     // 0 ambient, 1 solid, 2 image
+    std::string backgroundImagePath;        // user image for backgroundMode == 2
     bool        reduceMotion       = false; // freeze visualizer/transitions
     std::string language           = "en";
     bool        telemetryOptIn     = false;

@@ -23,6 +23,16 @@ public:
     void setOpacity(float o) { opacity_ = juce::jlimit(0.0f, 1.0f, o); repaint(); }
     void setBackgroundMode(int m) { bgMode_ = m; rebuild(); repaint(); }
 
+    // User background image (backgroundMode == 2). Loaded off the file; rendered
+    // scaled-to-cover behind a dark scrim so the glass UI stays readable.
+    void setImagePath(const juce::String& path)
+    {
+        imagePath_ = path;
+        userImage_ = path.isNotEmpty() ? juce::ImageFileFormat::loadFrom(juce::File(path)) : juce::Image();
+        rebuild();
+        repaint();
+    }
+
     void paint(juce::Graphics&) override;
     void resized() override { rebuild(); }
 
@@ -36,6 +46,8 @@ private:
     Palette palette_ = paletteForTheme("midnight");
     float opacity_ = 0.85f;
     int   bgMode_ = 0;
+    juce::String imagePath_;
+    juce::Image userImage_;
     juce::Image sharp_;
     juce::Image blurred_;
     static constexpr int kDownscale = 3;

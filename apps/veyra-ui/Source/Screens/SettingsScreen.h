@@ -32,6 +32,7 @@ public:
     std::function<void(const juce::String&)> onThemeSelected;   // theme id
     std::function<void(double)>              onOpacity;         // 0..1
     std::function<void(int)>                 onBackgroundMode;  // 0 blobs, 1 solid, 2 image
+    std::function<void(juce::String)>        onBackgroundImage; // chosen image path (mode 2)
     std::function<void(bool)>                onReduceMotion;
 
     // Microphone (voice chain) interactions.

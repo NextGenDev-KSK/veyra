@@ -28,6 +28,7 @@ std::string Config::toJson() const
         {"theme",           theme},
         {"ui_opacity",      uiOpacity},
         {"background_mode", backgroundMode},
+        {"background_image", backgroundImagePath},
         {"reduce_motion",   reduceMotion},
     };
     j["language"]           = language;
@@ -84,6 +85,7 @@ std::optional<Config> Config::fromJson(const std::string& text)
         c.theme          = it->value("theme", c.theme);
         c.uiOpacity      = it->value("ui_opacity", c.uiOpacity);
         c.backgroundMode = it->value("background_mode", c.backgroundMode);
+        c.backgroundImagePath = it->value("background_image", c.backgroundImagePath);
         c.reduceMotion   = it->value("reduce_motion", c.reduceMotion);
     }
 

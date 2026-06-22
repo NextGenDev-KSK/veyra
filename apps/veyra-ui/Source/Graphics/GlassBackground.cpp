@@ -15,14 +15,24 @@ void GlassBackground::renderSharp(juce::Image& img) const
     if (bgMode_ == 1)
         return;
 
-    // Image mode (2): subtle diagonal accent wash stands in until a user image.
+    // Image mode (2): the user's picture, scaled to cover, behind a dark scrim so
+    // the glass UI stays legible. Falls back to a diagonal accent wash if no image.
     if (bgMode_ == 2)
     {
-        juce::ColourGradient wash(palette_.accentPrimary.withAlpha(0.18f), 0.0f, 0.0f,
-                                  palette_.accentPrimary.withAlpha(0.0f),
-                                  b.getWidth(), b.getHeight(), false);
-        g.setGradientFill(wash);
-        g.fillRect(b);
+        if (userImage_.isValid())
+        {
+            g.drawImage(userImage_, b, juce::RectanglePlacement::fillDestination);
+            g.setColour(palette_.bgApp.withAlpha(0.62f)); // scrim for readability
+            g.fillRect(b);
+        }
+        else
+        {
+            juce::ColourGradient wash(palette_.accentPrimary.withAlpha(0.18f), 0.0f, 0.0f,
+                                      palette_.accentPrimary.withAlpha(0.0f),
+                                      b.getWidth(), b.getHeight(), false);
+            g.setGradientFill(wash);
+            g.fillRect(b);
+        }
         return;
     }
 
