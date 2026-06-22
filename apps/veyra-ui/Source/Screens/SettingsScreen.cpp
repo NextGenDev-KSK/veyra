@@ -267,6 +267,9 @@ public:
         add(presence_, -6.0, 9.0, 2.0);
         add(gain_, -12.0, 12.0, 0.0);
         add(side_, 0.0, 1.0, 0.0);
+
+        agc_.onClick = [this] { voice_.agc = agc_.getToggleState(); emit(); };
+        addAndMakeVisible(agc_);
     }
 
     std::function<void(const veyra::VoiceConfig&)> onMicChanged;
@@ -275,6 +278,7 @@ public:
     {
         GlassPanel::setPalette(p);
         enable_.setPalette(p);
+        agc_.setPalette(p);
     }
 
     void setMicConfig(const veyra::VoiceConfig& v)
@@ -287,6 +291,7 @@ public:
         presence_.setValue(v.presenceDb, juce::dontSendNotification);
         gain_.setValue(v.outputGainDb, juce::dontSendNotification);
         side_.setValue(v.sideToneLevel, juce::dontSendNotification);
+        agc_.setToggleState(v.agc, juce::dontSendNotification);
         repaint();
     }
 
@@ -303,6 +308,7 @@ public:
             row.removeFromRight(56);
             sliders[i]->setBounds(row.withSizeKeepingCentre(row.getWidth(), 18));
         }
+        agc_.setBounds(rowArea(6).removeFromRight(40).withSizeKeepingCentre(40, 20));
     }
 
 protected:
@@ -335,6 +341,15 @@ protected:
             g.setFont(fonts::mono(12.0f));
             g.drawText(val, row.removeFromRight(52), juce::Justification::centredRight, false);
         }
+
+        auto agcRow = rowArea(6);
+        g.setColour(enable_.getToggleState() ? palette_.textSecondary : palette_.textTertiary);
+        g.setFont(fonts::body(13.0f));
+        g.drawText("Auto Gain (AGC)", agcRow.removeFromLeft(220), juce::Justification::centredLeft, false);
+        g.setColour(palette_.textTertiary);
+        g.setFont(fonts::body(11.0f));
+        g.drawText("Levels your voice toward -16 LUFS.",
+                   rowArea(7).removeFromTop(16), juce::Justification::centredLeft, false);
     }
 
 private:
@@ -367,6 +382,7 @@ private:
     veyra::VoiceConfig voice_;
     ToggleSwitch       enable_;
     juce::Slider       ns_, comp_, deess_, presence_, gain_, side_;
+    ToggleSwitch       agc_;
 };
 
 // ---------------------------------------------------------------------------
@@ -761,7 +777,15 @@ public:
         addAndMakeVisible(openLogs_);
 
         reset_.setButtonText("Reset Settings");
-        reset_.onClick = [this] { if (onResetSettings) onResetSettings(); };
+        reset_.onClick = [this]
+        {
+            juce::NativeMessageBox::showOkCancelBox(
+                juce::MessageBoxIconType::WarningIcon, "Reset all settings?",
+                "This restores every Veyra setting to its defaults. Your presets are kept.",
+                this,
+                juce::ModalCallbackFunction::create([this](int ok)
+                { if (ok == 1 && onResetSettings) onResetSettings(); }));
+        };
         addAndMakeVisible(reset_);
     }
 
