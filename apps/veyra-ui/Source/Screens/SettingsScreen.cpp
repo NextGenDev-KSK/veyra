@@ -784,6 +784,7 @@ class SettingsScreen::AudioEngineCard : public GlassPanel {
 public:
     std::function<void(const veyra::AudioEngineConfig&)> onChanged;
     std::function<void(bool)> onReferenceModeChanged;
+    std::function<void(bool)> onHeadphoneSafeChanged;
 
     AudioEngineCard()
     {
@@ -792,6 +793,9 @@ public:
         reference_.onClick = [this]
         { if (onReferenceModeChanged) onReferenceModeChanged(reference_.getToggleState()); };
         addAndMakeVisible(reference_);
+        headphoneSafe_.onClick = [this]
+        { if (onHeadphoneSafeChanged) onHeadphoneSafeChanged(headphoneSafe_.getToggleState()); };
+        addAndMakeVisible(headphoneSafe_);
         lowLatency_.onClick = [this]
         { cfg_.latencyMode = lowLatency_.getToggleState() ? "UltraLow" : "Standard"; emit(); };
         addAndMakeVisible(lowLatency_);
@@ -813,12 +817,19 @@ public:
         hwAccel_.setPalette(p);
         lowLatency_.setPalette(p);
         reference_.setPalette(p);
+        headphoneSafe_.setPalette(p);
         rate_.setPalette(p);
     }
 
     void setReferenceMode(bool on)
     {
         reference_.setToggleState(on, juce::dontSendNotification);
+        repaint();
+    }
+
+    void setHeadphoneSafe(bool on)
+    {
+        headphoneSafe_.setToggleState(on, juce::dontSendNotification);
         repaint();
     }
 
@@ -853,6 +864,10 @@ public:
         c.removeFromTop(16);
         auto tr = c.removeFromTop(28);
         reference_.setBounds(tr.removeFromRight(46).withSizeKeepingCentre(46, 22));
+        c.removeFromTop(16);                  // reference subtitle
+        c.removeFromTop(16);
+        auto hr = c.removeFromTop(28);
+        headphoneSafe_.setBounds(hr.removeFromRight(46).withSizeKeepingCentre(46, 22));
     }
 
 protected:
@@ -899,6 +914,17 @@ protected:
         g.setFont(fonts::body(11.0f));
         g.drawText("Bypass all coloration — flat A/B", c.removeFromTop(16),
                    juce::Justification::topLeft, false);
+
+        c.removeFromTop(16);
+        auto hr = c.removeFromTop(28);
+        g.setColour(palette_.textSecondary);
+        g.setFont(fonts::body(13.0f));
+        g.drawText("Headphone Safe", hr.removeFromLeft(hr.getWidth() - 56),
+                   juce::Justification::centredLeft, false);
+        g.setColour(palette_.textTertiary);
+        g.setFont(fonts::body(11.0f));
+        g.drawText("Tame highs to reduce listening fatigue", c.removeFromTop(16),
+                   juce::Justification::topLeft, false);
     }
 
 private:
@@ -907,7 +933,7 @@ private:
     static constexpr int kRates[4] = {44100, 48000, 96000, 192000};
 
     veyra::AudioEngineConfig cfg_;
-    ToggleSwitch     hwAccel_, lowLatency_, reference_;
+    ToggleSwitch     hwAccel_, lowLatency_, reference_, headphoneSafe_;
     SegmentedControl rate_;
     juce::Slider     buffer_;
 };
@@ -1107,6 +1133,7 @@ SettingsScreen::SettingsScreen()
     audioEngine_ = std::make_unique<AudioEngineCard>();
     audioEngine_->onChanged = [this](const veyra::AudioEngineConfig& e) { if (onAudioEngineChanged) onAudioEngineChanged(e); };
     audioEngine_->onReferenceModeChanged = [this](bool on) { if (onReferenceModeChanged) onReferenceModeChanged(on); };
+    audioEngine_->onHeadphoneSafeChanged = [this](bool on) { if (onHeadphoneSafeChanged) onHeadphoneSafeChanged(on); };
     addAndMakeVisible(*audioEngine_);
 
     microphone_ = std::make_unique<MicrophoneCard>();
@@ -1255,6 +1282,7 @@ void SettingsScreen::setSpatialConfig(const veyra::SpatialConfig& s) { spatial_-
 void SettingsScreen::setLoudnessConfig(const veyra::LoudnessConfig& l) { loudness_->setLoudnessConfig(l); }
 void SettingsScreen::setAudioEngineConfig(const veyra::AudioEngineConfig& e) { audioEngine_->setConfig(e); }
 void SettingsScreen::setReferenceMode(bool on) { audioEngine_->setReferenceMode(on); }
+void SettingsScreen::setHeadphoneSafe(bool on) { audioEngine_->setHeadphoneSafe(on); }
 void SettingsScreen::setExciter(float a) { soundQuality_->setExciter(a); }
 void SettingsScreen::setSaturation(float a, int m) { soundQuality_->setSaturation(a, m); }
 void SettingsScreen::setMultiband(float a) { soundQuality_->setMultiband(a); }

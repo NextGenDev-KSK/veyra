@@ -147,6 +147,7 @@ struct Config {
     bool        onboardingComplete = false; // first-run wizard shown + dismissed
     bool        appSwitching       = true;  // master enable for per-app rule auto-switching
     bool        referenceMode      = false; // bypass all coloration (flat A/B listening)
+    bool        headphoneSafe      = false; // fatigue-reduction high-shelf for long sessions
     AudioEngineConfig audioEngine;
     EnhancementConfig enhancement;
     VoiceConfig       voice;

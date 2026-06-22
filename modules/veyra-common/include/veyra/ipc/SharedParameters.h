@@ -42,6 +42,7 @@ struct VeyraParamsPayload {
     float    loudnessTargetLufs = -14.0f;
     uint32_t equalLoudness = 0;
     uint32_t referenceMode = 0;
+    uint32_t headphoneSafe = 0;
     float    limiterCeilingDb = -0.3f;
 };
 

@@ -90,7 +90,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 - [x] **Multiband stereo width** — phase-perfect low/high split (~300 Hz): low band collapsed toward mono + high band widened by amount (`EnhancementConfig.multibandWidth`) through the chain + APO + Bridge + the Sound Quality section. Tested (low-side collapse, high-mid preserved). CI-green.
 - [x] **Transient enhancement** — fast/slow envelope-difference attack detector applies a fading gain boost on onsets (`EnhancementConfig.transientAmount`) through the chain + APO + Bridge + the Sound Quality section. Tested (attack emphasised over sustain). CI-green.
 - [x] **Adaptive bass management** — psychoacoustic bass enhancer: synthesises low-band harmonics (octave-up) + high-passes them back instead of boosting the clipping-prone fundamental (`EnhancementConfig.bassEnhanceAmount`) through the chain + APO + Bridge + the Sound Quality section. Tested. CI-green.
-- [ ] **Headphone-safe listening mode** (loudness norm + fatigue reduction)
+- [x] **Headphone-safe listening mode** — fatigue-reduction high-shelf cut (toggle) for long sessions, top-level `headphoneSafe` through the chain + APO + Bridge + a Settings→Audio Engine toggle (pair with Loudness Match). Tested. CI-green.
 - [x] **Reference Listening Mode** — global flat A/B: bypasses all coloration (EQ/tone/dynamics/width/reverb/spatial/loudness), keeps master volume + safety limiter; through Config + APO + Bridge + a Settings→Audio Engine toggle. Tested. CI-green.
 
 ### Phase 17 — Headphone & Spatial Suite  `[ ]`

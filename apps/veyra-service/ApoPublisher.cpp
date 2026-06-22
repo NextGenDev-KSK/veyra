@@ -61,6 +61,7 @@ void ApoPublisher::publish(const Config& config)
     p.loudnessTargetLufs  = config.loudness.targetLufs;
     p.equalLoudness       = config.loudness.equalLoudness ? 1u : 0u;
     p.referenceMode       = config.referenceMode ? 1u : 0u;
+    p.headphoneSafe       = config.headphoneSafe ? 1u : 0u;
     // Reverb has no DSP stage yet; e.reverbAmount is carried in Config for the UI.
 
     ipc::publishParameters(params_, p);

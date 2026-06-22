@@ -35,6 +35,7 @@ struct DspParameters {
     float loudnessTargetLufs = -14.0f; // target for loudness-match
     bool  equalLoudness = false;       // ISO-226 low-volume tonal compensation
     bool  referenceMode = false;       // bypass all coloration (flat A/B)
+    bool  headphoneSafe = false;       // fatigue-reduction high-shelf
     float limiterCeilingDb = -0.3f;    // true output ceiling
 };
 

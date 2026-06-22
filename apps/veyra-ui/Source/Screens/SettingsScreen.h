@@ -46,6 +46,7 @@ public:
     // Audio Engine interactions.
     std::function<void(const veyra::AudioEngineConfig&)> onAudioEngineChanged;
     std::function<void(bool)> onReferenceModeChanged; // flat A/B listening
+    std::function<void(bool)> onHeadphoneSafeChanged; // fatigue-reduction shelf
 
     // Sound Quality interactions (advanced enhancement, beyond the Home knobs).
     std::function<void(float)> onExciterChanged;        // harmonic exciter amount 0..1
@@ -65,6 +66,7 @@ public:
     void setLoudnessConfig(const veyra::LoudnessConfig& loud);
     void setAudioEngineConfig(const veyra::AudioEngineConfig& engine);
     void setReferenceMode(bool on);
+    void setHeadphoneSafe(bool on);
     void setExciter(float amount);
     void setSaturation(float amount, int mode);
     void setMultiband(float amount);
