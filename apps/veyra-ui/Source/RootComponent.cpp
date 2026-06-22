@@ -262,7 +262,7 @@ RootComponent::RootComponent()
         });
     });
 
-    startTimerHz(30); // poll the service's live metering block for the visualizer
+    startTimerHz(60); // poll the live metering block at 60 Hz for a smooth visualizer
 
     // Global hotkeys (master/volume/preset/mini). The callback hops to the
     // message thread inside HotkeyManager; the SafePointer guards teardown.
@@ -335,8 +335,8 @@ void RootComponent::changeListenerCallback(juce::ChangeBroadcaster*)
 
 void RootComponent::timerCallback()
 {
-    // ~1 Hz: apply a per-app rule when the foreground app changes (timer is 30 Hz).
-    if (++ruleTick_ >= 30)
+    // ~1 Hz: apply a per-app rule when the foreground app changes (timer is 60 Hz).
+    if (++ruleTick_ >= 60)
     {
         ruleTick_ = 0;
         if (working_.appSwitching)
