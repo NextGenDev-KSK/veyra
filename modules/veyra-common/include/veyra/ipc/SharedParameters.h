@@ -28,6 +28,8 @@ struct VeyraParamsPayload {
     float    trebleDb = 0.0f;
     float    compressionAmount = 0.0f;
     float    exciterAmount = 0.0f;
+    float    saturationAmount = 0.0f;
+    uint32_t saturationMode = 0;
     float    stereoWidth = 1.0f;
     float    volumeGain = 1.0f;
     float    crossfeedAmount = 0.0f;

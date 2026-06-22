@@ -255,6 +255,8 @@ void VeyraApoEfx::refreshParametersFromShared() noexcept
     dp.trebleDb = p.trebleDb;
     dp.compressionAmount = p.compressionAmount;
     dp.exciterAmount = p.exciterAmount;
+    dp.saturationAmount = p.saturationAmount;
+    dp.saturationMode = (int) p.saturationMode;
     dp.stereoWidth = p.stereoWidth;
     dp.volumeGain = p.volumeGain;
     dp.crossfeedAmount = p.crossfeedAmount;

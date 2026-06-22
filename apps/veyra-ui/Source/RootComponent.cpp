@@ -199,6 +199,8 @@ RootComponent::RootComponent()
     settings_.onAudioEngineChanged = [this](const veyra::AudioEngineConfig& e) { working_.audioEngine = e; pushConfig(); };
     settings_.onReferenceModeChanged = [this](bool on) { working_.referenceMode = on; pushConfig(); };
     settings_.onExciterChanged = [this](float a) { working_.enhancement.exciterAmount = a; pushConfig(); };
+    settings_.onSaturationChanged = [this](float a, int m)
+    { working_.enhancement.saturationAmount = a; working_.enhancement.saturationMode = m; pushConfig(); };
     settings_.onResetSettings  = [this]
     {
         applyConfig(veyra::Config{}); // restore all defaults across the UI
@@ -214,6 +216,7 @@ RootComponent::RootComponent()
     settings_.setAudioEngineConfig(working_.audioEngine);
     settings_.setReferenceMode(working_.referenceMode);
     settings_.setExciter(working_.enhancement.exciterAmount);
+    settings_.setSaturation(working_.enhancement.saturationAmount, working_.enhancement.saturationMode);
 
     // Apply the initial appearance to the live background.
     background_.setOpacity((float) working_.uiOpacity);
@@ -389,6 +392,7 @@ void RootComponent::applyConfig(const veyra::Config& c)
     settings_.setAudioEngineConfig(c.audioEngine);
     settings_.setReferenceMode(c.referenceMode);
     settings_.setExciter(c.enhancement.exciterAmount);
+    settings_.setSaturation(c.enhancement.saturationAmount, c.enhancement.saturationMode);
     apps_.setSwitchingEnabled(c.appSwitching);
     gamer_.setGamer(c.gamerMode);
     gamer_.setSpatial(c.spatial);

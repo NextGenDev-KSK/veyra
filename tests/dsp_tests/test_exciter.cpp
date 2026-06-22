@@ -27,7 +27,7 @@ double binMag(const std::vector<float>& x, int from, double hz)
     return std::sqrt(re * re + im * im);
 }
 
-double secondHarmonic(float amount)
+double thirdHarmonic(float amount)
 {
     Exciter e;
     e.prepare(kFs);
@@ -35,17 +35,17 @@ double secondHarmonic(float amount)
     const int n = 8192;
     std::vector<float> l(n), r(n);
     for (int i = 0; i < n; ++i)
-        l[(size_t) i] = r[(size_t) i] = 0.5f * (float) std::sin(2.0 * kPi * 5000.0 * i / kFs);
+        l[(size_t) i] = r[(size_t) i] = 0.5f * (float) std::sin(2.0 * kPi * 4000.0 * i / kFs);
     e.processStereo(l.data(), r.data(), n);
-    return binMag(l, n / 4, 10000.0); // 2nd harmonic of 5 kHz
+    return binMag(l, n / 4, 12000.0); // 3rd harmonic of 4 kHz (tanh is odd)
 }
 } // namespace
 
 TEST_CASE("Exciter synthesises upper harmonics scaled by amount")
 {
-    const double off = secondHarmonic(0.0f);
-    const double on  = secondHarmonic(0.9f);
-    CHECK(on > off * 10.0 + 1.0); // clear 2nd-harmonic energy appears
+    const double off = thirdHarmonic(0.0f);
+    const double on  = thirdHarmonic(0.9f);
+    CHECK(on > off * 10.0 + 1.0); // clear (odd) harmonic energy appears
 }
 
 TEST_CASE("Exciter at zero is an exact bypass")

@@ -49,6 +49,8 @@ void ApoPublisher::publish(const Config& config)
     p.stereoWidth       = e.stereoWidth;
     p.compressionAmount = e.compressionAmount;
     p.exciterAmount     = e.exciterAmount;
+    p.saturationAmount  = e.saturationAmount;
+    p.saturationMode    = (uint32_t) (e.saturationMode < 0 ? 0 : e.saturationMode);
     p.crossfeedAmount     = config.spatial.enabled ? config.spatial.crossfeed : 0.0f;
     p.virtualizationAmount = config.spatial.enabled ? config.spatial.virtualization : 0.0f;
     p.nightModeAmount     = config.loudness.nightModeAmount;

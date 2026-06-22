@@ -971,29 +971,55 @@ private:
 class SettingsScreen::SoundQualityCard : public GlassPanel {
 public:
     std::function<void(float)> onExciterChanged;
+    std::function<void(float, int)> onSaturationChanged;
 
     SoundQualityCard()
     {
-        exciter_.setSliderStyle(juce::Slider::LinearHorizontal);
-        exciter_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-        exciter_.setRange(0.0, 1.0, 0.01);
+        for (auto* s : {&exciter_, &saturation_})
+        {
+            s->setSliderStyle(juce::Slider::LinearHorizontal);
+            s->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+            s->setRange(0.0, 1.0, 0.01);
+        }
         exciter_.onValueChange = [this]
         { if (onExciterChanged) onExciterChanged((float) exciter_.getValue()); repaint(); };
+        saturation_.onValueChange = [this] { emitSaturation(); repaint(); };
         addAndMakeVisible(exciter_);
+        addAndMakeVisible(saturation_);
+
+        satMode_.setItems({"Transparent", "Tape", "Tube"});
+        satMode_.onChange = [this](int i) { satModeVal_ = juce::jlimit(0, 2, i); emitSaturation(); };
+        addAndMakeVisible(satMode_);
     }
 
-    void setExciter(float a)
+    void setExciter(float a) { exciter_.setValue(a, juce::dontSendNotification); repaint(); }
+
+    void setSaturation(float amount, int mode)
     {
-        exciter_.setValue(a, juce::dontSendNotification);
+        saturation_.setValue(amount, juce::dontSendNotification);
+        satModeVal_ = juce::jlimit(0, 2, mode);
+        satMode_.setSelectedIndex(satModeVal_, false);
         repaint();
+    }
+
+    void setPalette(const Palette& p) override
+    {
+        GlassPanel::setPalette(p);
+        satMode_.setPalette(p);
     }
 
     void resized() override
     {
         auto c = getLocalBounds().reduced(kPad);
-        c.removeFromTop(28 + 18); // title + subtitle
-        c.removeFromTop(18);      // exciter label row (painted)
+        c.removeFromTop(28 + 18);              // title + subtitle
+        c.removeFromTop(18);                   // exciter label
         exciter_.setBounds(c.removeFromTop(24));
+        c.removeFromTop(16);
+        c.removeFromTop(18);                   // saturation label
+        saturation_.setBounds(c.removeFromTop(24));
+        c.removeFromTop(12);
+        c.removeFromTop(16);                   // "Saturation Mode" label
+        satMode_.setBounds(c.removeFromTop(30));
     }
 
 protected:
@@ -1008,20 +1034,35 @@ protected:
         g.drawText("Subtle harmonic enhancement.", c.removeFromTop(18),
                    juce::Justification::topLeft, false);
 
-        auto lr = c.removeFromTop(18);
+        labelRow(g, c.removeFromTop(18), "Harmonic Exciter", exciter_.getValue());
+        c.removeFromTop(24); // exciter slider
+        c.removeFromTop(16);
+        labelRow(g, c.removeFromTop(18), "Saturation", saturation_.getValue());
+        c.removeFromTop(24); // saturation slider
+        c.removeFromTop(12);
         g.setColour(palette_.textSecondary);
         g.setFont(fonts::body(13.0f));
-        g.drawText("Harmonic Exciter", lr.removeFromLeft(lr.getWidth() - 56),
-                   juce::Justification::centredLeft, false);
-        g.setColour(palette_.textTertiary);
-        g.setFont(fonts::mono(11.0f));
-        g.drawText(juce::String(juce::roundToInt(exciter_.getValue() * 100.0)) + "%", lr,
-                   juce::Justification::centredRight, false);
+        g.drawText("Saturation Mode", c.removeFromTop(16), juce::Justification::centredLeft, false);
     }
 
 private:
+    void emitSaturation()
+    { if (onSaturationChanged) onSaturationChanged((float) saturation_.getValue(), satModeVal_); }
+
+    void labelRow(juce::Graphics& g, juce::Rectangle<int> r, const char* name, double v)
+    {
+        g.setColour(palette_.textSecondary);
+        g.setFont(fonts::body(13.0f));
+        g.drawText(name, r.removeFromLeft(r.getWidth() - 56), juce::Justification::centredLeft, false);
+        g.setColour(palette_.textTertiary);
+        g.setFont(fonts::mono(11.0f));
+        g.drawText(juce::String(juce::roundToInt(v * 100.0)) + "%", r, juce::Justification::centredRight, false);
+    }
+
     static constexpr int kPad = 24;
-    juce::Slider exciter_;
+    juce::Slider     exciter_, saturation_;
+    SegmentedControl satMode_;
+    int satModeVal_ = 0;
 };
 
 SettingsScreen::SettingsScreen()
@@ -1052,6 +1093,7 @@ SettingsScreen::SettingsScreen()
 
     soundQuality_ = std::make_unique<SoundQualityCard>();
     soundQuality_->onExciterChanged = [this](float a) { if (onExciterChanged) onExciterChanged(a); };
+    soundQuality_->onSaturationChanged = [this](float a, int m) { if (onSaturationChanged) onSaturationChanged(a, m); };
     addAndMakeVisible(*soundQuality_);
 
     updates_ = std::make_unique<UpdatesCard>();
@@ -1181,6 +1223,7 @@ void SettingsScreen::setLoudnessConfig(const veyra::LoudnessConfig& l) { loudnes
 void SettingsScreen::setAudioEngineConfig(const veyra::AudioEngineConfig& e) { audioEngine_->setConfig(e); }
 void SettingsScreen::setReferenceMode(bool on) { audioEngine_->setReferenceMode(on); }
 void SettingsScreen::setExciter(float a) { soundQuality_->setExciter(a); }
+void SettingsScreen::setSaturation(float a, int m) { soundQuality_->setSaturation(a, m); }
 void SettingsScreen::setServiceStatus(bool connected, juce::String version)
 {
     about_->setServiceStatus(connected, std::move(version));

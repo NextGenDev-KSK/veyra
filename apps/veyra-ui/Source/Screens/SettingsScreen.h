@@ -48,7 +48,8 @@ public:
     std::function<void(bool)> onReferenceModeChanged; // flat A/B listening
 
     // Sound Quality interactions (advanced enhancement, beyond the Home knobs).
-    std::function<void(float)> onExciterChanged; // harmonic exciter amount 0..1
+    std::function<void(float)> onExciterChanged;        // harmonic exciter amount 0..1
+    std::function<void(float, int)> onSaturationChanged; // saturation amount 0..1 + mode 0..2
 
     // About: reset all settings to defaults.
     std::function<void()> onResetSettings;
@@ -62,6 +63,7 @@ public:
     void setAudioEngineConfig(const veyra::AudioEngineConfig& engine);
     void setReferenceMode(bool on);
     void setExciter(float amount);
+    void setSaturation(float amount, int mode);
     void setServiceStatus(bool connected, juce::String version);
 
 private:

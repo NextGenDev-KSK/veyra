@@ -85,8 +85,8 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 - [ ] **Optional oversampling** (2×/4×/8×) for nonlinear DSP modules (anti-alias)
 - [ ] **Live AEC far-end** wiring (NLMS engine exists)
 - [x] **Equal-loudness (ISO 226)** compensation — volume-dependent low/high-shelf lift (`EqualLoudness`) wired after the compressor; carried through the APO + Bridge paths + a Settings→Loudness toggle. Tested. CI-green.
-- [ ] **Harmonic exciter** (transparent presence/clarity)
-- [ ] **Saturation** modes — tape / tube / transparent (subtle harmonics)
+- [x] **Harmonic exciter** — high-band tanh saturation synthesising upper harmonics (presence/air), `EnhancementConfig.exciterAmount` through the chain + APO + Bridge + a new Settings→**Sound Quality** section. Tested. CI-green.
+- [x] **Saturation modes** — transparent (odd) / tape (algebraic) / tube (even, asymmetric) full-band waveshaper with DC blocker, `EnhancementConfig.saturationAmount`+`saturationMode` through the chain + APO + Bridge + the Settings→Sound Quality section. Tested (mode-specific harmonics). CI-green.
 - [ ] **Multiband stereo width** — mono lows, widen highs
 - [ ] **Transient enhancement** (attack/detail)
 - [ ] **Adaptive bass management** (punch without clipping)

@@ -21,6 +21,8 @@ struct DspParameters {
     float compressionAmount = 0.0f;    // 0..1
     float reverbAmount = 0.0f;         // 0..1 ambience wet/dry
     float exciterAmount = 0.0f;        // 0..1 harmonic exciter (presence/air)
+    float saturationAmount = 0.0f;     // 0..1 full-band saturation (warmth)
+    int   saturationMode = 0;          // 0 transparent, 1 tape, 2 tube
     float stereoWidth = 1.0f;          // 0 (mono) .. 2 (wide)
     float volumeGain = 1.0f;           // linear, 0..3 (up to 300%)
     float crossfeedAmount = 0.0f;      // 0..1 headphone crossfeed (spatial)
