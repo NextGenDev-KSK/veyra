@@ -28,6 +28,7 @@ public:
     void resized() override;
 
     std::function<void()> onBack;
+    std::function<void()> onOpenSoundQuality; // jump to Settings -> Sound Quality
 
 private:
     class RackCard;

@@ -25,9 +25,14 @@ public:
         setElevated(true);
         back_.onClick = [this] { if (onBack) onBack(); };
         addAndMakeVisible(back_);
+
+        adjust_.setButtonText("Adjust in Sound Quality");
+        adjust_.onClick = [this] { if (onAdjust) onAdjust(); };
+        addAndMakeVisible(adjust_);
     }
 
     std::function<void()> onBack;
+    std::function<void()> onAdjust;
 
     void setPalette(const Palette& p) override
     {
@@ -40,6 +45,7 @@ public:
     void resized() override
     {
         back_.setBounds(getLocalBounds().reduced(kPad).removeFromTop(34).removeFromRight(34));
+        adjust_.setBounds(getLocalBounds().reduced(kPad).removeFromBottom(34).removeFromLeft(220));
     }
 
 protected:
@@ -120,12 +126,14 @@ private:
     static constexpr int kPad = 28;
     veyra::Config cfg_;
     IconButton    back_{icons::close, true};
+    juce::TextButton adjust_;
 };
 
 EffectsScreen::EffectsScreen()
 {
     card_ = std::make_unique<RackCard>();
     card_->onBack = [this] { if (onBack) onBack(); };
+    card_->onAdjust = [this] { if (onOpenSoundQuality) onOpenSoundQuality(); };
     addAndMakeVisible(*card_);
 }
 

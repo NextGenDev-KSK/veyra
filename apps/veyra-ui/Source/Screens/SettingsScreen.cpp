@@ -1386,6 +1386,7 @@ void SettingsScreen::setMicConfig(const veyra::VoiceConfig& v) { microphone_->se
 void SettingsScreen::setSpatialConfig(const veyra::SpatialConfig& s) { spatial_->setSpatialConfig(s); }
 void SettingsScreen::setLoudnessConfig(const veyra::LoudnessConfig& l) { loudness_->setLoudnessConfig(l); }
 void SettingsScreen::setAudioEngineConfig(const veyra::AudioEngineConfig& e) { audioEngine_->setConfig(e); }
+void SettingsScreen::openSection(int i) { setSection(i); }
 void SettingsScreen::setReferenceMode(bool on) { audioEngine_->setReferenceMode(on); }
 void SettingsScreen::setHeadphoneSafe(bool on) { audioEngine_->setHeadphoneSafe(on); }
 void SettingsScreen::setOversample(bool on) { audioEngine_->setOversample(on); }

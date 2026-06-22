@@ -76,6 +76,9 @@ public:
     void setBassEnhance(float amount);
     void setServiceStatus(bool connected, juce::String version);
 
+    // Programmatic sub-nav (e.g. the Effects rack jumping to Sound Quality).
+    void openSection(int index);
+
 private:
     class AppearanceCard;
     class AudioEngineCard;

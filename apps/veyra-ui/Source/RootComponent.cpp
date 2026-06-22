@@ -127,6 +127,8 @@ RootComponent::RootComponent()
         resized();
     };
     effects_.onBack = [this] { sidebar_.setActive(0); showScreen(0); };
+    effects_.onOpenSoundQuality = [this] // surface the advanced DSP from the Effects rack
+    { sidebar_.setActive(6); showScreen(6); settings_.openSection(5); }; // 6=Settings, 5=Sound Quality
 
     // Per-app rules: auto-apply a preset when the foreground app matches a rule.
     appRules_.setRulesFile(veyra::paths::appDataDir() / "app_rules.json");
@@ -200,9 +202,12 @@ RootComponent::RootComponent()
         background_.setBackgroundMode(m);
         pushConfig();
     };
-    settings_.onMicChanged     = [this](const veyra::VoiceConfig& v) { working_.voice = v; pushConfig(); };
-    settings_.onSpatialChanged = [this](const veyra::SpatialConfig& s) { working_.spatial = s; pushConfig(); };
-    settings_.onLoudnessChanged = [this](const veyra::LoudnessConfig& l) { working_.loudness = l; pushConfig(); };
+    // Settings and Gamer Mode edit the same config; keep them in sync both ways so
+    // there is a single source of truth (changing crossfeed/night-mode/mic in one
+    // place is reflected in the other instead of going stale).
+    settings_.onMicChanged     = [this](const veyra::VoiceConfig& v) { working_.voice = v; gamer_.setVoice(v); pushConfig(); };
+    settings_.onSpatialChanged = [this](const veyra::SpatialConfig& s) { working_.spatial = s; gamer_.setSpatial(s); pushConfig(); };
+    settings_.onLoudnessChanged = [this](const veyra::LoudnessConfig& l) { working_.loudness = l; gamer_.setLoudness(l); pushConfig(); };
     settings_.onAudioEngineChanged = [this](const veyra::AudioEngineConfig& e)
     { working_.audioEngine = e; setHardwareAcceleration(e.hardwareAcceleration); pushConfig(); };
     settings_.onReferenceModeChanged = [this](bool on) { working_.referenceMode = on; pushConfig(); };
