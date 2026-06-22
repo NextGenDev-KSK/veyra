@@ -106,7 +106,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 
 ### Phase 18 — Sound Lab Pro + Personalization  `[ ]`
 - [ ] **Pro measurement tools** in Sound Lab — frequency-response analysis, channel matching
-- [ ] **Hearing-test-based EQ personalization** — generate per-user correction curves
+- [~] **Hearing-test-based EQ personalization** — correction algorithm done (`personalizeFromHearingTest`, audiology half-gain rule: ~½ measured loss as boost, capped, negligible-loss bands dropped → parametric bands; normal hearing = flat). Tested. CI-green. The interactive multi-tone *capture* wizard in Sound Lab (record per-frequency thresholds → feed this) is the remaining UI piece.
 
 ### Phase 19 — UI / Product Polish + Docs + First-run  `[ ]`
 - [ ] **Home** pixel-perfect alignment vs reference

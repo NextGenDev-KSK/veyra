@@ -71,7 +71,8 @@ add_executable(common_tests
     common_tests/test_hotkeys.cpp
     common_tests/test_game_detector.cpp
     common_tests/test_rnnoise.cpp
-    common_tests/test_autoeq.cpp)
+    common_tests/test_autoeq.cpp
+    common_tests/test_hearing_test.cpp)
 
 target_link_libraries(common_tests PRIVATE veyra::common veyra::catch2 veyra::ns)
 target_compile_definitions(common_tests PRIVATE
