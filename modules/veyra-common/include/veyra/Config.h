@@ -63,6 +63,7 @@ struct SpatialConfig {
     float crossfeed      = 0.0f; // 0..1 headphone crossfeed
     float virtualization = 0.0f; // 0..1 HRTF out-of-head virtualisation
     int   mode           = 0;    // 0 off, 1 cinematic, 2 competitive
+    int   fieldComp      = 0;    // headphone target: 0 off, 1 diffuse-field, 2 free-field
 };
 
 // Gamer Mode (Sound Tracker) settings. The service runs the tracker over a

@@ -398,6 +398,11 @@ public:
         vs_.setValue(0.0, juce::dontSendNotification);
         vs_.onValueChange = [this] { spatial_.virtualization = (float) vs_.getValue(); emit(); };
         addAndMakeVisible(vs_);
+
+        field_.setItems({"Natural", "Diffuse", "Free-field"});
+        field_.setSelectedIndex(0, false);
+        field_.onChange = [this](int i) { spatial_.fieldComp = juce::jlimit(0, 2, i); emit(); };
+        addAndMakeVisible(field_);
     }
 
     std::function<void(const veyra::SpatialConfig&)> onSpatialChanged;
@@ -407,6 +412,7 @@ public:
         GlassPanel::setPalette(p);
         enable_.setPalette(p);
         mode_.setPalette(p);
+        field_.setPalette(p);
     }
 
     void setSpatialConfig(const veyra::SpatialConfig& s)
@@ -416,6 +422,7 @@ public:
         mode_.setSelectedIndex(juce::jlimit(0, 2, s.mode), false);
         cf_.setValue(s.crossfeed, juce::dontSendNotification);
         vs_.setValue(s.virtualization, juce::dontSendNotification);
+        field_.setSelectedIndex(juce::jlimit(0, 2, s.fieldComp), false);
         repaint();
     }
 
@@ -432,6 +439,7 @@ public:
         vrow.removeFromLeft(110);
         vrow.removeFromRight(52);
         vs_.setBounds(vrow.withSizeKeepingCentre(vrow.getWidth(), 18));
+        field_.setBounds(fieldRow());
     }
 
 protected:
@@ -461,6 +469,10 @@ protected:
         g.setFont(fonts::mono(12.0f));
         g.drawText(juce::String(juce::roundToInt(vs_.getValue() * 100.0)) + "%",
                    vrow.removeFromRight(52), juce::Justification::centredRight, false);
+
+        g.setColour(palette_.textSecondary);
+        g.setFont(fonts::body(13.0f));
+        g.drawText("Headphone Target", fieldLabelRow(), juce::Justification::centredLeft, false);
     }
 
 private:
@@ -481,6 +493,18 @@ private:
         auto c = getLocalBounds().reduced(kPad);
         c.removeFromTop(28 + 8 + 34 + 12 + 36 + 10);
         return c.removeFromTop(36);
+    }
+    juce::Rectangle<int> fieldLabelRow() const
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        c.removeFromTop(28 + 8 + 34 + 12 + 36 + 10 + 36 + 12);
+        return c.removeFromTop(16);
+    }
+    juce::Rectangle<int> fieldRow() const
+    {
+        auto c = getLocalBounds().reduced(kPad);
+        c.removeFromTop(28 + 8 + 34 + 12 + 36 + 10 + 36 + 12 + 16 + 4);
+        return c.removeFromTop(30);
     }
 
     void applyMode(int i)
@@ -509,6 +533,7 @@ private:
     SegmentedControl     mode_;
     juce::Slider         cf_;
     juce::Slider         vs_;
+    SegmentedControl     field_;
 };
 
 // ---------------------------------------------------------------------------

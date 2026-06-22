@@ -30,6 +30,7 @@ struct DspParameters {
     float volumeGain = 1.0f;           // linear, 0..3 (up to 300%)
     float crossfeedAmount = 0.0f;      // 0..1 headphone crossfeed (spatial)
     float virtualizationAmount = 0.0f; // 0..1 HRTF headphone virtualisation
+    int   fieldComp = 0;               // headphone target: 0 off, 1 diffuse, 2 free-field
     float nightModeAmount = 0.0f;      // 0..1 late-night loudness compression
     bool  loudnessMatch = false;       // EBU R128 loudness-match (auto make-up)
     float loudnessTargetLufs = -14.0f; // target for loudness-match

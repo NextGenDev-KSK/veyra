@@ -56,6 +56,8 @@ void ApoPublisher::publish(const Config& config)
     p.bassEnhanceAmount = e.bassEnhanceAmount;
     p.crossfeedAmount     = config.spatial.enabled ? config.spatial.crossfeed : 0.0f;
     p.virtualizationAmount = config.spatial.enabled ? config.spatial.virtualization : 0.0f;
+    p.fieldComp           = (config.spatial.enabled && config.spatial.fieldComp > 0)
+                                ? (uint32_t) config.spatial.fieldComp : 0u;
     p.nightModeAmount     = config.loudness.nightModeAmount;
     p.loudnessMatch       = config.loudness.loudnessMatch ? 1u : 0u;
     p.loudnessTargetLufs  = config.loudness.targetLufs;

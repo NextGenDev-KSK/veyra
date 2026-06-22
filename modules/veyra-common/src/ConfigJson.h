@@ -79,6 +79,7 @@ inline void to_json(nlohmann::json& j, const SpatialConfig& s)
         {"crossfeed",      s.crossfeed},
         {"virtualization", s.virtualization},
         {"mode",           s.mode},
+        {"field_comp",     s.fieldComp},
     };
 }
 
@@ -90,6 +91,7 @@ inline void from_json(const nlohmann::json& j, SpatialConfig& s)
     s.crossfeed      = j.value("crossfeed", s.crossfeed);
     s.virtualization = j.value("virtualization", s.virtualization);
     s.mode           = j.value("mode", s.mode);
+    s.fieldComp      = j.value("field_comp", s.fieldComp);
 }
 
 inline void to_json(nlohmann::json& j, const VoiceConfig& v)

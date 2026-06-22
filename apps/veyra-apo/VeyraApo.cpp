@@ -264,6 +264,7 @@ void VeyraApoEfx::refreshParametersFromShared() noexcept
     dp.volumeGain = p.volumeGain;
     dp.crossfeedAmount = p.crossfeedAmount;
     dp.virtualizationAmount = p.virtualizationAmount;
+    dp.fieldComp = (int) p.fieldComp;
     dp.nightModeAmount = p.nightModeAmount;
     dp.loudnessMatch = p.loudnessMatch != 0;
     dp.loudnessTargetLufs = p.loudnessTargetLufs;

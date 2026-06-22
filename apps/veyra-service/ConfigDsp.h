@@ -43,6 +43,7 @@ inline dsp::DspParameters dspParamsFromConfig(const Config& c)
     p.volumeGain        = std::clamp(static_cast<float>(c.masterVolumeGain) * e.volumeGain, 0.0f, 3.0f);
     p.crossfeedAmount      = c.spatial.enabled ? c.spatial.crossfeed : 0.0f;
     p.virtualizationAmount = c.spatial.enabled ? c.spatial.virtualization : 0.0f;
+    p.fieldComp            = c.spatial.enabled ? c.spatial.fieldComp : 0;
     p.nightModeAmount      = c.loudness.nightModeAmount;
     p.loudnessMatch        = c.loudness.loudnessMatch;
     p.loudnessTargetLufs   = c.loudness.targetLufs;

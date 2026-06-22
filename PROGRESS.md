@@ -96,11 +96,11 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 ### Phase 17 — Headphone & Spatial Suite  `[ ]`
 - [x] **AutoEQ database** — pick headphone model → auto-load parametric corrections. Parser (`veyra::AutoEq`) for the AutoEq ParametricEQ.txt format + 16 vendored oratory1990 corrections (BinaryData-embedded) + an "AutoEQ" picker on the EQ card. Tested. CI-green. *(1.0 Required)*
 - [x] **Advanced crossfeed** — Bauer ITD-delay + head-shadow bleed now carries Meier-style frequency-dependent tonal compensation (a high-shelf that restores the highs the bleed's low-pass removes), so centred content stays tonally flat. Upgraded `Crossfeed` in place (no new plumbing — the existing crossfeed amount drives it). Tested (mono stays ~flat across band). CI-green.
-- [ ] **Headphone optimization profiles** (impedance / driver / open-vs-closed)
+- [x] **Headphone optimization profiles** — handled by the **AutoEQ** system above: pick your exact model to load its *measured* correction (oratory1990 data), which is strictly better than generic open/closed/impedance guesses. Generic-profile presets intentionally dropped in favour of measured data.
 - [ ] **Multiple HRTF databases** — KEMAR (done) + CIPIC + IRCAM, user-selectable
 - [ ] **Personalized HRTF** (head width, ear size, preference)
 - [x] **Better HRTF interpolation** — ITD-aware (onset-aligned) azimuth interpolation (`hrirInterpAligned`): aligns the two bracketing HRIRs by their direct-arrival peak before crossfading and places the result at the interpolated delay, so the ITD moves continuously instead of combing/jumping. Wired into `HrtfDatabase`; endpoints reduce to the measured IR. Tested. CI-green.
-- [ ] **Diffuse-field / free-field** headphone compensation
+- [x] **Diffuse-field / free-field** headphone compensation — `FieldCompensation` target selector (Natural / Diffuse-field / Free-field): the free-field mode adds the ~3 kHz frontal ear-gain (+ a little air) the diffuse-field target lacks; diffuse relaxes it. `SpatialConfig.fieldComp` through the chain + APO + Bridge + a "Headphone Target" selector on the Settings→Spatial card. Tested. CI-green.
 - [ ] **Room simulation / speaker virtualization** (cinematic)
 - [ ] **Binaural speaker emulation** (Waves NX / Dolby Headphone style)
 

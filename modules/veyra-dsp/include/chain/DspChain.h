@@ -18,6 +18,7 @@
 #include "eq/ParametricEq.h"
 #include "enhancers/BassEnhancer.h"
 #include "enhancers/Exciter.h"
+#include "enhancers/FieldCompensation.h"
 #include "enhancers/HeadphoneSafe.h"
 #include "enhancers/MultibandWidth.h"
 #include "enhancers/Saturator.h"
@@ -50,6 +51,7 @@ public:
         transient_.prepare(sampleRate);
         bassEnh_.prepare(sampleRate);
         headphoneSafe_.prepare(sampleRate);
+        fieldComp_.prepare(sampleRate);
         reverb_.prepare(sampleRate);
         crossfeed_.prepare(sampleRate);
         surround_.setHrtfDirectory(hrtfDir_);
@@ -104,6 +106,7 @@ public:
         transient_.setAmount(p.transientAmount);
         bassEnh_.setAmount(p.bassEnhanceAmount);
         headphoneSafe_.setEnabled(p.headphoneSafe);
+        fieldComp_.setMode(p.fieldComp);
         normalizer_.setEnabled(p.loudnessMatch);
         normalizer_.setTargetLufs(p.loudnessTargetLufs);
         volume_.setTarget(p.volumeGain);
@@ -141,6 +144,7 @@ public:
             reverb_.processStereo(left, right, numSamples);     // ambience (wet/dry)
             surround_.processStereo(left, right, numSamples);  // HRTF virtualisation
             crossfeed_.processStereo(left, right, numSamples);  // headphone crossfeed
+            fieldComp_.processStereo(left, right, numSamples);  // diffuse/free-field target
             nightMode_.processStereo(left, right, numSamples);  // late-night loudness
         }
 
@@ -187,6 +191,7 @@ private:
     TransientShaper  transient_;
     BassEnhancer     bassEnh_;
     HeadphoneSafe    headphoneSafe_;
+    FieldCompensation fieldComp_;
     Reverb           reverb_;
     Crossfeed        crossfeed_;
     VirtualSurround  surround_;

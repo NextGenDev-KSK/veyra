@@ -37,6 +37,7 @@ struct VeyraParamsPayload {
     float    volumeGain = 1.0f;
     float    crossfeedAmount = 0.0f;
     float    virtualizationAmount = 0.0f;
+    uint32_t fieldComp = 0;
     float    nightModeAmount = 0.0f;
     uint32_t loudnessMatch = 0;
     float    loudnessTargetLufs = -14.0f;
