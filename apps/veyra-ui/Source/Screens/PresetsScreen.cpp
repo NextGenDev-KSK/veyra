@@ -15,6 +15,25 @@ constexpr int kTileW = 230;
 constexpr int kTileH = 92;
 constexpr int kGap = 16;
 
+// Curated "Popular Presets" — top 10 built-ins, in display order.
+const std::vector<std::string> kPopular = {
+    "v-studio-flat",       // Flat
+    "v-soundmax",          // SoundMax (safe max loudness)
+    "v-bass-monster",      // Bass Boost
+    "v-vocal-boost",       // Vocal Clarity
+    "v-cinema",            // Movie Cinema
+    "v-fps-competitive",   // Gaming Competitive
+    "v-apex-awareness",    // Gaming Immersive
+    "v-rock-arena",        // Music Wide
+    "v-night-listening",   // Night Mode
+    "v-podcast-voice",     // Podcast Voice
+};
+int popularRank(const std::string& uuid)
+{
+    const auto it = std::find(kPopular.begin(), kPopular.end(), uuid);
+    return it == kPopular.end() ? (int) kPopular.size() : (int) std::distance(kPopular.begin(), it);
+}
+
 juce::File veyraStateFile(const char* name)
 {
     return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
@@ -238,7 +257,7 @@ void PresetsScreen::setPresets(std::vector<veyra::Preset> presets, juce::String 
 
     // Build the category column: All + Favorites + Recently Used + each built-in
     // category (in first-seen order) + Custom (if any user presets exist).
-    categories_ = juce::StringArray{"All Presets", "Favorites", "Recently Used"};
+    categories_ = juce::StringArray{"All Presets", "Popular", "Favorites", "Recently Used"};
     bool anyCustom = false;
     for (const auto& p : allPresets_)
     {
@@ -260,11 +279,13 @@ void PresetsScreen::applyFilter()
     const juce::String cat = categories_[selectedCat_];
     const juce::String q = search_.getText().trim();
     const bool recentView = (cat == "Recently Used");
+    const bool popularView = (cat == "Popular");
     std::vector<veyra::Preset> filtered;
     for (const auto& p : allPresets_)
     {
         bool catOk;
         if (cat == "All Presets")        catOk = true;
+        else if (popularView)            catOk = popularRank(p.uuid) < (int) kPopular.size();
         else if (cat == "Favorites")     catOk = favorites_.count(p.uuid) > 0;
         else if (recentView)             catOk = std::find(recent_.begin(), recent_.end(), p.uuid) != recent_.end();
         else if (cat == "Custom")        catOk = !p.builtIn;
@@ -274,7 +295,12 @@ void PresetsScreen::applyFilter()
             filtered.push_back(p);
     }
 
-    if (recentView)
+    if (popularView)
+    {
+        std::sort(filtered.begin(), filtered.end(), [](const veyra::Preset& a, const veyra::Preset& b)
+                  { return popularRank(a.uuid) < popularRank(b.uuid); });
+    }
+    else if (recentView)
     {
         auto rank = [this](const std::string& u) {
             const auto it = std::find(recent_.begin(), recent_.end(), u);
