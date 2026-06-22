@@ -193,6 +193,11 @@ const std::vector<Preset>& builtInPresets()
                     {9, 8, 5, 2, 0, 0, 0, 0, 0, 0}, 9.0f, 0.0f, 0.20f, 1.0f, 0.0f),
         makeBuiltIn("v-loudness-max", "Loudness Max", "Music",
                     {3, 2, 1, 1, 2, 2, 2, 3, 3, 3}, 3.0f, 3.0f, 0.50f, 1.10f, 0.0f),
+        // SoundMax: safe maximum loudness. Heavy compression for perceived volume;
+        // the always-on true-peak limiter (-0.3 dBFS) guarantees no clipping or
+        // distortion, so it stays hearing-safe.
+        makeBuiltIn("v-soundmax", "SoundMax", "Music",
+                    {2, 1, 1, 1, 2, 2, 2, 2, 3, 2}, 2.0f, 2.0f, 0.85f, 1.15f, 0.0f),
         makeBuiltIn("v-clarity-focus", "Clarity Focus", "Music",
                     {-1, -1, 0, 1, 3, 4, 4, 3, 2, 1}, 0.0f, 3.0f, 0.20f, 1.0f, 0.0f),
 

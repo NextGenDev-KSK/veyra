@@ -212,6 +212,7 @@ inline void to_json(nlohmann::json& j, const BridgeConfig& b)
         {"enabled",          b.enabled},
         {"source_device_id", b.sourceDeviceId},
         {"target_device_id", b.targetDeviceId},
+        {"preferred_output_id", b.preferredOutputId},
     };
 }
 
@@ -222,6 +223,7 @@ inline void from_json(const nlohmann::json& j, BridgeConfig& b)
     b.enabled        = j.value("enabled", b.enabled);
     b.sourceDeviceId = j.value("source_device_id", b.sourceDeviceId);
     b.targetDeviceId = j.value("target_device_id", b.targetDeviceId);
+    b.preferredOutputId = j.value("preferred_output_id", b.preferredOutputId);
 }
 
 inline void to_json(nlohmann::json& j, const HotkeysConfig& h)

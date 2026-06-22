@@ -99,6 +99,10 @@ struct BridgeConfig {
     bool        enabled = false;
     std::string sourceDeviceId; // captured (loopback)
     std::string targetDeviceId; // processed output is rendered here
+    // APO-first: the user's preferred playback endpoint. When present, Veyra makes
+    // it the Windows default (so the system-wide APO processes it); empty = follow
+    // the Windows default. Replaces user-visible source selection.
+    std::string preferredOutputId;
 };
 
 // One destination in Sound Sharing (multi-output). The service opens each

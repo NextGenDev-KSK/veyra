@@ -4,6 +4,8 @@
 
 namespace veyra::ui {
 
+namespace { constexpr int kMasterLabelW = 64; } // "MASTER" label column width
+
 TopBar::TopBar()
 {
     logoImage_ = juce::ImageCache::getFromMemory(BinaryData::Veyra_Icon_square_png,
@@ -69,14 +71,12 @@ void TopBar::resized()
     const int h = getHeight();
     auto centreY = [h](int sz) { return (h - sz) / 2; };
 
-    // Master cluster: [toggle] [MASTER label / volume slider] [value], as one
-    // vertically-centred premium group.
-    const int clusterH = 44;
-    const int clusterY = (h - clusterH) / 2;
-    int x = 268; // just past the wordmark divider
-    master_.setBounds(x, clusterY + (clusterH - 22) / 2, 40, 22);
-    x += 40 + 16;
-    volume_.setBounds(x, clusterY + 24, 210, 14); // sits under the painted MASTER label
+    // Master cluster: [toggle] [MASTER] [slider] [value] on one baseline, every
+    // element vertically centred on the bar so they share the slider's centerline.
+    const int x = 268;       // just past the wordmark divider
+    master_.setBounds(x, (h - 22) / 2, 40, 22);
+    // toggle(40) + gap(14) + MASTER label(kMasterLabelW) + gap(14) -> slider.
+    volume_.setBounds(x + 40 + 14 + kMasterLabelW + 14, (h - 14) / 2, 184, 14);
 
     int rx = getWidth() - 16;
     auto place = [&](IconButton& b, int sz) { rx -= sz; b.setBounds(rx, centreY(sz), sz, sz); rx -= 6; };
@@ -140,25 +140,26 @@ void TopBar::paint(juce::Graphics& g)
     // control reads as one premium component above the utility icons.
     const float clusterH = 44.0f;
     const float clusterY = (h - clusterH) * 0.5f;
-    const float valueW = 50.0f;
+    const float valueW = 46.0f;
+    const float valueX = (float) volume_.getRight() + 14.0f;
     juce::Rectangle<float> cluster((float) master_.getX() - 14.0f, clusterY,
-                                   (float) volume_.getRight() + valueW + 6.0f - ((float) master_.getX() - 14.0f),
+                                   valueX + valueW + 8.0f - ((float) master_.getX() - 14.0f),
                                    clusterH);
     g.setColour(palette_.bgGlassElevated);
     g.fillRoundedRectangle(cluster, 12.0f);
     g.setColour(palette_.strokeActive);
     g.drawRoundedRectangle(cluster.reduced(0.5f), 12.0f, 1.0f);
 
-    // MASTER label sits directly above the slider; value right-aligned, centred.
+    // MASTER label + value both vertically centred on the slider's centerline.
     g.setColour(palette_.accentSecondary);
     g.setFont(fonts::body(10.0f, true));
-    g.drawText("MASTER", juce::Rectangle<int>(volume_.getX(), (int) clusterY + 7, 210, 12),
+    g.drawText("MASTER",
+               juce::Rectangle<float>((float) master_.getRight() + 14.0f, 0.0f, (float) kMasterLabelW, h),
                juce::Justification::centredLeft, false);
     g.setColour(palette_.textPrimary);
     g.setFont(fonts::mono(13.0f, true));
     g.drawText(juce::String(juce::roundToInt(volume_.getValue() * 100.0)) + "%",
-               juce::Rectangle<float>((float) volume_.getRight() + 8.0f, clusterY, valueW, clusterH),
-               juce::Justification::centredLeft, false);
+               juce::Rectangle<float>(valueX, 0.0f, valueW, h), juce::Justification::centredLeft, false);
 
     // Active-preset chip (display): EQ glyph + the live preset name.
     const int chipL = (int) cluster.getRight() + 20;
