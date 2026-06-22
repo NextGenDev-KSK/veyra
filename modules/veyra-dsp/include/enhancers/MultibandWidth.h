@@ -1,0 +1,60 @@
+#pragma once
+
+// Multiband stereo width. Splits the signal at a low crossover (~300 Hz) using a
+// phase-perfect low/high pair (high = input - low, so they sum back exactly),
+// collapses the low band toward mono (tidy, punchy bass) and widens the high
+// band, both scaled by amount. Header-only, RT-safe. amount 0..1 (0 = bypass).
+
+#include <algorithm>
+#include <cmath>
+
+#include "eq/Biquad.h"
+
+namespace veyra::dsp {
+
+class MultibandWidth {
+public:
+    void prepare(double sampleRate) noexcept
+    {
+        const auto lp = makeLowPass(sampleRate > 0 ? sampleRate : 48000.0, kSplitHz, 0.707);
+        lpL_.setCoeffs(lp);
+        lpR_.setCoeffs(lp);
+        reset();
+    }
+
+    void reset() noexcept { lpL_.reset(); lpR_.reset(); }
+
+    void setAmount(float a) noexcept { amount_ = std::clamp(a, 0.0f, 1.0f); }
+
+    void processStereo(float* left, float* right, int numSamples) noexcept
+    {
+        if (amount_ <= 0.001f)
+            return;
+        const float mono  = amount_;        // 0..1 low-band mono blend
+        const float width = 1.0f + amount_; // 1..2 high-band widening
+        for (int i = 0; i < numSamples; ++i)
+        {
+            const float lowL = lpL_.process(left[i]);
+            const float lowR = lpR_.process(right[i]);
+            const float hiL  = left[i] - lowL;
+            const float hiR  = right[i] - lowR;
+
+            const float lm = (lowL + lowR) * 0.5f;
+            const float lL = lowL + (lm - lowL) * mono;
+            const float lR = lowR + (lm - lowR) * mono;
+
+            const float mid  = (hiL + hiR) * 0.5f;
+            const float side = (hiL - hiR) * 0.5f * width;
+
+            left[i]  = lL + (mid + side);
+            right[i] = lR + (mid - side);
+        }
+    }
+
+private:
+    static constexpr double kSplitHz = 300.0;
+    Biquad lpL_, lpR_;
+    float  amount_ = 0.0f;
+};
+
+} // namespace veyra::dsp

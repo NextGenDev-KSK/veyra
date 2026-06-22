@@ -50,6 +50,7 @@ struct EnhancementConfig {
     float exciterAmount     = 0.0f; // 0..1 harmonic exciter (presence/air)
     float saturationAmount  = 0.0f; // 0..1 full-band saturation (warmth)
     int   saturationMode    = 0;    // 0 transparent, 1 tape, 2 tube
+    float multibandWidth    = 0.0f; // 0..1 mono lows + widen highs
 };
 
 // Spatial / headphone parameters. crossfeed is the realtime render-side effect;

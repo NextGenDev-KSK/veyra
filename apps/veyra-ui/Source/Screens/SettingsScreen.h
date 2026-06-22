@@ -50,6 +50,7 @@ public:
     // Sound Quality interactions (advanced enhancement, beyond the Home knobs).
     std::function<void(float)> onExciterChanged;        // harmonic exciter amount 0..1
     std::function<void(float, int)> onSaturationChanged; // saturation amount 0..1 + mode 0..2
+    std::function<void(float)> onMultibandChanged;       // multiband width amount 0..1
 
     // About: reset all settings to defaults.
     std::function<void()> onResetSettings;
@@ -64,6 +65,7 @@ public:
     void setReferenceMode(bool on);
     void setExciter(float amount);
     void setSaturation(float amount, int mode);
+    void setMultiband(float amount);
     void setServiceStatus(bool connected, juce::String version);
 
 private:

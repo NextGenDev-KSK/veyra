@@ -17,6 +17,7 @@
 #include "eq/GraphicEq.h"
 #include "eq/ParametricEq.h"
 #include "enhancers/Exciter.h"
+#include "enhancers/MultibandWidth.h"
 #include "enhancers/Saturator.h"
 #include "loudness/EqualLoudness.h"
 #include "loudness/LoudnessNormalizer.h"
@@ -42,6 +43,7 @@ public:
         equalLoudness_.prepare(sampleRate);
         exciter_.prepare(sampleRate);
         saturator_.prepare(sampleRate);
+        mbWidth_.prepare(sampleRate);
         reverb_.prepare(sampleRate);
         crossfeed_.prepare(sampleRate);
         surround_.setHrtfDirectory(hrtfDir_);
@@ -91,6 +93,7 @@ public:
         exciter_.setAmount(p.exciterAmount);
         saturator_.setAmount(p.saturationAmount);
         saturator_.setMode(p.saturationMode);
+        mbWidth_.setAmount(p.multibandWidth);
         normalizer_.setEnabled(p.loudnessMatch);
         normalizer_.setTargetLufs(p.loudnessTargetLufs);
         volume_.setTarget(p.volumeGain);
@@ -120,6 +123,7 @@ public:
             equalLoudness_.processStereo(left, right, numSamples); // low-volume tonal compensation
             exciter_.processStereo(left, right, numSamples);    // harmonic presence/air
             saturator_.processStereo(left, right, numSamples);  // full-band warmth
+            mbWidth_.processStereo(left, right, numSamples);    // mono lows / wide highs
             stereo_.applyWidth(left, right, numSamples);
             reverb_.processStereo(left, right, numSamples);     // ambience (wet/dry)
             surround_.processStereo(left, right, numSamples);  // HRTF virtualisation
@@ -166,6 +170,7 @@ private:
     EqualLoudness    equalLoudness_;
     Exciter          exciter_;
     Saturator        saturator_;
+    MultibandWidth   mbWidth_;
     Reverb           reverb_;
     Crossfeed        crossfeed_;
     VirtualSurround  surround_;

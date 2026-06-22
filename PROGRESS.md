@@ -87,7 +87,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 - [x] **Equal-loudness (ISO 226)** compensation — volume-dependent low/high-shelf lift (`EqualLoudness`) wired after the compressor; carried through the APO + Bridge paths + a Settings→Loudness toggle. Tested. CI-green.
 - [x] **Harmonic exciter** — high-band tanh saturation synthesising upper harmonics (presence/air), `EnhancementConfig.exciterAmount` through the chain + APO + Bridge + a new Settings→**Sound Quality** section. Tested. CI-green.
 - [x] **Saturation modes** — transparent (odd) / tape (algebraic) / tube (even, asymmetric) full-band waveshaper with DC blocker, `EnhancementConfig.saturationAmount`+`saturationMode` through the chain + APO + Bridge + the Settings→Sound Quality section. Tested (mode-specific harmonics). CI-green.
-- [ ] **Multiband stereo width** — mono lows, widen highs
+- [x] **Multiband stereo width** — phase-perfect low/high split (~300 Hz): low band collapsed toward mono + high band widened by amount (`EnhancementConfig.multibandWidth`) through the chain + APO + Bridge + the Sound Quality section. Tested (low-side collapse, high-mid preserved). CI-green.
 - [ ] **Transient enhancement** (attack/detail)
 - [ ] **Adaptive bass management** (punch without clipping)
 - [ ] **Headphone-safe listening mode** (loudness norm + fatigue reduction)

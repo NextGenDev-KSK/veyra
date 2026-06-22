@@ -972,20 +972,22 @@ class SettingsScreen::SoundQualityCard : public GlassPanel {
 public:
     std::function<void(float)> onExciterChanged;
     std::function<void(float, int)> onSaturationChanged;
+    std::function<void(float)> onMultibandChanged;
 
     SoundQualityCard()
     {
-        for (auto* s : {&exciter_, &saturation_})
+        for (auto* s : {&exciter_, &saturation_, &mbWidth_})
         {
             s->setSliderStyle(juce::Slider::LinearHorizontal);
             s->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
             s->setRange(0.0, 1.0, 0.01);
+            addAndMakeVisible(s);
         }
         exciter_.onValueChange = [this]
         { if (onExciterChanged) onExciterChanged((float) exciter_.getValue()); repaint(); };
         saturation_.onValueChange = [this] { emitSaturation(); repaint(); };
-        addAndMakeVisible(exciter_);
-        addAndMakeVisible(saturation_);
+        mbWidth_.onValueChange = [this]
+        { if (onMultibandChanged) onMultibandChanged((float) mbWidth_.getValue()); repaint(); };
 
         satMode_.setItems({"Transparent", "Tape", "Tube"});
         satMode_.onChange = [this](int i) { satModeVal_ = juce::jlimit(0, 2, i); emitSaturation(); };
@@ -1001,6 +1003,8 @@ public:
         satMode_.setSelectedIndex(satModeVal_, false);
         repaint();
     }
+
+    void setMultiband(float a) { mbWidth_.setValue(a, juce::dontSendNotification); repaint(); }
 
     void setPalette(const Palette& p) override
     {
@@ -1020,6 +1024,9 @@ public:
         c.removeFromTop(12);
         c.removeFromTop(16);                   // "Saturation Mode" label
         satMode_.setBounds(c.removeFromTop(30));
+        c.removeFromTop(16);
+        c.removeFromTop(18);                   // multiband width label
+        mbWidth_.setBounds(c.removeFromTop(24));
     }
 
 protected:
@@ -1043,6 +1050,9 @@ protected:
         g.setColour(palette_.textSecondary);
         g.setFont(fonts::body(13.0f));
         g.drawText("Saturation Mode", c.removeFromTop(16), juce::Justification::centredLeft, false);
+        c.removeFromTop(30); // mode segmented control
+        c.removeFromTop(16);
+        labelRow(g, c.removeFromTop(18), "Multiband Width", mbWidth_.getValue());
     }
 
 private:
@@ -1060,7 +1070,7 @@ private:
     }
 
     static constexpr int kPad = 24;
-    juce::Slider     exciter_, saturation_;
+    juce::Slider     exciter_, saturation_, mbWidth_;
     SegmentedControl satMode_;
     int satModeVal_ = 0;
 };
@@ -1094,6 +1104,7 @@ SettingsScreen::SettingsScreen()
     soundQuality_ = std::make_unique<SoundQualityCard>();
     soundQuality_->onExciterChanged = [this](float a) { if (onExciterChanged) onExciterChanged(a); };
     soundQuality_->onSaturationChanged = [this](float a, int m) { if (onSaturationChanged) onSaturationChanged(a, m); };
+    soundQuality_->onMultibandChanged = [this](float a) { if (onMultibandChanged) onMultibandChanged(a); };
     addAndMakeVisible(*soundQuality_);
 
     updates_ = std::make_unique<UpdatesCard>();
@@ -1224,6 +1235,7 @@ void SettingsScreen::setAudioEngineConfig(const veyra::AudioEngineConfig& e) { a
 void SettingsScreen::setReferenceMode(bool on) { audioEngine_->setReferenceMode(on); }
 void SettingsScreen::setExciter(float a) { soundQuality_->setExciter(a); }
 void SettingsScreen::setSaturation(float a, int m) { soundQuality_->setSaturation(a, m); }
+void SettingsScreen::setMultiband(float a) { soundQuality_->setMultiband(a); }
 void SettingsScreen::setServiceStatus(bool connected, juce::String version)
 {
     about_->setServiceStatus(connected, std::move(version));
