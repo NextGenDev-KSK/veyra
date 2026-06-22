@@ -41,17 +41,13 @@ public:
 private:
     class BridgeCard;
     class DeviceCard;
-    void rebuildCards();
+    class CardGrid; // scrollable output/input card area
 
     std::unique_ptr<BridgeCard> card_;
-    std::vector<std::unique_ptr<DeviceCard>> outCards_, inCards_;
-    std::vector<OutputDevice> outDevs_, inDevs_; // cached enumeration
+    std::unique_ptr<CardGrid>   grid_;
+    juce::Viewport              viewport_; // scrolls the cards if they overflow
 
     Palette          palette_  = paletteForTheme("midnight");
-    GlassBackground* backdrop_ = nullptr;
-    juce::String     activePreset_{"Custom"};
-    double           masterVol_ = 1.0;
-    juce::String     micProfile_{"gaming"};
 };
 
 } // namespace veyra::ui
