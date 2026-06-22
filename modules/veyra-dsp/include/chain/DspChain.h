@@ -16,6 +16,7 @@
 #include "enhancers/ToneControls.h"
 #include "eq/GraphicEq.h"
 #include "eq/ParametricEq.h"
+#include "enhancers/BassEnhancer.h"
 #include "enhancers/Exciter.h"
 #include "enhancers/MultibandWidth.h"
 #include "enhancers/Saturator.h"
@@ -46,6 +47,7 @@ public:
         saturator_.prepare(sampleRate);
         mbWidth_.prepare(sampleRate);
         transient_.prepare(sampleRate);
+        bassEnh_.prepare(sampleRate);
         reverb_.prepare(sampleRate);
         crossfeed_.prepare(sampleRate);
         surround_.setHrtfDirectory(hrtfDir_);
@@ -97,6 +99,7 @@ public:
         saturator_.setMode(p.saturationMode);
         mbWidth_.setAmount(p.multibandWidth);
         transient_.setAmount(p.transientAmount);
+        bassEnh_.setAmount(p.bassEnhanceAmount);
         normalizer_.setEnabled(p.loudnessMatch);
         normalizer_.setTargetLufs(p.loudnessTargetLufs);
         volume_.setTarget(p.volumeGain);
@@ -124,6 +127,7 @@ public:
             tone_.processStereo(left, right, numSamples);
             comp_.processStereo(left, right, numSamples);
             transient_.processStereo(left, right, numSamples);  // attack emphasis
+            bassEnh_.processStereo(left, right, numSamples);    // psychoacoustic bass
             equalLoudness_.processStereo(left, right, numSamples); // low-volume tonal compensation
             exciter_.processStereo(left, right, numSamples);    // harmonic presence/air
             saturator_.processStereo(left, right, numSamples);  // full-band warmth
@@ -176,6 +180,7 @@ private:
     Saturator        saturator_;
     MultibandWidth   mbWidth_;
     TransientShaper  transient_;
+    BassEnhancer     bassEnh_;
     Reverb           reverb_;
     Crossfeed        crossfeed_;
     VirtualSurround  surround_;

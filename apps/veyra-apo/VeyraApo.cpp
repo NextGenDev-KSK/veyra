@@ -259,6 +259,7 @@ void VeyraApoEfx::refreshParametersFromShared() noexcept
     dp.saturationMode = (int) p.saturationMode;
     dp.multibandWidth = p.multibandWidth;
     dp.transientAmount = p.transientAmount;
+    dp.bassEnhanceAmount = p.bassEnhanceAmount;
     dp.stereoWidth = p.stereoWidth;
     dp.volumeGain = p.volumeGain;
     dp.crossfeedAmount = p.crossfeedAmount;

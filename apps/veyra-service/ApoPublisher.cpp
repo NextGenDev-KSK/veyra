@@ -53,6 +53,7 @@ void ApoPublisher::publish(const Config& config)
     p.saturationMode    = (uint32_t) (e.saturationMode < 0 ? 0 : e.saturationMode);
     p.multibandWidth    = e.multibandWidth;
     p.transientAmount   = e.transientAmount;
+    p.bassEnhanceAmount = e.bassEnhanceAmount;
     p.crossfeedAmount     = config.spatial.enabled ? config.spatial.crossfeed : 0.0f;
     p.virtualizationAmount = config.spatial.enabled ? config.spatial.virtualization : 0.0f;
     p.nightModeAmount     = config.loudness.nightModeAmount;

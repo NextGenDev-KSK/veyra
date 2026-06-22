@@ -52,6 +52,7 @@ struct EnhancementConfig {
     int   saturationMode    = 0;    // 0 transparent, 1 tape, 2 tube
     float multibandWidth    = 0.0f; // 0..1 mono lows + widen highs
     float transientAmount   = 0.0f; // 0..1 attack/transient emphasis
+    float bassEnhanceAmount = 0.0f; // 0..1 psychoacoustic bass (harmonic)
 };
 
 // Spatial / headphone parameters. crossfeed is the realtime render-side effect;

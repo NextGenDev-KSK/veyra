@@ -32,6 +32,7 @@ struct VeyraParamsPayload {
     uint32_t saturationMode = 0;
     float    multibandWidth = 0.0f;
     float    transientAmount = 0.0f;
+    float    bassEnhanceAmount = 0.0f;
     float    stereoWidth = 1.0f;
     float    volumeGain = 1.0f;
     float    crossfeedAmount = 0.0f;

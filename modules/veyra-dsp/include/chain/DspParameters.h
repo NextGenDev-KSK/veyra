@@ -25,6 +25,7 @@ struct DspParameters {
     int   saturationMode = 0;          // 0 transparent, 1 tape, 2 tube
     float multibandWidth = 0.0f;       // 0..1 mono lows + widen highs
     float transientAmount = 0.0f;      // 0..1 attack/transient emphasis
+    float bassEnhanceAmount = 0.0f;    // 0..1 psychoacoustic bass (harmonic)
     float stereoWidth = 1.0f;          // 0 (mono) .. 2 (wide)
     float volumeGain = 1.0f;           // linear, 0..3 (up to 300%)
     float crossfeedAmount = 0.0f;      // 0..1 headphone crossfeed (spatial)

@@ -203,6 +203,7 @@ RootComponent::RootComponent()
     { working_.enhancement.saturationAmount = a; working_.enhancement.saturationMode = m; pushConfig(); };
     settings_.onMultibandChanged = [this](float a) { working_.enhancement.multibandWidth = a; pushConfig(); };
     settings_.onTransientChanged = [this](float a) { working_.enhancement.transientAmount = a; pushConfig(); };
+    settings_.onBassEnhanceChanged = [this](float a) { working_.enhancement.bassEnhanceAmount = a; pushConfig(); };
     settings_.onResetSettings  = [this]
     {
         applyConfig(veyra::Config{}); // restore all defaults across the UI
@@ -221,6 +222,7 @@ RootComponent::RootComponent()
     settings_.setSaturation(working_.enhancement.saturationAmount, working_.enhancement.saturationMode);
     settings_.setMultiband(working_.enhancement.multibandWidth);
     settings_.setTransient(working_.enhancement.transientAmount);
+    settings_.setBassEnhance(working_.enhancement.bassEnhanceAmount);
 
     // Apply the initial appearance to the live background.
     background_.setOpacity((float) working_.uiOpacity);
@@ -399,6 +401,7 @@ void RootComponent::applyConfig(const veyra::Config& c)
     settings_.setSaturation(c.enhancement.saturationAmount, c.enhancement.saturationMode);
     settings_.setMultiband(c.enhancement.multibandWidth);
     settings_.setTransient(c.enhancement.transientAmount);
+    settings_.setBassEnhance(c.enhancement.bassEnhanceAmount);
     apps_.setSwitchingEnabled(c.appSwitching);
     gamer_.setGamer(c.gamerMode);
     gamer_.setSpatial(c.spatial);

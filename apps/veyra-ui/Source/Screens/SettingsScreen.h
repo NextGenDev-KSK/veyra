@@ -52,6 +52,7 @@ public:
     std::function<void(float, int)> onSaturationChanged; // saturation amount 0..1 + mode 0..2
     std::function<void(float)> onMultibandChanged;       // multiband width amount 0..1
     std::function<void(float)> onTransientChanged;       // transient punch amount 0..1
+    std::function<void(float)> onBassEnhanceChanged;     // psychoacoustic bass amount 0..1
 
     // About: reset all settings to defaults.
     std::function<void()> onResetSettings;
@@ -68,6 +69,7 @@ public:
     void setSaturation(float amount, int mode);
     void setMultiband(float amount);
     void setTransient(float amount);
+    void setBassEnhance(float amount);
     void setServiceStatus(bool connected, juce::String version);
 
 private:
