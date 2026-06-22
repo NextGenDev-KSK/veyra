@@ -113,7 +113,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 - [ ] **Eliminate dead space** across Presets / Devices / Apps / Gamer Mode / Sound Lab
 - [ ] **GPU/OpenGL visualizer** rendering (replace 2D)
 - [~] **Docs** — per-feature `docs/USER_GUIDE.md` + ARCHITECTURE/BUILD_GUIDE/VERIFY/TRANSLATIONS/FEATURE_COVERAGE. Screenshots + demo videos still need a runtime capture pass.
-- [ ] **Polished first-run** — auto-detect devices/headphones + recommend presets
+- [x] **Polished first-run** — onboarding's "Your setup" step detects the default output (form factor) + mic and applies a recommended preset (`recommendedPresetForOutput`, tested) on finish.
 
 ### Phase 20 — Release Validation (runtime / hardware)  `[ ]`
 - [ ] ⏵ **Hardware APO validation** on multiple Windows PCs (audio confirmed through `audiodg.exe`)
