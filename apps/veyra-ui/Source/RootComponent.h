@@ -28,6 +28,8 @@
 #include "TrayIcon.h"
 #include "VeyraGui.h"
 
+#include <juce_opengl/juce_opengl.h> // GPU-accelerated rendering (Hardware Acceleration setting)
+
 #include "veyra/Config.h"
 #include "veyra/ipc/AnalyzerData.h"
 #include "veyra/ipc/SharedMemory.h"
@@ -48,6 +50,7 @@ public:
 private:
     void changeListenerCallback(juce::ChangeBroadcaster*) override; // theme change
     void timerCallback() override;                                  // poll live metering
+    void setHardwareAcceleration(bool on);                          // attach/detach the GL context
     void showScreen(int navIndex);
     void applyPalette();
     void applyConfig(const veyra::Config& c);
@@ -102,6 +105,9 @@ private:
     int            ruleTick_ = 0;
 
     HotkeyManager hotkeys_;
+
+    juce::OpenGLContext glContext_;   // attached when Hardware Acceleration is on
+    bool                glAttached_ = false;
 
     ServiceClient client_; // declared last -> destroyed first (thread joins early)
 };

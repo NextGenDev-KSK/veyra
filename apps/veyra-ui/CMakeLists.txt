@@ -70,6 +70,7 @@ target_link_libraries(veyra PRIVATE
     veyra::dsp
     juce::juce_audio_devices   # Sound Lab test-signal engine (WASAPI output/input)
     juce::juce_gui_extra
+    juce::juce_opengl          # optional GPU-accelerated rendering (Hardware Acceleration)
     juce::juce_recommended_config_flags
     juce::juce_recommended_warning_flags
     dwmapi    # Windows 11 acrylic backdrop (DwmSetWindowAttribute)

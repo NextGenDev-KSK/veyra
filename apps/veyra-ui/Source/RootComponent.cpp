@@ -203,7 +203,8 @@ RootComponent::RootComponent()
     settings_.onMicChanged     = [this](const veyra::VoiceConfig& v) { working_.voice = v; pushConfig(); };
     settings_.onSpatialChanged = [this](const veyra::SpatialConfig& s) { working_.spatial = s; pushConfig(); };
     settings_.onLoudnessChanged = [this](const veyra::LoudnessConfig& l) { working_.loudness = l; pushConfig(); };
-    settings_.onAudioEngineChanged = [this](const veyra::AudioEngineConfig& e) { working_.audioEngine = e; pushConfig(); };
+    settings_.onAudioEngineChanged = [this](const veyra::AudioEngineConfig& e)
+    { working_.audioEngine = e; setHardwareAcceleration(e.hardwareAcceleration); pushConfig(); };
     settings_.onReferenceModeChanged = [this](bool on) { working_.referenceMode = on; pushConfig(); };
     settings_.onHeadphoneSafeChanged = [this](bool on) { working_.headphoneSafe = on; pushConfig(); };
     settings_.onOversampleChanged = [this](bool on) { working_.nonlinearOversampling = on; pushConfig(); };
@@ -266,15 +267,29 @@ RootComponent::RootComponent()
                        if (safe != nullptr)
                            safe->handleHotkey(a);
                    });
+
+    setHardwareAcceleration(working_.audioEngine.hardwareAcceleration);
 }
 
 RootComponent::~RootComponent()
 {
+    if (glAttached_) glContext_.detach(); // before the component tree tears down
     stopTimer();
     hotkeys_.stop();
     client_.stop(); // join the background thread before the rest tears down
     themeManager_.removeChangeListener(this);
     setLookAndFeel(nullptr);
+}
+
+void RootComponent::setHardwareAcceleration(bool on)
+{
+    if (on == glAttached_)
+        return;
+    if (on)
+        glContext_.attachTo(*this); // GPU-composite the whole UI incl. the visualizer
+    else
+        glContext_.detach();
+    glAttached_ = on;
 }
 
 void RootComponent::handleHotkey(veyra::HotkeyAction action)
@@ -407,6 +422,7 @@ void RootComponent::applyConfig(const veyra::Config& c)
     settings_.setSpatialConfig(c.spatial);
     settings_.setLoudnessConfig(c.loudness);
     settings_.setAudioEngineConfig(c.audioEngine);
+    setHardwareAcceleration(c.audioEngine.hardwareAcceleration);
     settings_.setReferenceMode(c.referenceMode);
     settings_.setHeadphoneSafe(c.headphoneSafe);
     settings_.setOversample(c.nonlinearOversampling);
