@@ -95,11 +95,11 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 
 ### Phase 17 — Headphone & Spatial Suite  `[ ]`
 - [x] **AutoEQ database** — pick headphone model → auto-load parametric corrections. Parser (`veyra::AutoEq`) for the AutoEq ParametricEQ.txt format + 16 vendored oratory1990 corrections (BinaryData-embedded) + an "AutoEQ" picker on the EQ card. Tested. CI-green. *(1.0 Required)*
-- [ ] **Advanced crossfeed** — frequency-dependent, delay-compensated (Bauer/Meier)
+- [x] **Advanced crossfeed** — Bauer ITD-delay + head-shadow bleed now carries Meier-style frequency-dependent tonal compensation (a high-shelf that restores the highs the bleed's low-pass removes), so centred content stays tonally flat. Upgraded `Crossfeed` in place (no new plumbing — the existing crossfeed amount drives it). Tested (mono stays ~flat across band). CI-green.
 - [ ] **Headphone optimization profiles** (impedance / driver / open-vs-closed)
 - [ ] **Multiple HRTF databases** — KEMAR (done) + CIPIC + IRCAM, user-selectable
 - [ ] **Personalized HRTF** (head width, ear size, preference)
-- [ ] **Better HRTF interpolation** (eliminate localization jumps)
+- [x] **Better HRTF interpolation** — ITD-aware (onset-aligned) azimuth interpolation (`hrirInterpAligned`): aligns the two bracketing HRIRs by their direct-arrival peak before crossfading and places the result at the interpolated delay, so the ITD moves continuously instead of combing/jumping. Wired into `HrtfDatabase`; endpoints reduce to the measured IR. Tested. CI-green.
 - [ ] **Diffuse-field / free-field** headphone compensation
 - [ ] **Room simulation / speaker virtualization** (cinematic)
 - [ ] **Binaural speaker emulation** (Waves NX / Dolby Headphone style)

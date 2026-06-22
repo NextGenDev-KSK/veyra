@@ -86,6 +86,30 @@ TEST_CASE("Crossfeed: bleeds a hard-panned channel into the other")
     CHECK(r[n - 1] > 0.01f);
 }
 
+TEST_CASE("Crossfeed: tonal compensation keeps centred content ~flat")
+{
+    constexpr double kPi = 3.14159265358979323846;
+    auto monoRms = [](double hz)
+    {
+        Crossfeed cf;
+        cf.prepare(kFs);
+        cf.setAmount(0.8f);
+        const int n = 8192;
+        std::vector<float> l(n), r(n);
+        for (int i = 0; i < n; ++i)
+            l[(size_t) i] = r[(size_t) i] = (float) std::sin(2.0 * kPi * hz * i / kFs); // mono
+        cf.processStereo(l.data(), r.data(), n);
+        double acc = 0.0;
+        for (int i = n / 2; i < n; ++i) acc += (double) l[(size_t) i] * l[(size_t) i];
+        return std::sqrt(acc / (n / 2));
+    };
+    const double lo = monoRms(200.0);
+    const double hi = monoRms(10000.0);
+    // Without compensation the highs would drop to ~0.6x the lows; the high-shelf
+    // restores them so centred material stays roughly flat across the band.
+    CHECK(hi > lo * 0.85);
+}
+
 TEST_CASE("BinauralPanner: a right-side source favours the right ear")
 {
     const int B = 64;

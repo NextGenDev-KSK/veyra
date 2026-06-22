@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 
+#include "spatial/HrirInterp.h"
 #include "spatial/WavReader.h"
 
 namespace veyra::dsp {
@@ -99,8 +100,8 @@ public:
         const auto& hiR = leftHemisphere ? hi.left  : hi.right;
 
         std::vector<float> mixL, mixR;
-        blend(loL, hiL, t, mixL);
-        blend(loR, hiR, t, mixR);
+        hrirInterpAligned(loL, hiL, t, mixL); // ITD-aware (onset-aligned) blend
+        hrirInterpAligned(loR, hiR, t, mixR);
 
         resample(mixL, lo.sampleRate, targetSampleRate, left);
         resample(mixR, lo.sampleRate, targetSampleRate, right);
@@ -177,15 +178,6 @@ private:
             }
         }
         return cache_.emplace(key, std::move(p)).first->second;
-    }
-
-    static void blend(const std::vector<float>& a, const std::vector<float>& b, float t,
-                      std::vector<float>& out)
-    {
-        const size_t n = std::min(a.size(), b.size());
-        out.resize(n);
-        for (size_t i = 0; i < n; ++i)
-            out[i] = (1.0f - t) * a[i] + t * b[i];
     }
 
     static void resample(const std::vector<float>& in, int srcSr, double dstSr,
