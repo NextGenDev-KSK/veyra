@@ -119,14 +119,14 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hard
 - [ ] ⏵ **Hardware APO validation** on multiple Windows PCs (audio confirmed through `audiodg.exe`)
 - [ ] ⏵ **8-hour soak** — fix leaks / CPU spikes / dropouts
 - [ ] ⏵ **Competitor benchmark** vs FxSound / Sonar / Boom 3D / Dolby Access / Equalizer APO (CPU, latency, quality)
-- [ ] ⬜ **Human translations** ZH-CN / ES / AR / HI / TA + Arabic RTL
+- [~] **Translations** — fill-in templates generated for ZH-CN/AR/HI/TA (+ ES sample), bundled + documented (docs/TRANSLATIONS.md); RTL flag set for Arabic. Human translation of the values + a live language picker / `tr()` routing remain. ⬜
 - [ ] ⏵ **Production code signing**
 
 ---
 
 ## Veyra 1.0 release target
 
-**Required:** Stable APO ⏵ · RNNoise ✅ · AutoEQ ✅ · Parametric EQ ✅ · KEMAR ✅ · Good presets ✅ · Apps page ✅ · Devices page ✅ (polish `[ ]`) · Localization framework ✅ · Documentation `[ ]`
+**Required:** Stable APO ⏵ · RNNoise ✅ · AutoEQ ✅ · Parametric EQ ✅ · KEMAR ✅ · Good presets ✅ · Apps page ✅ · Devices page ✅ · Localization framework ✅ (+ 5 locale templates) · Documentation `[ ]`
 **Nice-to-have:** CIPIC · IRCAM · Equal-loudness · Advanced crossfeed
 **Future:** Personalized HRTF · Room simulation · Binaural speaker emulation
 
