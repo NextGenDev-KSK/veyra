@@ -78,7 +78,6 @@ const std::vector<ThemeInfo>& builtInThemes()
         {"sunset", "Sunset"},
         {"ocean", "Ocean"},
         {"mono", "Mono"},
-        {"glassmorphism-max", "Glassmorphism Max"},
         {"custom", "Custom"},
     };
     return themes;
@@ -154,11 +153,8 @@ Palette paletteForTheme(const juce::String& id)
         p.bgGlass = rgba(28, 28, 28, 0.65f);
         setAccent(p, hex(0xFFFFFF));
     }
-    else if (id == "glassmorphism-max")
-    {
-        p.bgGlass = rgba(20, 22, 32, 0.40f);
-    }
-    // "midnight", "custom", and unknown ids use the Midnight base.
+    // "midnight", "custom", and unknown ids (incl. the removed "glassmorphism-max")
+    // use the Midnight base.
     return p;
 }
 

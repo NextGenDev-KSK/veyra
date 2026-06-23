@@ -1,9 +1,17 @@
 #pragma once
 
 // paintGlass: renders the glass recipe (frosted backdrop slice + tint + 1px
-// stroke + top light-leak + soft shadow) for a component, sampling the blurred
-// background so the bright ambient blobs show through tinted — the premium
-// frosted look that a flat translucent fill can't achieve on a dark canvas.
+// stroke + top light-leak) for a component, sampling the blurred background so
+// the bright ambient blobs show through tinted — the premium frosted look that a
+// flat translucent fill can't achieve on a dark canvas.
+//
+// No drop shadow is drawn here: a Component paints clipped to its own bounds, so
+// any shadow of a shape that fills those bounds can only render *inside* the card
+// (a corner fringe / translucent bleed that ignores the radius). The card is
+// therefore defined purely by its anti-aliased rounded fill + border, giving a
+// mathematically clean rounded rectangle with no leakage. (A real outer shadow
+// would require per-card shadow margins in the layout — deferred to avoid a
+// global layout change.)
 
 #include "Graphics/GlassBackground.h"
 #include "Theme/DesignTokens.h"
@@ -15,12 +23,6 @@ inline void paintGlass(juce::Graphics& g, juce::Component& card, GlassBackground
                        const Palette& p, float radius, bool elevated)
 {
     const auto b = card.getLocalBounds().toFloat();
-
-    // Shadow follows the rounded shape (drawForRectangle left a square corner
-    // fringe that ignored the radius).
-    juce::Path shape;
-    shape.addRoundedRectangle(b, radius);
-    juce::DropShadow(juce::Colours::black.withAlpha(0.35f), 24, {0, 8}).drawForPath(g, shape);
 
     if (backdrop != nullptr && backdrop->blurred().isValid())
     {
