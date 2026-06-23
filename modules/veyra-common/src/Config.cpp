@@ -26,6 +26,7 @@ std::string Config::toJson() const
     j["active_preset_uuid"] = activePresetUuid;
     j["appearance"]         = {
         {"theme",           theme},
+        {"custom_accent",   customAccent},
         {"ui_opacity",      uiOpacity},
         {"background_mode", backgroundMode},
         {"background_image", backgroundImagePath},
@@ -83,6 +84,7 @@ std::optional<Config> Config::fromJson(const std::string& text)
     if (const auto it = j.find("appearance"); it != j.end() && it->is_object())
     {
         c.theme          = it->value("theme", c.theme);
+        c.customAccent   = it->value("custom_accent", c.customAccent);
         c.uiOpacity      = it->value("ui_opacity", c.uiOpacity);
         c.backgroundMode = it->value("background_mode", c.backgroundMode);
         c.backgroundImagePath = it->value("background_image", c.backgroundImagePath);

@@ -232,6 +232,13 @@ RootComponent::RootComponent()
         working_.theme = id.toStdString();
         pushConfig();
     };
+    settings_.onCustomAccent = [this](juce::Colour c)
+    {
+        working_.customAccent = c.getARGB();
+        themeManager_.setCustomAccent(c); // applies live if the Custom theme is active
+        applyPalette();
+        pushConfig();
+    };
     settings_.onReduceMotion   = [this](bool b)
     {
         working_.reduceMotion = b;
@@ -553,6 +560,15 @@ void RootComponent::applyConfig(const veyra::Config& c)
     background_.setImagePath(juce::String(c.backgroundImagePath));
     background_.setBackgroundMode(c.backgroundMode);
     home_.setReduceMotion(c.reduceMotion);
+
+    // Custom-theme accent must be set before the theme is applied so the rebuild
+    // uses it (and it survives restart via Config.customAccent).
+    if (c.customAccent != 0)
+    {
+        const juce::Colour accent(c.customAccent);
+        themeManager_.setCustomAccent(accent);
+        settings_.setCustomAccent(accent);
+    }
 
     const juce::String themeId(c.theme);
     if (themeId.isNotEmpty() && themeId != themeManager_.currentId())

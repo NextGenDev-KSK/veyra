@@ -17,11 +17,17 @@ namespace veyra::ui {
 // ---------------------------------------------------------------------------
 // AppearanceCard: the glass card holding the theme grid + appearance controls.
 // ---------------------------------------------------------------------------
-class SettingsScreen::AppearanceCard : public GlassPanel {
+class SettingsScreen::AppearanceCard : public GlassPanel, public juce::ChangeListener {
 public:
     AppearanceCard()
     {
         themes_ = builtInThemes();
+
+        // Accent picker — only meaningful for the Custom theme, so hidden otherwise.
+        accentBtn_.setButtonText("Accent Colour…");
+        accentBtn_.onClick = [this] { openAccentPicker(); };
+        accentBtn_.setVisible(false);
+        addAndMakeVisible(accentBtn_);
 
         bgMode_.setItems({"Ambient", "Solid", "Image"});
         bgMode_.setSelectedIndex(0, false);
@@ -48,6 +54,30 @@ public:
     std::function<void(int)>                 onBackgroundMode;
     std::function<void(juce::String)>        onBackgroundImage;
     std::function<void(bool)>                onReduceMotion;
+    std::function<void(juce::Colour)>        onCustomAccent;
+
+    void setCustomAccent(juce::Colour c) { customAccent_ = c; }
+
+    void openAccentPicker()
+    {
+        auto sel = std::make_unique<juce::ColourSelector>(
+            juce::ColourSelector::showColourAtTop | juce::ColourSelector::showColourspace
+            | juce::ColourSelector::showSliders);
+        sel->setName("accent");
+        sel->setCurrentColour(customAccent_, juce::dontSendNotification);
+        sel->setSize(260, 300);
+        sel->addChangeListener(this);
+        juce::CallOutBox::launchAsynchronously(std::move(sel), accentBtn_.getScreenBounds(), nullptr);
+    }
+
+    void changeListenerCallback(juce::ChangeBroadcaster* src) override
+    {
+        if (auto* cs = dynamic_cast<juce::ColourSelector*>(src))
+        {
+            customAccent_ = cs->getCurrentColour();
+            if (onCustomAccent) onCustomAccent(customAccent_);
+        }
+    }
 
     void pickImage()
     {
@@ -70,7 +100,13 @@ public:
         reduceMotion_.setPalette(p);
     }
 
-    void setCurrentTheme(const juce::String& id) { current_ = id; repaint(); }
+    void setCurrentTheme(const juce::String& id)
+    {
+        current_ = id;
+        accentBtn_.setVisible(id == "custom");
+        resized();
+        repaint();
+    }
 
     void setAppearance(double opacity, int backgroundMode, bool reduceMotion)
     {
@@ -86,6 +122,8 @@ public:
         opacity_.setBounds(l.opacityCtl);
         bgMode_.setBounds(l.bgCtl);
         reduceMotion_.setBounds(l.reduceCtl);
+        // Accent picker sits at the right of the THEME section header (custom only).
+        accentBtn_.setBounds(l.grid.getRight() - 140, l.grid.getY() - 26, 140, 22);
     }
 
     void mouseMove(const juce::MouseEvent& e) override
@@ -256,6 +294,8 @@ private:
     SegmentedControl       bgMode_;
     ToggleSwitch           reduceMotion_;
     juce::Slider           opacity_;
+    juce::TextButton       accentBtn_;
+    juce::Colour           customAccent_{0xff5b3fe4};
     juce::String           current_{"midnight"};
     std::unique_ptr<juce::FileChooser> chooser_;
     int                    hover_ = -1;
@@ -1294,6 +1334,7 @@ SettingsScreen::SettingsScreen()
     appearance_->onBackgroundMode = [this](int i) { if (onBackgroundMode) onBackgroundMode(i); };
     appearance_->onBackgroundImage = [this](juce::String p) { if (onBackgroundImage) onBackgroundImage(p); };
     appearance_->onReduceMotion   = [this](bool b) { if (onReduceMotion) onReduceMotion(b); };
+    appearance_->onCustomAccent   = [this](juce::Colour c) { if (onCustomAccent) onCustomAccent(c); };
     addAndMakeVisible(*appearance_);
 
     audioEngine_ = std::make_unique<AudioEngineCard>();
@@ -1463,6 +1504,7 @@ void SettingsScreen::attachBackdrop(GlassBackground* b)
 }
 
 void SettingsScreen::setCurrentTheme(const juce::String& id) { appearance_->setCurrentTheme(id); }
+void SettingsScreen::setCustomAccent(juce::Colour c) { appearance_->setCustomAccent(c); }
 void SettingsScreen::setAppearance(double opacity, int backgroundMode, bool reduceMotion)
 {
     appearance_->setAppearance(opacity, backgroundMode, reduceMotion);

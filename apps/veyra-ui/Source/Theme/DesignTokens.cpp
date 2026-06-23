@@ -158,4 +158,11 @@ Palette paletteForTheme(const juce::String& id)
     return p;
 }
 
+Palette customPalette(juce::Colour accent)
+{
+    Palette p = paletteForTheme("custom"); // Midnight base
+    setAccent(p, accent);
+    return p;
+}
+
 } // namespace veyra::ui

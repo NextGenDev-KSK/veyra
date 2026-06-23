@@ -39,4 +39,7 @@ const std::vector<ThemeInfo>& builtInThemes();
 // Palette for a theme id (falls back to Midnight for unknown ids).
 Palette paletteForTheme(const juce::String& id);
 
+// The Custom theme: Midnight base with a user-chosen accent applied.
+Palette customPalette(juce::Colour accent);
+
 } // namespace veyra::ui

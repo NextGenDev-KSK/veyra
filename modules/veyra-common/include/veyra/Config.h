@@ -145,6 +145,7 @@ struct Config {
     double      masterVolumeGain   = 1.0;
     std::string activePresetUuid;
     std::string theme              = "midnight";
+    unsigned int customAccent      = 0;     // Custom-theme accent (ARGB); 0 = theme default
     double      uiOpacity          = 0.85;  // glass translucency 0.3..1
     int         backgroundMode     = 0;     // 0 ambient, 1 solid, 2 image
     std::string backgroundImagePath;        // user image for backgroundMode == 2

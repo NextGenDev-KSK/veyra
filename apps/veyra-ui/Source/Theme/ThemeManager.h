@@ -18,15 +18,33 @@ public:
         if (id == currentId_)
             return;
         currentId_ = id;
-        palette_ = paletteForTheme(id);
+        rebuild();
         sendChangeMessage();
+    }
+
+    // Custom-theme accent (applied only while the Custom theme is active).
+    void setCustomAccent(juce::Colour c)
+    {
+        customAccent_ = c;
+        if (currentId_ == "custom")
+        {
+            rebuild();
+            sendChangeMessage();
+        }
     }
 
     const juce::String& currentId() const noexcept { return currentId_; }
     const Palette& palette() const noexcept { return palette_; }
 
 private:
+    void rebuild()
+    {
+        palette_ = (currentId_ == "custom") ? customPalette(customAccent_)
+                                            : paletteForTheme(currentId_);
+    }
+
     juce::String currentId_{"midnight"};
+    juce::Colour customAccent_{0xff5b3fe4}; // default accent until the user picks one
     Palette palette_;
 };
 
