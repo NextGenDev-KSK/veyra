@@ -115,19 +115,32 @@ void VeyraLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int wid
     const float cy = (float) y + (float) height * 0.5f;
     juce::Rectangle<float> track((float) x, cy - trackH * 0.5f, (float) width, trackH);
 
+    // Track: pill-capped remainder + accent-filled portion (radius = half height
+    // so the caps are true semicircles).
     g.setColour(trackColour());
-    g.fillRoundedRectangle(track, 2.0f);
-
+    g.fillRoundedRectangle(track, trackH * 0.5f);
     g.setColour(palette_.accentPrimary);
-    g.fillRoundedRectangle({track.getX(), track.getY(), sliderPos - (float) x, trackH}, 2.0f);
+    g.fillRoundedRectangle({track.getX(), track.getY(),
+                            juce::jmax(0.0f, sliderPos - (float) x), trackH}, trackH * 0.5f);
 
-    const float r = 9.0f;
-    g.setColour(juce::Colours::black.withAlpha(0.40f));
-    g.fillEllipse(sliderPos - r, cy - r + 2.0f, r * 2.0f, r * 2.0f);
+    // Thumb: a clean white disc with an accent ring, mathematically centred on the
+    // track (no vertical offset), sized to sit inside the control. A soft, balanced
+    // radial accent glow + a subtle symmetric shadow give Fluent/Spotify-grade
+    // depth without an oversized thumb. Everything is anti-aliased ellipse geometry.
+    const float r = 6.5f; // 13px disc — premium, never oversized
+    const juce::Point<float> c(sliderPos, cy);
+
+    juce::ColourGradient glow(palette_.accentPrimary.withAlpha(0.40f), c.x, c.y,
+                              palette_.accentPrimary.withAlpha(0.0f), c.x, c.y - (r + 4.0f), true);
+    g.setGradientFill(glow);
+    g.fillEllipse(c.x - (r + 4.0f), c.y - (r + 4.0f), (r + 4.0f) * 2.0f, (r + 4.0f) * 2.0f);
+
+    g.setColour(juce::Colours::black.withAlpha(0.28f));
+    g.fillEllipse(c.x - r, c.y - r + 1.0f, r * 2.0f, r * 2.0f); // 1px soft shadow
     g.setColour(juce::Colours::white);
-    g.fillEllipse(sliderPos - r, cy - r, r * 2.0f, r * 2.0f);
+    g.fillEllipse(c.x - r, c.y - r, r * 2.0f, r * 2.0f);
     g.setColour(palette_.accentPrimary);
-    g.drawEllipse(sliderPos - r, cy - r, r * 2.0f, r * 2.0f, 2.0f);
+    g.drawEllipse(c.x - r, c.y - r, r * 2.0f, r * 2.0f, 1.5f);
 }
 
 juce::Font VeyraLookAndFeel::getComboBoxFont(juce::ComboBox&)

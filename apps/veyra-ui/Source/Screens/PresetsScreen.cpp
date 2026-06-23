@@ -76,24 +76,30 @@ protected:
         g.setFont(fonts::body(12.0f));
         g.drawText(preset_.category, b.removeFromTop(18), juce::Justification::topLeft, false);
 
-        // Tag pill: BUILT-IN is white; USER keeps the glass look.
+        // Tag pill: BUILT-IN is white; USER keeps the glass look. Bottom padding
+        // (14) matches the content inset so the badge sits intentionally within the
+        // card; the pill radius is half its height for a true capsule.
         const bool builtin = preset_.builtIn;
-        auto tag = juce::Rectangle<int>(b.getX(), getHeight() - 26, 64, 16);
+        const int tagH = 18, tagW = builtin ? 74 : 50;
+        auto tag = juce::Rectangle<int>(14, getHeight() - 14 - tagH, tagW, tagH);
         g.setColour(builtin ? juce::Colours::white : palette_.bgGlassHover);
-        g.fillRoundedRectangle(tag.toFloat(), 8.0f);
+        g.fillRoundedRectangle(tag.toFloat(), tagH * 0.5f);
         g.setColour(builtin ? palette_.bgCanvas : palette_.textSecondary);
-        g.setFont(fonts::mono(9.0f, true));
+        g.setFont(fonts::mono(9.5f, true));
         g.drawText(builtin ? "BUILT-IN" : "USER", tag, juce::Justification::centred, false);
 
+        // Hover/selection rings derive from the SAME radius as the glass base
+        // (radius_), drawn concentric to its border so the card reads as one
+        // object with clean, identical corners — never a second mismatched edge.
         if (active_)
         {
             g.setColour(palette_.accentPrimary);
-            g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(1.5f), 16.0f, 2.0f);
+            g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(1.0f), radius_ - 0.5f, 2.0f);
         }
         else if (hover_)
         {
             g.setColour(palette_.strokeHover);
-            g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(0.5f), 16.0f, 1.0f);
+            g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(0.5f), radius_, 1.0f);
         }
 
         // Favorite star (top-right): filled when favorited, outline otherwise.

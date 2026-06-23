@@ -32,15 +32,75 @@ juce::Rectangle<int> colRect(juce::Rectangle<int> row, int c)
 }
 } // namespace
 
+// The APP cell: a click-to-pick control (icon + name + chevron) — no manual
+// typing. Clicking fires onClick; the Card opens the installed/running app picker
+// and writes the chosen app back via set().
+class AppPickerCell : public juce::Component {
+public:
+    std::function<void()> onClick;
+
+    void set(const juce::String& name, const juce::String& match, const juce::Image& icon)
+    {
+        name_ = name; match_ = match; icon_ = icon; repaint();
+    }
+    // When restoring a saved rule we only have the match string (no friendly name
+    // or icon); show the match as the label and a default icon.
+    void setFromMatch(const juce::String& match)
+    {
+        match_ = match; name_ = match; icon_ = juce::Image(); repaint();
+    }
+    const juce::String& match() const { return match_; }
+
+    void setPalette(const Palette& p) { palette_ = p; repaint(); }
+
+    void mouseDown(const juce::MouseEvent&) override { if (onClick) onClick(); }
+    void mouseEnter(const juce::MouseEvent&) override { hover_ = true; repaint(); }
+    void mouseExit(const juce::MouseEvent&) override { hover_ = false; repaint(); }
+
+    void paint(juce::Graphics& g) override
+    {
+        auto b = getLocalBounds().toFloat().reduced(0.5f);
+        g.setColour(palette_.bgInput.withAlpha(0.5f));
+        g.fillRoundedRectangle(b, 6.0f);
+        g.setColour(hover_ ? palette_.strokeActive : palette_.strokeDefault);
+        g.drawRoundedRectangle(b, 6.0f, 1.0f);
+
+        auto r = getLocalBounds().reduced(8, 0);
+        const juce::Image& ic = icon_.isValid() ? icon_ : defaultAppIcon();
+        if (ic.isValid())
+            g.drawImage(ic, r.removeFromLeft(20).withSizeKeepingCentre(18, 18).toFloat(),
+                        juce::RectanglePlacement::centred);
+        r.removeFromLeft(6);
+
+        auto chev = r.removeFromRight(16);
+        juce::Path p;
+        const float cx = chev.getCentreX(), cy = chev.getCentreY();
+        p.startNewSubPath(cx - 3.0f, cy - 2.0f); p.lineTo(cx, cy + 2.0f); p.lineTo(cx + 3.0f, cy - 2.0f);
+        g.setColour(palette_.textSecondary);
+        g.strokePath(p, juce::PathStrokeType(1.3f));
+
+        g.setColour(match_.isEmpty() ? palette_.textTertiary : palette_.textPrimary);
+        g.setFont(fonts::body(13.0f));
+        g.drawText(match_.isEmpty() ? "Choose app…" : name_, r, juce::Justification::centredLeft, true);
+    }
+
+private:
+    juce::String name_, match_;
+    juce::Image  icon_;
+    bool         hover_ = false;
+    Palette      palette_ = paletteForTheme("midnight");
+};
+
 // One table row: App match · Detection · Preset · Volume · Auto-mute · Status.
 class RuleRow : public juce::Component {
 public:
     std::function<void()> onRemove;
+    std::function<void()> onPickApp; // Card shows the picker, then calls setApp()
 
     RuleRow()
     {
-        match_.setTextToShowWhenEmpty("app (e.g. chrome)", juce::Colours::grey);
-        addAndMakeVisible(match_);
+        appCell_.onClick = [this] { if (onPickApp) onPickApp(); };
+        addAndMakeVisible(appCell_);
 
         detect_.addItem("Foreground only", 1);
         detect_.addItem("Audio session", 2);
@@ -78,9 +138,11 @@ public:
         applyPresetSelection();
     }
 
+    void setApp(const InstalledApp& a) { appCell_.set(a.name, a.match, a.icon); }
+
     void setRule(const veyra::AppRule& r)
     {
-        match_.setText(r.match, juce::dontSendNotification);
+        appCell_.setFromMatch(juce::String(r.match));
         uuid_ = r.presetUuid;
         detect_.setSelectedId(r.detection == "audio" ? 2 : r.detection == "both" ? 3 : 1,
                               juce::dontSendNotification);
@@ -93,7 +155,7 @@ public:
     veyra::AppRule toRule() const
     {
         veyra::AppRule r;
-        r.match = match_.getText().toStdString();
+        r.match = appCell_.match().toStdString();
         const int id = preset_.getSelectedId();
         r.presetUuid = (id >= 1 && id <= (int) uuids_.size()) ? uuids_[(size_t) (id - 1)] : uuid_;
         r.enabled  = status_.getToggleState();
@@ -109,11 +171,8 @@ public:
     {
         autoMute_.setPalette(p);
         status_.setPalette(p);
+        appCell_.setPalette(p);
         // Blend the cells into the dark glass instead of default-JUCE grey.
-        match_.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
-        match_.setColour(juce::TextEditor::outlineColourId, p.strokeDefault);
-        match_.setColour(juce::TextEditor::focusedOutlineColourId, p.strokeActive);
-        match_.setColour(juce::TextEditor::textColourId, p.textPrimary);
         for (juce::ComboBox* cb : {&detect_, &preset_})
         {
             cb->setColour(juce::ComboBox::backgroundColourId, p.bgInput.withAlpha(0.5f));
@@ -129,7 +188,7 @@ public:
     void resized() override
     {
         auto b = getLocalBounds();
-        match_.setBounds(colRect(b, 0).reduced(4, 6));
+        appCell_.setBounds(colRect(b, 0).reduced(4, 6));
         detect_.setBounds(colRect(b, 1).reduced(4, 7));
         preset_.setBounds(colRect(b, 2).reduced(4, 7));
         vol_.setBounds(colRect(b, 3).reduced(4, 8));
@@ -146,7 +205,7 @@ private:
             { preset_.setSelectedId(i + 1, juce::dontSendNotification); return; }
     }
 
-    juce::TextEditor         match_;
+    AppPickerCell            appCell_;
     juce::ComboBox           detect_, preset_;
     juce::Slider             vol_;
     ToggleSwitch             autoMute_, status_;
@@ -168,7 +227,13 @@ public:
         addAndMakeVisible(switching_);
 
         add_.setButtonText("+ Add App");
-        add_.onClick = [this] { showAddPicker(); };
+        add_.onClick = [this]
+        {
+            addRow(veyra::AppRule{});
+            resized();
+            if (! rows_.empty() && rows_.back()->onPickApp)
+                rows_.back()->onPickApp(); // open the picker straight away for the new row
+        };
         addAndMakeVisible(add_);
         save_.setButtonText("Save");
         save_.onClick = [this] { save(); };
@@ -267,44 +332,82 @@ private:
             addRow(r);
     }
 
-    // Offline picker: scan installed apps once, then show a menu with EXE icons.
-    void showAddPicker()
+    // Scan installed apps + running processes once (icons extracted locally from
+    // the EXEs); cached so the menu opens instantly thereafter.
+    void ensureIndexed()
     {
-        if (!indexed_) { appIndex_ = scanInstalledApps(); indexed_ = true; }
+        if (indexed_) return;
+        installed_ = scanInstalledApps();
+        running_   = scanRunningProcesses();
+        indexed_   = true;
+    }
+
+    // Offline picker: a grouped menu (running now + installed) with EXE icons. The
+    // chosen InstalledApp is handed to onChosen; no manual typing required.
+    void showAppPicker(std::function<void(const InstalledApp&)> onChosen)
+    {
+        ensureIndexed();
 
         juce::PopupMenu menu;
-        menu.addItem(1, "Custom rule...");
-        menu.addSeparator();
-        for (int i = 0; i < (int) appIndex_.size(); ++i)
+        menu.addItem(1, "Custom (type name)…");
+        auto addSection = [&menu](const juce::String& title, const std::vector<InstalledApp>& v, int base)
         {
-            juce::PopupMenu::Item it;
-            it.itemID = i + 2;
-            it.text = appIndex_[(size_t) i].name;
-            if (appIndex_[(size_t) i].icon.isValid())
+            if (v.empty()) return;
+            menu.addSeparator();
+            menu.addSectionHeader(title);
+            for (int i = 0; i < (int) v.size(); ++i)
             {
-                auto d = std::make_unique<juce::DrawableImage>();
-                d->setImage(appIndex_[(size_t) i].icon);
-                it.image = std::move(d);
+                juce::PopupMenu::Item it;
+                it.itemID = base + i;
+                it.text = v[(size_t) i].name;
+                const juce::Image& ic = v[(size_t) i].icon.isValid() ? v[(size_t) i].icon : defaultAppIcon();
+                if (ic.isValid())
+                {
+                    auto d = std::make_unique<juce::DrawableImage>();
+                    d->setImage(ic);
+                    it.image = std::move(d);
+                }
+                menu.addItem(std::move(it));
             }
-            menu.addItem(std::move(it));
-        }
+        };
+        addSection("RUNNING NOW", running_, 1000);
+        addSection("INSTALLED", installed_, 2000);
 
         juce::Component::SafePointer<Card> safe(this);
-        menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&add_),
-                           [safe](int r)
+        menu.showMenuAsync(juce::PopupMenu::Options(),
+                           [safe, onChosen](int r)
                            {
                                if (safe == nullptr || r <= 0) return;
-                               veyra::AppRule rule;
-                               if (r >= 2)
-                               {
-                                   const int idx = r - 2;
-                                   if (idx < (int) safe->appIndex_.size())
-                                       rule.match = safe->appIndex_[(size_t) idx].match.toStdString();
-                               }
-                               safe->addRow(rule);
-                               safe->resized();
-                               if (r >= 2) safe->save();
+                               if (r == 1) { safe->promptCustomApp(onChosen); return; }
+                               if (r >= 2000 && r - 2000 < (int) safe->installed_.size())
+                                   onChosen(safe->installed_[(size_t) (r - 2000)]);
+                               else if (r >= 1000 && r - 1000 < (int) safe->running_.size())
+                                   onChosen(safe->running_[(size_t) (r - 1000)]);
                            });
+    }
+
+    // Fallback for an app not in either list: a single text prompt (the only place
+    // typing is offered).
+    void promptCustomApp(std::function<void(const InstalledApp&)> onChosen)
+    {
+        auto aw = std::make_shared<juce::AlertWindow>(
+            "Custom app", "Executable name (e.g. chrome):", juce::MessageBoxIconType::NoIcon);
+        aw->addTextEditor("name", "");
+        aw->addButton("OK", 1, juce::KeyPress(juce::KeyPress::returnKey));
+        aw->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+        aw->enterModalState(true, juce::ModalCallbackFunction::create(
+            [aw, onChosen](int res)
+            {
+                aw->exitModalState(res);
+                aw->setVisible(false);
+                if (res != 1) return;
+                auto t = aw->getTextEditorContents("name").trim();
+                if (t.isEmpty()) return;
+                InstalledApp a;
+                a.name  = t;
+                a.match = t.toLowerCase().upToLastOccurrenceOf(".exe", false, true);
+                onChosen(a);
+            }));
     }
 
     void addRow(const veyra::AppRule& r)
@@ -318,6 +421,17 @@ private:
         {
             juce::Component::SafePointer<Card> safe(this);
             juce::MessageManager::callAsync([safe, raw] { if (safe != nullptr) safe->removeRow(raw); });
+        };
+        row->onPickApp = [this, raw]
+        {
+            juce::Component::SafePointer<Card> safe(this);
+            showAppPicker([safe, raw](const InstalledApp& a)
+            {
+                if (safe == nullptr) return;
+                const bool alive = std::any_of(safe->rows_.begin(), safe->rows_.end(),
+                                               [raw](const std::unique_ptr<RuleRow>& u) { return u.get() == raw; });
+                if (alive) { raw->setApp(a); safe->save(); }
+            });
         };
         addAndMakeVisible(*row);
         rows_.push_back(std::move(row));
@@ -357,7 +471,7 @@ private:
     ToggleSwitch                          switching_;
     juce::TextButton                      add_, save_;
     juce::String                          status_;
-    std::vector<InstalledApp>             appIndex_;
+    std::vector<InstalledApp>             installed_, running_;
     bool                                  indexed_ = false;
 };
 

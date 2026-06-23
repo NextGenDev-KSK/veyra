@@ -20,4 +20,13 @@ struct InstalledApp {
 // de-duplicated by exe. Best-effort; returns what it can.
 std::vector<InstalledApp> scanInstalledApps();
 
+// Enumerate currently running user applications (skips Windows-dir/system
+// processes), de-duplicated by exe, with icons extracted from the process image.
+// Lets the picker offer apps that aren't in the Start Menu but are open now.
+std::vector<InstalledApp> scanRunningProcesses();
+
+// The Veyra brand mark, used as the icon for an app we couldn't extract one for
+// (so a row never shows a blank icon). Cached after first build.
+juce::Image defaultAppIcon();
+
 } // namespace veyra::ui

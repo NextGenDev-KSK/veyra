@@ -5,6 +5,7 @@
 #endif
 #include <windows.h>
 #include <shellapi.h>
+#include <tlhelp32.h> // process snapshot
 
 #include <algorithm>
 #include <set>
@@ -112,6 +113,71 @@ std::vector<InstalledApp> scanInstalledApps()
     std::sort(out.begin(), out.end(),
               [](const InstalledApp& a, const InstalledApp& b) { return a.name.compareIgnoreCase(b.name) < 0; });
     return out;
+}
+
+std::vector<InstalledApp> scanRunningProcesses()
+{
+    std::vector<InstalledApp> out;
+    std::set<std::string> seen;
+
+    const juce::String winDir = juce::SystemStats::getEnvironmentVariable("SystemRoot", "C:\\Windows")
+                                    .toLowerCase();
+
+    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snap == INVALID_HANDLE_VALUE)
+        return out;
+
+    PROCESSENTRY32W pe{};
+    pe.dwSize = sizeof(pe);
+    if (Process32FirstW(snap, &pe))
+    {
+        do
+        {
+            if (out.size() >= 120)
+                break;
+            const std::string base = juce::String(pe.szExeFile)
+                                         .upToLastOccurrenceOf(".exe", false, true)
+                                         .toLowerCase().toStdString();
+            if (base.empty() || seen.count(base))
+                continue;
+
+            // Resolve the full image path so we can both filter out Windows/system
+            // processes and extract the EXE's icon.
+            juce::String path;
+            if (HANDLE h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pe.th32ProcessID))
+            {
+                wchar_t buf[MAX_PATH]; DWORD n = MAX_PATH;
+                if (QueryFullProcessImageNameW(h, 0, buf, &n))
+                    path = juce::String(buf, n);
+                CloseHandle(h);
+            }
+            if (path.isEmpty() || path.toLowerCase().startsWith(winDir))
+                continue; // skip system/background processes
+
+            seen.insert(base);
+            InstalledApp a;
+            a.name  = juce::String(pe.szExeFile).upToLastOccurrenceOf(".exe", false, true);
+            a.match = juce::String(base);
+            a.icon  = extractExeIcon(juce::File(path));
+            out.push_back(std::move(a));
+        } while (Process32NextW(snap, &pe));
+    }
+    CloseHandle(snap);
+
+    std::sort(out.begin(), out.end(),
+              [](const InstalledApp& a, const InstalledApp& b) { return a.name.compareIgnoreCase(b.name) < 0; });
+    return out;
+}
+
+juce::Image defaultAppIcon()
+{
+    static juce::Image cached = [] {
+        auto img = juce::ImageCache::getFromMemory(BinaryData::Veyra_Icon_square_png,
+                                                   BinaryData::Veyra_Icon_square_pngSize);
+        return img.isValid() ? img.rescaled(32, 32, juce::Graphics::highResamplingQuality)
+                             : juce::Image();
+    }();
+    return cached;
 }
 
 } // namespace veyra::ui

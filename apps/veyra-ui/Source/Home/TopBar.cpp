@@ -76,7 +76,8 @@ void TopBar::resized()
     const int x = 268;       // just past the wordmark divider
     master_.setBounds(x, (h - 22) / 2, 40, 22);
     // toggle(40) + gap(14) + MASTER label(kMasterLabelW) + gap(14) -> slider.
-    volume_.setBounds(x + 40 + 14 + kMasterLabelW + 14, (h - 14) / 2, 184, 14);
+    // 18px tall so the disc thumb + glow have headroom and stay vertically centred.
+    volume_.setBounds(x + 40 + 14 + kMasterLabelW + 14, (h - 18) / 2, 184, 18);
 
     int rx = getWidth() - 16;
     auto place = [&](IconButton& b, int sz) { rx -= sz; b.setBounds(rx, centreY(sz), sz, sz); rx -= 6; };
