@@ -162,5 +162,34 @@ inline void plus(juce::Graphics& g, juce::Rectangle<float> r, juce::Colour c)
     p.startNewSubPath(m.x(0.2f), m.y(0.5f)); p.lineTo(m.x(0.8f), m.y(0.5f));
     stroke(g, p, c);
 }
+inline void chevronLeft(juce::Graphics& g, juce::Rectangle<float> r, juce::Colour c)
+{
+    Mapper m{r}; juce::Path p;
+    p.startNewSubPath(m.x(0.62f), m.y(0.22f)); p.lineTo(m.x(0.36f), m.y(0.5f)); p.lineTo(m.x(0.62f), m.y(0.78f));
+    stroke(g, p, c, 1.7f);
+}
+inline void chevronRight(juce::Graphics& g, juce::Rectangle<float> r, juce::Colour c)
+{
+    Mapper m{r}; juce::Path p;
+    p.startNewSubPath(m.x(0.38f), m.y(0.22f)); p.lineTo(m.x(0.64f), m.y(0.5f)); p.lineTo(m.x(0.38f), m.y(0.78f));
+    stroke(g, p, c, 1.7f);
+}
+inline void spatial(juce::Graphics& g, juce::Rectangle<float> r, juce::Colour c)
+{
+    g.setColour(c);
+    auto box = r.reduced(r.getWidth() * 0.2f, r.getHeight() * 0.2f);
+    g.drawEllipse(box, 1.6f); // sphere
+    // orbit ring across it
+    g.drawEllipse(box.getCentreX() - box.getWidth() * 0.5f,
+                  box.getCentreY() - box.getHeight() * 0.2f,
+                  box.getWidth(), box.getHeight() * 0.4f, 1.3f);
+}
+inline void dots(juce::Graphics& g, juce::Rectangle<float> r, juce::Colour c)
+{
+    g.setColour(c);
+    const float cx = r.getCentreX(), d = 1.9f;
+    for (float fy : {0.28f, 0.5f, 0.72f})
+        g.fillEllipse(cx - d, r.getY() + r.getHeight() * fy - d, d * 2.0f, d * 2.0f);
+}
 
 } // namespace veyra::ui::icons

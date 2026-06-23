@@ -1,18 +1,18 @@
 #pragma once
 
-// Mini mode: a compact, always-on-top acrylic widget with the essentials —
-// brand mark + connection LED, current preset, master mute + volume, slim peak
-// meters, and expand/close. Shares the shell's config/client; the shell
-// (RootComponent) owns the window and wires the callbacks.
+// Mini mode: a compact, always-on-top widget matching the reference — brand mark,
+// preset name + category, previous/next preset, a live visualizer over the volume
+// slider with a % readout, Spatial + Game shortcuts, a menu, and close. A
+// Visualizer-Only mode hides every control and fills the width with the spectrum.
+// Shares the shell's config/client; the shell (RootComponent) owns the window.
 
 #include "Components/IconButton.h"
-#include "Components/ToggleSwitch.h"
 #include "Graphics/Icons.h"
 #include "Theme/DesignTokens.h"
 #include "VeyraGui.h"
 
-#include <array>
 #include <functional>
+#include <vector>
 
 namespace veyra::ui {
 
@@ -26,11 +26,17 @@ public:
     void setMasterVolume(double gain);
     void setConnection(bool connected);
     void setPreset(juce::String name);
+    void setCategory(juce::String category);
+    void setVisualizerBars(const float* bars, int n); // live spectrum feed
 
-    std::function<void(bool)>   onMasterToggle;
+    std::function<void(bool)>   onMasterToggle;   // brand mark toggles master
     std::function<void(double)> onMasterVolume;
     std::function<void()>       onExpand;
     std::function<void()>       onClose;
+    std::function<void()>       onPrevPreset;
+    std::function<void()>       onNextPreset;
+    std::function<void()>       onSpatial;
+    std::function<void()>       onGame;
 
     void paint(juce::Graphics&) override;
     void resized() override;
@@ -39,23 +45,28 @@ public:
 
 private:
     void timerCallback() override;
+    void showMenu();
+    void setVisualizerOnly(bool on);
+    void drawVisualizer(juce::Graphics&, juce::Rectangle<float> area);
 
     Palette      palette_ = paletteForTheme("midnight");
     bool         connected_ = false;
+    bool         masterEnabled_ = true;
+    bool         visualizerOnly_ = false;
     juce::String preset_ = "Custom";
+    juce::String category_;
     juce::Image  logoImage_;
 
-    ToggleSwitch master_;
     juce::Slider volume_;
-    IconButton   expand_{icons::fullscreen};
+    IconButton   prev_{icons::chevronLeft};
+    IconButton   next_{icons::chevronRight};
+    IconButton   spatial_{icons::spatial};
+    IconButton   game_{icons::gamer};
+    IconButton   menu_{icons::dots};
     IconButton   close_{icons::close, true};
 
-    std::array<float, 2> peak_{0.4f, 0.3f};
-    std::array<float, 2> peakTarget_{0.4f, 0.3f};
-    juce::Random rng_;
-    int frame_ = 0;
-
-    juce::Point<int> dragWin_, dragMouse_;
+    std::vector<float> bars_;       // smoothed spectrum
+    juce::Point<int>   dragWin_, dragMouse_;
 };
 
 class MiniWindow : public juce::DocumentWindow {

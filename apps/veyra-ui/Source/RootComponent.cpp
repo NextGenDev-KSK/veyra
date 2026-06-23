@@ -174,6 +174,32 @@ RootComponent::RootComponent()
     mc.onMasterVolume = [this](double g) { setMasterVolume(g); };
     mc.onExpand       = [this] { enterFullMode(); };
     mc.onClose        = [] { juce::JUCEApplication::getInstance()->systemRequestedQuit(); };
+    // Prev/next cycle the built-in presets relative to the active one.
+    auto cycle = [this](int dir)
+    {
+        const auto& list = veyra::builtInPresets();
+        if (list.empty()) return;
+        int idx = 0;
+        for (int i = 0; i < (int) list.size(); ++i)
+            if (list[(size_t) i].uuid == working_.activePresetUuid) { idx = i; break; }
+        idx = ((idx + dir) % (int) list.size() + (int) list.size()) % (int) list.size();
+        client_.loadPreset(list[(size_t) idx].uuid);
+    };
+    mc.onPrevPreset = [cycle] { cycle(-1); };
+    mc.onNextPreset = [cycle] { cycle(+1); };
+    mc.onSpatial = [this]
+    {
+        working_.spatial.enabled = ! working_.spatial.enabled;
+        gamer_.setSpatial(working_.spatial);
+        settings_.setSpatialConfig(working_.spatial);
+        pushConfig();
+    };
+    mc.onGame = [this]
+    {
+        working_.gamerMode.enabled = ! working_.gamerMode.enabled;
+        gamer_.setGamer(working_.gamerMode);
+        pushConfig();
+    };
 
     // System tray.
     tray_.onOpen          = [this] { enterFullMode(); };
@@ -413,8 +439,11 @@ void RootComponent::timerCallback()
 
     veyra::ipc::VeyraAnalyzerPayload p;
     if (veyra::ipc::readAnalyzer(analyzerData_, p))
+    {
         home_.pushVisualizerFrame(p.bars, veyra::ipc::kAnalyzerBars,
                                   p.vuL, p.vuR, p.peakL, p.peakR, p.clip != 0);
+        mini_->content().setVisualizerBars(p.bars, veyra::ipc::kAnalyzerBars); // live mini spectrum
+    }
 }
 
 void RootComponent::applyPalette()
@@ -563,17 +592,20 @@ void RootComponent::updateStartupRegistration()
 void RootComponent::updatePresetChip()
 {
     juce::String name = "Custom";
+    juce::String category;
     bool modified = false;
     for (const auto& p : client_.presets())
         if (p.uuid == working_.activePresetUuid)
         {
             name = juce::String(p.name);
+            category = juce::String(p.category);
             modified = ! enhancementMatches(working_.enhancement, p.enhancement);
             break;
         }
     const juce::String chip = modified ? name + "  *" : name; // '*' = unsaved changes
     topBar_.setActivePreset(chip);
     mini_->content().setPreset(chip);
+    mini_->content().setCategory(category);
     devices_.setActivePreset(name);
 }
 
