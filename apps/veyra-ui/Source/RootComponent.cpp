@@ -12,7 +12,8 @@ namespace veyra::ui {
 
 namespace {
 const char* kScreenNames[] = {"Home", "Presets", "Apps", "Devices",
-                              "Sound Lab", "Gamer Mode", "Settings"};
+                              "Gamer Mode", "Settings"};
+constexpr int kScreenCount = 6;
 
 // True if the live enhancement matches a preset's (i.e. the user hasn't tweaked
 // it). Floats compared with a small tolerance; parametric bands element-wise.
@@ -87,7 +88,7 @@ RootComponent::RootComponent()
     gamer_.onSpatialChanged  = [this](const veyra::SpatialConfig& s)   { working_.spatial = s;   settings_.setSpatialConfig(s); pushConfig(); };
     gamer_.onVoiceChanged    = [this](const veyra::VoiceConfig& v)     { working_.voice = v;     settings_.setMicConfig(v); pushConfig(); };
     gamer_.onLoudnessChanged = [this](const veyra::LoudnessConfig& l)  { working_.loudness = l;  settings_.setLoudnessConfig(l); pushConfig(); };
-    gamer_.onTestInSoundLab  = [this] { sidebar_.setActive(4); showScreen(4); };
+    gamer_.onTestInSoundLab  = [this] { showSoundLab(); };
     gamer_.setGamer(working_.gamerMode);
     gamer_.setSpatial(working_.spatial);
     gamer_.setVoice(working_.voice);
@@ -148,7 +149,7 @@ RootComponent::RootComponent()
     // future re-entry but is not surfaced from Home.
     effects_.onBack = [this] { sidebar_.setActive(0); showScreen(0); };
     effects_.onOpenSoundQuality = [this] // surface the advanced DSP from the Effects rack
-    { sidebar_.setActive(6); showScreen(6); settings_.openSection(5); }; // 6=Settings, 5=Sound Quality
+    { sidebar_.setActive(5); showScreen(5); settings_.openSection(5); }; // 5=Settings, 5=Sound Quality
 
     // Per-app rules: auto-apply a preset when the foreground app matches a rule.
     appRules_.setRulesFile(veyra::paths::appDataDir() / "app_rules.json");
@@ -188,7 +189,8 @@ RootComponent::RootComponent()
     // Master controls (top bar).
     topBar_.onMasterToggle = [this](bool on) { setMasterEnabled(on); };
     topBar_.onMasterVolume = [this](double g) { setMasterVolume(g); };
-    topBar_.onOpenSettings = [this] { sidebar_.setActive(6); showScreen(6); };
+    topBar_.onOpenSettings = [this] { sidebar_.setActive(5); showScreen(5); };
+    settings_.onOpenSoundLab = [this] { showSoundLab(); };
 
     // Enhancement params (home knobs + EQ).
     home_.onEnhancementChanged = [this](const EnhancementConfig& e)
@@ -431,14 +433,12 @@ void RootComponent::showScreen(int navIndex)
     else if (navIndex == 3)
         next = &devices_;
     else if (navIndex == 4)
-        next = &soundLab_;
-    else if (navIndex == 5)
         next = &gamer_;
-    else if (navIndex == 6)
+    else if (navIndex == 5)
         next = &settings_;
     else
     {
-        placeholder_.setTitle(kScreenNames[juce::jlimit(0, 6, navIndex)]);
+        placeholder_.setTitle(kScreenNames[juce::jlimit(0, kScreenCount - 1, navIndex)]);
         next = &placeholder_;
     }
 
@@ -447,6 +447,21 @@ void RootComponent::showScreen(int navIndex)
     if (current_ != nullptr)
         current_->setVisible(false);
     current_ = next;
+    current_->setVisible(true);
+    resized();
+}
+
+// Sound Lab is no longer a top-level sidebar screen — it's opened from the
+// Settings nav and shown full-canvas (the tool needs the room) while the sidebar
+// keeps Settings highlighted. Clicking any sidebar item returns out of it.
+void RootComponent::showSoundLab()
+{
+    sidebar_.setActive(5); // Settings
+    if (current_ == &soundLab_)
+        return;
+    if (current_ != nullptr)
+        current_->setVisible(false);
+    current_ = &soundLab_;
     current_->setVisible(true);
     resized();
 }

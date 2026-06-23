@@ -52,6 +52,7 @@ private:
     void timerCallback() override;                                  // poll live metering
     void setHardwareAcceleration(bool on);                          // attach/detach the GL context
     void showScreen(int navIndex);
+    void showSoundLab(); // opened from the Settings nav (Sound Lab moved under Settings)
     void applyPalette();
     void applyConfig(const veyra::Config& c);
     void pushConfig();

@@ -1376,6 +1376,9 @@ void SettingsScreen::mouseDown(const juce::MouseEvent& e)
             setSection(i);
             return;
         }
+    // Extra nav row below the sections: open the full Sound Lab tool.
+    if (navItemBounds(kSections).contains(e.getPosition()))
+        if (onOpenSoundLab) onOpenSoundLab();
 }
 
 void SettingsScreen::paint(juce::Graphics& g)
@@ -1410,6 +1413,24 @@ void SettingsScreen::paint(juce::Graphics& g)
         g.setFont(fonts::body(14.0f, i == section_));
         g.drawText(kNames[i], navItemBounds(i).withTrimmedLeft(14),
                    juce::Justification::centredLeft, false);
+    }
+
+    // Sound Lab nav row (it lives under Settings now): a separate entry that opens
+    // the full tool. A faint divider sets it apart from the section list, and a
+    // chevron hints that it navigates to a screen rather than switching sections.
+    {
+        auto sl = navItemBounds(kSections);
+        g.setColour(palette_.strokeDefault.withAlpha(0.6f));
+        g.fillRect(sl.getX(), sl.getY() - 7, sl.getWidth(), 1);
+        g.setColour(palette_.textSecondary);
+        g.setFont(fonts::body(14.0f, false));
+        g.drawText("Sound Lab", sl.withTrimmedLeft(14), juce::Justification::centredLeft, false);
+        juce::Path chev;
+        const float cx = (float) sl.getRight() - 10.0f, cy = (float) sl.getCentreY();
+        chev.startNewSubPath(cx - 3.0f, cy - 4.0f);
+        chev.lineTo(cx + 1.0f, cy);
+        chev.lineTo(cx - 3.0f, cy + 4.0f);
+        g.strokePath(chev, juce::PathStrokeType(1.4f));
     }
 }
 

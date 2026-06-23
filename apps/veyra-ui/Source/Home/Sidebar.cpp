@@ -9,8 +9,8 @@ Sidebar::Sidebar()
 {
     items_ = {
         {"Home", icons::home},      {"Presets", icons::presets}, {"Apps", icons::apps},
-        {"Devices", icons::devices}, {"Sound Lab", icons::flask}, {"Gamer Mode", icons::gamer},
-        {"Settings", icons::gear},
+        {"Devices", icons::devices}, {"Gamer Mode", icons::gamer}, {"Settings", icons::gear},
+        // Sound Lab now lives under Settings (reached from the Settings nav).
     };
 }
 

@@ -60,6 +60,10 @@ public:
     // About: reset all settings to defaults.
     std::function<void()> onResetSettings;
 
+    // Sound Lab nav entry (Sound Lab now lives under Settings) — fired when its
+    // nav row is clicked; the shell shows the full Sound Lab tool.
+    std::function<void()> onOpenSoundLab;
+
     // Startup behaviour (About card).
     std::function<void(bool)> onLaunchAtStartup;
     std::function<void(bool)> onStartMinimized;
