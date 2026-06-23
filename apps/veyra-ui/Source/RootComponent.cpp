@@ -382,6 +382,26 @@ void RootComponent::timerCallback()
                 client_.loadPreset(*uuid);
     }
 
+    // ~0.5 Hz: APO-first preferred-output auto-switch. Strictly opt-in — does
+    // nothing unless the user has chosen a Preferred Output Device. When that
+    // device is present and isn't already the Windows default, make it default so
+    // the system-wide APO processes it; if it's absent, leave the Windows default
+    // untouched (automatic fallback), and it's restored on reconnect on the next
+    // tick. [RUNTIME VERIFICATION REQUIRED — changes the system default device.]
+    if (++prefTick_ >= 120)
+    {
+        prefTick_ = 0;
+        const auto& pref = working_.bridge.preferredOutputId;
+        if (! pref.empty())
+            for (const auto& d : listRenderEndpoints())
+                if (d.id == pref)
+                {
+                    if (! d.isDefault)
+                        setDefaultRenderEndpoint(pref);
+                    break;
+                }
+    }
+
     // Open the analyzer block lazily (the service may start after the UI).
     if (analyzerData_ == nullptr)
     {

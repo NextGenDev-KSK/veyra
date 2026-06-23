@@ -106,6 +106,7 @@ private:
     // Per-app rule watcher (user-session foreground tracking).
     AppRuleWatcher appRules_;
     int            ruleTick_ = 0;
+    int            prefTick_ = 0; // APO preferred-output auto-switch cadence
 
     HotkeyManager hotkeys_;
 

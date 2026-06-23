@@ -8,6 +8,8 @@
 #include <mmdeviceapi.h>
 #include <functiondiscoverykeys_devpkey.h>
 
+#include "DefaultEndpoint.h" // IPolicyConfig setDefaultOutput()
+
 namespace veyra::ui {
 
 namespace {
@@ -95,5 +97,17 @@ std::vector<OutputDevice> enumerate(EDataFlow flow)
 
 std::vector<OutputDevice> listRenderEndpoints()  { return enumerate(eRender); }
 std::vector<OutputDevice> listCaptureEndpoints() { return enumerate(eCapture); }
+
+bool setDefaultRenderEndpoint(const std::string& endpointId)
+{
+    if (endpointId.empty())
+        return false;
+    const int n = MultiByteToWideChar(CP_UTF8, 0, endpointId.c_str(), -1, nullptr, 0);
+    if (n <= 0)
+        return false;
+    std::wstring w((size_t) (n - 1), L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, endpointId.c_str(), -1, w.data(), n);
+    return setDefaultOutput(w);
+}
 
 } // namespace veyra::ui

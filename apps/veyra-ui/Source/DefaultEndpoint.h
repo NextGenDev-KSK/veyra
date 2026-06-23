@@ -1,8 +1,7 @@
 #pragma once
 
 // ===========================================================================
-// STAGED — NOT WIRED YET.  Do not #include this until the APO-first device path
-// is implemented and verified on real hardware.
+// WIRED — RUNTIME VERIFICATION REQUIRED on real hardware.
 // ===========================================================================
 //
 // Sets the Windows default *playback* endpoint via the undocumented (but stable
@@ -10,15 +9,13 @@
 // the user's preferred device — the foundation of the "Preferred Output Device"
 // auto-switch (no VB-Cable, no virtual sink, no user source selection).
 //
-// Planned use (next increment):
-//   - A device watcher polls listRenderEndpoints() (~2 s).
-//   - When BridgeConfig.preferredOutputId appears and isn't already default,
-//     call setDefaultOutput(id); otherwise leave the Windows default alone.
-//   - Setting the default endpoint requires no admin (per-user).
+// Used by AudioDevices.cpp (setDefaultRenderEndpoint) + the RootComponent device
+// watcher: when BridgeConfig.preferredOutputId is present and isn't already the
+// default, switch it; otherwise leave the Windows default alone (auto fallback).
+// Setting the default endpoint requires no admin (per-user).
 //
-// This file is intentionally not compiled yet (not referenced anywhere). The
-// IPolicyConfig vtable order below is the documented Vista layout; it must be
-// runtime-verified before shipping (a wrong offset would call the wrong method).
+// The IPolicyConfig vtable order below is the documented Vista layout; it must be
+// runtime-verified on hardware (a wrong offset would call the wrong method).
 
 #include <mmdeviceapi.h> // ERole, eConsole/eMultimedia/eCommunications
 #include <mmreg.h>       // WAVEFORMATEX

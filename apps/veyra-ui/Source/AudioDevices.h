@@ -21,4 +21,10 @@ struct OutputDevice {
 std::vector<OutputDevice> listRenderEndpoints();
 std::vector<OutputDevice> listCaptureEndpoints();
 
+// APO-first preferred output: make the given render endpoint the Windows default
+// (all roles) via IPolicyConfig, so the system-wide APO processes it. Returns
+// true on success; no-op + false on empty id. Caller runs on the COM-initialised
+// message thread. [RUNTIME VERIFICATION REQUIRED — changes the system default.]
+bool setDefaultRenderEndpoint(const std::string& endpointId);
+
 } // namespace veyra::ui

@@ -13,7 +13,7 @@ namespace veyra::ui {
 
 namespace {
 constexpr int kCardW = 244, kCardH = 132, kGapX = 16, kGapY = 16;
-constexpr int kLabelH = 22, kSectionGap = 10, kBridgeH = 190;
+constexpr int kLabelH = 22, kSectionGap = 10, kBridgeH = 250;
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -224,6 +224,10 @@ public:
         enable_.onClick = [this] { bridge_.enabled = enable_.getToggleState(); emit(); };
         addAndMakeVisible(enable_);
 
+        preferred_.setTextWhenNothingSelected("Windows Default");
+        addAndMakeVisible(preferred_);
+        preferred_.onChange = [this] { bridge_.preferredOutputId = idForPreferred(); emit(); };
+
         for (auto* c : {&source_, &target_})
         {
             c->setTextWhenNothingSelected("(select device)");
@@ -257,6 +261,12 @@ public:
                 c->addItem(devices_[(size_t) i].name + (devices_[(size_t) i].isDefault ? "  (default)" : ""),
                            i + 1);
         }
+        // Preferred Output: item 1 = "Windows Default (no preference)", devices 2..n+1.
+        preferred_.clear(juce::dontSendNotification);
+        preferred_.addItem("Windows Default (no preference)", 1);
+        for (int i = 0; i < (int) devices_.size(); ++i)
+            preferred_.addItem(devices_[(size_t) i].name + (devices_[(size_t) i].isDefault ? "  (current default)" : ""),
+                               i + 2);
         selectIds();
         repaint();
     }
@@ -276,8 +286,9 @@ public:
         enable_.setBounds(header.removeFromRight(40).withSizeKeepingCentre(40, 20));
 
         const int comboW = juce::jmin(360, getWidth() - kPad * 2 - 84 - 110);
-        source_.setBounds(rowCtl(inner.getX(), 1, comboW));
-        target_.setBounds(rowCtl(inner.getX(), 2, comboW));
+        preferred_.setBounds(rowCtl(inner.getX(), 1, comboW));
+        source_.setBounds(rowCtl(inner.getX(), 2, comboW));
+        target_.setBounds(rowCtl(inner.getX(), 3, comboW));
         // Refresh sits to the right of the pickers (never over the labels/rows).
         refresh_.setBounds(inner.getX() + 84 + comboW + 16, rowCtl(inner.getX(), 1, comboW).getY(), 90, 28);
     }
@@ -288,13 +299,13 @@ protected:
         auto c = getLocalBounds().reduced(kPad);
         g.setColour(palette_.textPrimary);
         g.setFont(fonts::display(20.0f));
-        g.drawText("AUDIO BRIDGE", c.removeFromTop(28), juce::Justification::centredLeft, false);
+        g.drawText("OUTPUT DEVICE", c.removeFromTop(28), juce::Justification::centredLeft, false);
 
         g.setColour(palette_.textTertiary);
         g.setFont(fonts::body(11.0f));
-        g.drawText("Process any app's audio to any output (e.g. Bluetooth).",
+        g.drawText("Preferred Output auto-switches the Windows default for system-wide processing.",
                    c.removeFromTop(16), juce::Justification::topLeft, false);
-        g.drawText("Set Source as your Windows default; pick your headphones as Target.",
+        g.drawText("Advanced: Audio Bridge routes any app to any output without the APO.",
                    c.removeFromTop(16), juce::Justification::topLeft, false);
 
         auto labelAt = [&](int row, const char* txt)
@@ -302,11 +313,12 @@ protected:
             const int y = getLocalBounds().reduced(kPad).getY() + 28 + 40 + (row - 1) * 40;
             g.setColour(palette_.textSecondary);
             g.setFont(fonts::body(13.0f));
-            g.drawText(txt, juce::Rectangle<int>(getLocalBounds().reduced(kPad).getX(), y, 80, 28),
+            g.drawText(txt, juce::Rectangle<int>(getLocalBounds().reduced(kPad).getX(), y, 84, 28),
                        juce::Justification::centredLeft, false);
         };
-        labelAt(1, "Source");
-        labelAt(2, "Output");
+        labelAt(1, "Preferred");
+        labelAt(2, "Source");
+        labelAt(3, "Output");
     }
 
 private:
@@ -322,6 +334,13 @@ private:
         return (idx >= 0 && idx < (int) devices_.size()) ? devices_[(size_t) idx].id : std::string();
     }
 
+    // Preferred uses item 1 = no preference (empty), devices at id 2..n+1.
+    std::string idForPreferred() const
+    {
+        const int idx = preferred_.getSelectedId() - 2;
+        return (idx >= 0 && idx < (int) devices_.size()) ? devices_[(size_t) idx].id : std::string();
+    }
+
     void selectIds()
     {
         auto select = [this](juce::ComboBox& box, const std::string& id)
@@ -333,6 +352,17 @@ private:
         };
         select(source_, bridge_.sourceDeviceId);
         select(target_, bridge_.targetDeviceId);
+
+        // Preferred: id 1 when no preference, else device index + 2.
+        if (bridge_.preferredOutputId.empty())
+            preferred_.setSelectedId(1, juce::dontSendNotification);
+        else
+        {
+            int sel = 1;
+            for (int i = 0; i < (int) devices_.size(); ++i)
+                if (devices_[(size_t) i].id == bridge_.preferredOutputId) { sel = i + 2; break; }
+            preferred_.setSelectedId(sel, juce::dontSendNotification);
+        }
     }
 
     void emit()
@@ -347,7 +377,7 @@ private:
     std::vector<OutputDevice> devices_;
     veyra::BridgeConfig       bridge_;
     ToggleSwitch              enable_;
-    juce::ComboBox            source_, target_;
+    juce::ComboBox            preferred_, source_, target_;
     juce::TextButton          refresh_;
 };
 
