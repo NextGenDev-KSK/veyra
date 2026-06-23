@@ -13,7 +13,7 @@ namespace veyra::ui {
 
 namespace {
 constexpr int kCardW = 244, kCardH = 132, kGapX = 16, kGapY = 16;
-constexpr int kLabelH = 22, kSectionGap = 10, kBridgeH = 250;
+constexpr int kLabelH = 22, kSectionGap = 10, kBridgeH = 150;
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -215,26 +215,17 @@ private:
 };
 
 // ---------------------------------------------------------------------------
-// Audio Bridge (functional routing): enable + source/target pickers + refresh.
+// Output device (APO / Method 1): the Preferred Output selector. The APO
+// processes the Windows default output system-wide, so there is no source/capture
+// and no Audio Bridge — picking a preferred device just keeps it as the default.
 // ---------------------------------------------------------------------------
 class DevicesScreen::BridgeCard : public GlassPanel {
 public:
     BridgeCard()
     {
-        enable_.onClick = [this] { bridge_.enabled = enable_.getToggleState(); emit(); };
-        addAndMakeVisible(enable_);
-
         preferred_.setTextWhenNothingSelected("Windows Default");
         addAndMakeVisible(preferred_);
         preferred_.onChange = [this] { bridge_.preferredOutputId = idForPreferred(); emit(); };
-
-        for (auto* c : {&source_, &target_})
-        {
-            c->setTextWhenNothingSelected("(select device)");
-            addAndMakeVisible(c);
-        }
-        source_.onChange = [this] { bridge_.sourceDeviceId = idFor(source_); emit(); };
-        target_.onChange = [this] { bridge_.targetDeviceId = idFor(target_); emit(); };
 
         refresh_.setButtonText("Refresh");
         refresh_.onClick = [this] { refreshDevices(); };
@@ -245,22 +236,9 @@ public:
 
     std::function<void(const veyra::BridgeConfig&)> onBridgeChanged;
 
-    void setPalette(const Palette& p) override
-    {
-        GlassPanel::setPalette(p);
-        enable_.setPalette(p);
-    }
-
     void refreshDevices()
     {
         devices_ = listRenderEndpoints();
-        for (auto* c : {&source_, &target_})
-        {
-            c->clear(juce::dontSendNotification);
-            for (int i = 0; i < (int) devices_.size(); ++i)
-                c->addItem(devices_[(size_t) i].name + (devices_[(size_t) i].isDefault ? "  (default)" : ""),
-                           i + 1);
-        }
         // Preferred Output: item 1 = "Windows Default (no preference)", devices 2..n+1.
         preferred_.clear(juce::dontSendNotification);
         preferred_.addItem("Windows Default (no preference)", 1);
@@ -274,7 +252,6 @@ public:
     void setBridge(const veyra::BridgeConfig& b)
     {
         bridge_ = b;
-        enable_.setToggleState(b.enabled, juce::dontSendNotification);
         selectIds();
         repaint();
     }
@@ -282,14 +259,9 @@ public:
     void resized() override
     {
         auto inner = getLocalBounds().reduced(kPad);
-        auto header = inner.removeFromTop(28);
-        enable_.setBounds(header.removeFromRight(40).withSizeKeepingCentre(40, 20));
-
         const int comboW = juce::jmin(360, getWidth() - kPad * 2 - 84 - 110);
         preferred_.setBounds(rowCtl(inner.getX(), 1, comboW));
-        source_.setBounds(rowCtl(inner.getX(), 2, comboW));
-        target_.setBounds(rowCtl(inner.getX(), 3, comboW));
-        // Refresh sits to the right of the pickers (never over the labels/rows).
+        // Refresh sits to the right of the picker (never over the label/row).
         refresh_.setBounds(inner.getX() + 84 + comboW + 16, rowCtl(inner.getX(), 1, comboW).getY(), 90, 28);
     }
 
@@ -303,22 +275,16 @@ protected:
 
         g.setColour(palette_.textTertiary);
         g.setFont(fonts::body(11.0f));
-        g.drawText("Preferred Output auto-switches the Windows default for system-wide processing.",
+        g.drawText("Veyra processes your audio system-wide via its APO — no virtual cable, no setup.",
                    c.removeFromTop(16), juce::Justification::topLeft, false);
-        g.drawText("Advanced: Audio Bridge routes any app to any output without the APO.",
+        g.drawText("Pick a Preferred Output; Veyra keeps it as the Windows default automatically.",
                    c.removeFromTop(16), juce::Justification::topLeft, false);
 
-        auto labelAt = [&](int row, const char* txt)
-        {
-            const int y = getLocalBounds().reduced(kPad).getY() + 28 + 40 + (row - 1) * 40;
-            g.setColour(palette_.textSecondary);
-            g.setFont(fonts::body(13.0f));
-            g.drawText(txt, juce::Rectangle<int>(getLocalBounds().reduced(kPad).getX(), y, 84, 28),
-                       juce::Justification::centredLeft, false);
-        };
-        labelAt(1, "Preferred");
-        labelAt(2, "Source");
-        labelAt(3, "Output");
+        const int y = getLocalBounds().reduced(kPad).getY() + 28 + 40;
+        g.setColour(palette_.textSecondary);
+        g.setFont(fonts::body(13.0f));
+        g.drawText("Preferred", juce::Rectangle<int>(getLocalBounds().reduced(kPad).getX(), y, 84, 28),
+                   juce::Justification::centredLeft, false);
     }
 
 private:
@@ -326,12 +292,6 @@ private:
     {
         const int y = getLocalBounds().reduced(kPad).getY() + 28 + 40 + (row - 1) * 40;
         return {x + 84, y, juce::jmax(120, w), 28};
-    }
-
-    std::string idFor(const juce::ComboBox& box) const
-    {
-        const int idx = box.getSelectedId() - 1;
-        return (idx >= 0 && idx < (int) devices_.size()) ? devices_[(size_t) idx].id : std::string();
     }
 
     // Preferred uses item 1 = no preference (empty), devices at id 2..n+1.
@@ -343,16 +303,6 @@ private:
 
     void selectIds()
     {
-        auto select = [this](juce::ComboBox& box, const std::string& id)
-        {
-            for (int i = 0; i < (int) devices_.size(); ++i)
-                if (devices_[(size_t) i].id == id)
-                { box.setSelectedId(i + 1, juce::dontSendNotification); return; }
-            box.setSelectedId(0, juce::dontSendNotification);
-        };
-        select(source_, bridge_.sourceDeviceId);
-        select(target_, bridge_.targetDeviceId);
-
         // Preferred: id 1 when no preference, else device index + 2.
         if (bridge_.preferredOutputId.empty())
             preferred_.setSelectedId(1, juce::dontSendNotification);
@@ -376,8 +326,7 @@ private:
 
     std::vector<OutputDevice> devices_;
     veyra::BridgeConfig       bridge_;
-    ToggleSwitch              enable_;
-    juce::ComboBox            preferred_, source_, target_;
+    juce::ComboBox            preferred_;
     juce::TextButton          refresh_;
 };
 

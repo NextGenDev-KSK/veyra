@@ -10,6 +10,7 @@
 #include "veyra/AppRules.h"
 
 #include <algorithm>
+#include <set>
 
 namespace veyra::ui {
 
@@ -215,6 +216,126 @@ private:
 };
 
 // ---------------------------------------------------------------------------
+// Searchable app picker shown in a callout: a filter field over an icon'd list of
+// running + installed apps. Typing filters live; Enter on no match creates a
+// custom rule from the typed text (so manual entry needs no separate dialog).
+// ---------------------------------------------------------------------------
+class AppPickerPopup : public juce::Component,
+                       private juce::ListBoxModel,
+                       private juce::TextEditor::Listener
+{
+public:
+    std::function<void(const InstalledApp&)> onChosen;
+
+    AppPickerPopup(std::vector<InstalledApp> apps, Palette p)
+        : all_(std::move(apps)), palette_(std::move(p))
+    {
+        search_.setTextToShowWhenEmpty("Search apps…", palette_.textTertiary);
+        search_.setColour(juce::TextEditor::backgroundColourId, palette_.bgInput.withAlpha(0.6f));
+        search_.setColour(juce::TextEditor::outlineColourId, palette_.strokeDefault);
+        search_.setColour(juce::TextEditor::focusedOutlineColourId, palette_.strokeActive);
+        search_.setColour(juce::TextEditor::textColourId, palette_.textPrimary);
+        search_.addListener(this);
+        addAndMakeVisible(search_);
+
+        list_.setModel(this);
+        list_.setRowHeight(34);
+        list_.setColour(juce::ListBox::backgroundColourId, juce::Colours::transparentBlack);
+        addAndMakeVisible(list_);
+
+        filter({});
+        setSize(300, 380);
+    }
+
+    void resized() override
+    {
+        auto b = getLocalBounds().reduced(8);
+        search_.setBounds(b.removeFromTop(30));
+        b.removeFromTop(6);
+        list_.setBounds(b);
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        g.setColour(palette_.bgGlassElevated);
+        g.fillRoundedRectangle(getLocalBounds().toFloat(), 10.0f);
+        g.setColour(palette_.strokeDefault);
+        g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(0.5f), 10.0f, 1.0f);
+    }
+
+    void visibilityChanged() override { if (isShowing()) search_.grabKeyboardFocus(); }
+
+    // ListBoxModel
+    int getNumRows() override { return (int) filtered_.size(); }
+    void paintListBoxItem(int row, juce::Graphics& g, int w, int h, bool selected) override
+    {
+        if (row < 0 || row >= (int) filtered_.size()) return;
+        const auto& a = all_[(size_t) filtered_[(size_t) row]];
+        if (selected)
+        {
+            g.setColour(palette_.bgGlassHover);
+            g.fillRoundedRectangle(2.0f, 2.0f, (float) w - 4.0f, (float) h - 4.0f, 6.0f);
+        }
+        const juce::Image& ic = a.icon.isValid() ? a.icon : defaultAppIcon();
+        if (ic.isValid())
+            g.drawImage(ic, juce::Rectangle<float>(8.0f, (h - 20.0f) / 2.0f, 20.0f, 20.0f),
+                        juce::RectanglePlacement::centred);
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::body(13.0f));
+        g.drawText(a.name, 36, 0, w - 44, h, juce::Justification::centredLeft, true);
+    }
+    void listBoxItemClicked(int row, const juce::MouseEvent&) override { choose(row); }
+    void returnKeyPressed(int row) override { choose(row); }
+
+    // TextEditor::Listener
+    void textEditorTextChanged(juce::TextEditor&) override { filter(search_.getText().trim()); }
+    void textEditorReturnKeyPressed(juce::TextEditor&) override
+    {
+        if (! filtered_.empty()) { choose(0); return; }
+        const auto t = search_.getText().trim();
+        if (t.isEmpty()) return;
+        InstalledApp a;
+        a.name  = t;
+        a.match = t.toLowerCase().upToLastOccurrenceOf(".exe", false, true);
+        emit(a);
+    }
+    void textEditorEscapeKeyPressed(juce::TextEditor&) override { dismiss(); }
+
+private:
+    void filter(const juce::String& q)
+    {
+        filtered_.clear();
+        for (int i = 0; i < (int) all_.size(); ++i)
+            if (q.isEmpty() || all_[(size_t) i].name.containsIgnoreCase(q)
+                || all_[(size_t) i].match.containsIgnoreCase(q))
+                filtered_.push_back(i);
+        list_.updateContent();
+        list_.repaint();
+    }
+    void choose(int row)
+    {
+        if (row < 0 || row >= (int) filtered_.size()) return;
+        emit(all_[(size_t) filtered_[(size_t) row]]);
+    }
+    void emit(const InstalledApp& a)
+    {
+        if (onChosen) onChosen(a);
+        dismiss();
+    }
+    void dismiss()
+    {
+        if (auto* cb = findParentComponentOfClass<juce::CallOutBox>())
+            cb->dismiss();
+    }
+
+    std::vector<InstalledApp> all_;
+    std::vector<int>          filtered_;
+    juce::TextEditor          search_;
+    juce::ListBox             list_{"apps", nullptr};
+    Palette                   palette_;
+};
+
+// ---------------------------------------------------------------------------
 
 class AppsScreen::Card : public GlassPanel {
 public:
@@ -342,72 +463,24 @@ private:
         indexed_   = true;
     }
 
-    // Offline picker: a grouped menu (running now + installed) with EXE icons. The
-    // chosen InstalledApp is handed to onChosen; no manual typing required.
+    // Searchable picker: a callout with a filter field over an icon'd list of
+    // running + installed apps (de-duplicated). Typing filters; Enter on no match
+    // creates a custom rule from the text — so manual entry needs no separate step.
     void showAppPicker(std::function<void(const InstalledApp&)> onChosen)
     {
         ensureIndexed();
 
-        juce::PopupMenu menu;
-        menu.addItem(1, "Custom (type name)…");
-        auto addSection = [&menu](const juce::String& title, const std::vector<InstalledApp>& v, int base)
-        {
-            if (v.empty()) return;
-            menu.addSeparator();
-            menu.addSectionHeader(title);
-            for (int i = 0; i < (int) v.size(); ++i)
-            {
-                juce::PopupMenu::Item it;
-                it.itemID = base + i;
-                it.text = v[(size_t) i].name;
-                const juce::Image& ic = v[(size_t) i].icon.isValid() ? v[(size_t) i].icon : defaultAppIcon();
-                if (ic.isValid())
-                {
-                    auto d = std::make_unique<juce::DrawableImage>();
-                    d->setImage(ic);
-                    it.image = std::move(d);
-                }
-                menu.addItem(std::move(it));
-            }
-        };
-        addSection("RUNNING NOW", running_, 1000);
-        addSection("INSTALLED", installed_, 2000);
+        std::vector<InstalledApp> merged = running_;
+        std::set<std::string> seen;
+        for (const auto& a : running_)
+            seen.insert(a.match.toStdString());
+        for (const auto& a : installed_)
+            if (seen.insert(a.match.toStdString()).second)
+                merged.push_back(a);
 
-        juce::Component::SafePointer<Card> safe(this);
-        menu.showMenuAsync(juce::PopupMenu::Options(),
-                           [safe, onChosen](int r)
-                           {
-                               if (safe == nullptr || r <= 0) return;
-                               if (r == 1) { safe->promptCustomApp(onChosen); return; }
-                               if (r >= 2000 && r - 2000 < (int) safe->installed_.size())
-                                   onChosen(safe->installed_[(size_t) (r - 2000)]);
-                               else if (r >= 1000 && r - 1000 < (int) safe->running_.size())
-                                   onChosen(safe->running_[(size_t) (r - 1000)]);
-                           });
-    }
-
-    // Fallback for an app not in either list: a single text prompt (the only place
-    // typing is offered).
-    void promptCustomApp(std::function<void(const InstalledApp&)> onChosen)
-    {
-        auto aw = std::make_shared<juce::AlertWindow>(
-            "Custom app", "Executable name (e.g. chrome):", juce::MessageBoxIconType::NoIcon);
-        aw->addTextEditor("name", "");
-        aw->addButton("OK", 1, juce::KeyPress(juce::KeyPress::returnKey));
-        aw->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
-        aw->enterModalState(true, juce::ModalCallbackFunction::create(
-            [aw, onChosen](int res)
-            {
-                aw->exitModalState(res);
-                aw->setVisible(false);
-                if (res != 1) return;
-                auto t = aw->getTextEditorContents("name").trim();
-                if (t.isEmpty()) return;
-                InstalledApp a;
-                a.name  = t;
-                a.match = t.toLowerCase().upToLastOccurrenceOf(".exe", false, true);
-                onChosen(a);
-            }));
+        auto popup = std::make_unique<AppPickerPopup>(std::move(merged), palette_);
+        popup->onChosen = std::move(onChosen);
+        juce::CallOutBox::launchAsynchronously(std::move(popup), add_.getScreenBounds(), nullptr);
     }
 
     void addRow(const veyra::AppRule& r)
