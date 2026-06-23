@@ -75,10 +75,12 @@ public:
         sens_.setBounds(c.removeFromTop(24));
         c.removeFromTop(10);
         auto row = c.removeFromTop(24);
-        const int sw = 42;
-        foot_.setBounds(row.getX() + 70, row.getY(), sw, 22);
-        guns_.setBounds(row.getX() + 195, row.getY(), sw, 22);
-        voices_.setBounds(row.getX() + 320, row.getY(), sw, 22);
+        const int sw = 42, cellW = row.getWidth() / 3;
+        // Three label+toggle pairs evenly distributed across the card width to
+        // match the reference (previously bunched left on hardcoded offsets).
+        foot_.setBounds(row.getX() + 0 * cellW + 50, row.getY() + 1, sw, 22);
+        guns_.setBounds(row.getX() + 1 * cellW + 50, row.getY() + 1, sw, 22);
+        voices_.setBounds(row.getX() + 2 * cellW + 50, row.getY() + 1, sw, 22);
     }
 
 protected:
@@ -131,14 +133,15 @@ protected:
 
         c.removeFromTop(10);
         auto row = c.removeFromTop(24);
-        auto lbl = [&](int x, const char* t)
+        const int cellW = row.getWidth() / 3;
+        auto lbl = [&](int cell, const char* t)
         {
             g.setColour(palette_.textTertiary);
             g.setFont(fonts::body(11.0f));
-            g.drawText(t, juce::Rectangle<int>(row.getX() + x, row.getY(), 64, 22),
+            g.drawText(t, juce::Rectangle<int>(row.getX() + cell * cellW, row.getY(), 48, 22),
                        juce::Justification::centredLeft, false);
         };
-        lbl(0, "Steps"); lbl(120, "Guns"); lbl(250, "Voice");
+        lbl(0, "Steps"); lbl(1, "Guns"); lbl(2, "Voice");
     }
 
 private:
