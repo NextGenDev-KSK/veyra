@@ -299,6 +299,15 @@ STDMETHODIMP_(void) VeyraApoEfx::APOProcess(UINT32 u32NumInputConnections,
     auto* src = reinterpret_cast<float*>(in->pBuffer);
     auto* dst = reinterpret_cast<float*>(out->pBuffer);
 
+    // Set FTZ (flush-to-zero) and DAZ (denormals-are-zero) once on this thread.
+    // Subnormal floats in DSP filter feedback states cause severe CPU slowdowns
+    // on many x86 microarchitectures. audiodg.exe does not set these by default.
+    if (!denormalsSet_)
+    {
+        _mm_setcsr(_mm_getcsr() | 0x8040u); // bit15=FTZ, bit6=DAZ
+        denormalsSet_ = true;
+    }
+
     if (channelCount_ == 2 && scratchL_ && frames <= maxFrameCount_)
     {
         refreshParametersFromShared();

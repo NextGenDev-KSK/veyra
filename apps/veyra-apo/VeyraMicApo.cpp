@@ -1,6 +1,7 @@
 #include "VeyraMicApo.h"
 
 #include <cstring>
+#include <immintrin.h>
 
 #ifndef APOERR_FORMAT_NOT_SUPPORTED
 #define APOERR_FORMAT_NOT_SUPPORTED HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED)
@@ -273,6 +274,12 @@ STDMETHODIMP_(void) VeyraMicApo::APOProcess(UINT32 u32NumInputConnections,
 
     auto* src = reinterpret_cast<float*>(in->pBuffer);
     auto* dst = reinterpret_cast<float*>(out->pBuffer);
+
+    if (!denormalsSet_)
+    {
+        _mm_setcsr(_mm_getcsr() | 0x8040u); // FTZ+DAZ: prevents subnormal CPU stalls
+        denormalsSet_ = true;
+    }
 
     if (channelCount_ == 1 && locked_ && frames <= maxFrameCount_)
     {

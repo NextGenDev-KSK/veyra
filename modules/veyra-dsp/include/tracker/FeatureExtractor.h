@@ -42,11 +42,18 @@ public:
         }
         const float inv = numSamples > 0 ? 1.0f / (float) numSamples : 0.0f;
 
+        // Derive mid-band power in the power domain (not RMS domain) — RMS values
+        // do not subtract linearly; only mean-square (power) values do.
+        const float totalPow = (float) sum      * inv;
+        const float lowPow   = (float) lowSum   * inv;
+        const float highPow  = (float) highSum  * inv;
+        const float midPow   = std::max(0.0f, totalPow - lowPow - highPow);
+
         AudioFeatures f;
-        f.rms = std::sqrt((float) sum * inv);
-        f.lowEnergy = std::sqrt((float) lowSum * inv);
-        f.highEnergy = std::sqrt((float) highSum * inv);
-        f.midEnergy = std::max(0.0f, f.rms - f.lowEnergy - f.highEnergy);
+        f.rms        = std::sqrt(totalPow);
+        f.lowEnergy  = std::sqrt(lowPow);
+        f.highEnergy = std::sqrt(highPow);
+        f.midEnergy  = std::sqrt(midPow);
         f.flux = std::max(0.0f, f.rms - prevRms_);
         prevRms_ = f.rms;
         const float total = f.lowEnergy + f.midEnergy + f.highEnergy + 1.0e-9f;

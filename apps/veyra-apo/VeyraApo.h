@@ -20,6 +20,8 @@
 #include <atomic>
 #include <memory>
 
+#include <immintrin.h> // _mm_setcsr / _mm_getcsr for FTZ+DAZ denormal suppression
+
 #include "chain/DspChain.h"
 #include "veyra/ipc/SharedMemory.h"
 #include "veyra/ipc/SharedParameters.h"
@@ -79,6 +81,7 @@ private:
     std::atomic<ULONG> ref_{1};
 
     bool   locked_ = false;
+    bool   denormalsSet_ = false; // FTZ+DAZ set once on the audiodg render thread
     UINT32 channelCount_ = 2;
     float  sampleRate_ = 48000.0f;
     UINT32 maxFrameCount_ = 0;

@@ -79,6 +79,7 @@ private:
     std::atomic<ULONG> ref_{1};
 
     bool   locked_ = false;
+    bool   denormalsSet_ = false; // FTZ+DAZ set once on the audiodg capture thread
     UINT32 channelCount_ = 1;
     float  sampleRate_ = 48000.0f;
     UINT32 maxFrameCount_ = 0;

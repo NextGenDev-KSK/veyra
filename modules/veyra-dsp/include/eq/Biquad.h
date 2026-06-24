@@ -128,7 +128,7 @@ public:
         const float y = c_.b0 * x + c_.b1 * x1_ + c_.b2 * x2_
                         - c_.a1 * y1_ - c_.a2 * y2_;
         x2_ = x1_; x1_ = x;
-        y2_ = y1_; y1_ = y;
+        y2_ = y1_; y1_ = y + 1.0e-25f; // keep state away from subnormal range (-500 dBFS)
         return y;
     }
 

@@ -69,14 +69,15 @@ public:
     }
 
 private:
-    static constexpr int kCombs = 4;
-    static constexpr int kAllpasses = 2;
+    static constexpr int kCombs = 8;
+    static constexpr int kAllpasses = 4;
     static constexpr int kStereoSpread = 23;
     static constexpr float kGain = 0.015f;
-    static constexpr int kCombMax = 3200;   // 44.1k tuning * (96k/44.1k) + spread
+    static constexpr int kCombMax = 3700;   // ceil(1617 * 96000/44100) + spread
     static constexpr int kAllpassMax = 1300;
-    static constexpr int kCombTuning[kCombs] = {1116, 1188, 1277, 1356};
-    static constexpr int kAllpassTuning[kAllpasses] = {556, 441};
+    // Standard Freeverb tunings (Schroeder, 44100 Hz reference).
+    static constexpr int kCombTuning[kCombs] = {1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617};
+    static constexpr int kAllpassTuning[kAllpasses] = {556, 441, 341, 225};
 
     struct Comb {
         std::array<float, kCombMax> buf{};
@@ -90,7 +91,7 @@ private:
         float process(float input) noexcept
         {
             const float out = buf[(size_t) idx];
-            store = out * (1.0f - damp) + store * damp;
+            store = out * (1.0f - damp) + store * damp + 1.0e-25f; // anti-denormal
             buf[(size_t) idx] = input + store * feedback;
             if (++idx >= size) idx = 0;
             return out;

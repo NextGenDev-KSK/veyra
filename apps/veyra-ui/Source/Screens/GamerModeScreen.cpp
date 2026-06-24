@@ -78,9 +78,10 @@ public:
         const int sw = 42, cellW = row.getWidth() / 3;
         // Three label+toggle pairs evenly distributed across the card width to
         // match the reference (previously bunched left on hardcoded offsets).
-        foot_.setBounds(row.getX() + 0 * cellW + 50, row.getY() + 1, sw, 22);
-        guns_.setBounds(row.getX() + 1 * cellW + 50, row.getY() + 1, sw, 22);
-        voices_.setBounds(row.getX() + 2 * cellW + 50, row.getY() + 1, sw, 22);
+        const int toggleOffset = cellW - sw - 4; // right-align toggle; label has full left portion
+        foot_.setBounds(row.getX() + 0 * cellW + toggleOffset, row.getY() + 1, sw, 22);
+        guns_.setBounds(row.getX() + 1 * cellW + toggleOffset, row.getY() + 1, sw, 22);
+        voices_.setBounds(row.getX() + 2 * cellW + toggleOffset, row.getY() + 1, sw, 22);
     }
 
 protected:
@@ -138,7 +139,9 @@ protected:
         {
             g.setColour(palette_.textTertiary);
             g.setFont(fonts::body(11.0f));
-            g.drawText(t, juce::Rectangle<int>(row.getX() + cell * cellW, row.getY(), 48, 22),
+            constexpr int sw = 42;
+            const int labelW = cellW - sw - 8; // fill cell up to the right-aligned toggle
+            g.drawText(t, juce::Rectangle<int>(row.getX() + cell * cellW, row.getY(), labelW, 22),
                        juce::Justification::centredLeft, false);
         };
         lbl(0, "Steps"); lbl(1, "Guns"); lbl(2, "Voice");

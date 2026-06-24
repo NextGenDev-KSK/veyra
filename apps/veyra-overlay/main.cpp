@@ -205,7 +205,9 @@ void premultiply()
 
 void render()
 {
-    if (++g_pollCounter % 15 == 0)
+    // Poll config.json every 300 frames (~10 s at 30 fps). Full JSON parse on
+    // every 15 frames (~0.5 s) stalls the render loop on HDDs and network AppData.
+    if (++g_pollCounter % 300 == 0)
         pollConfig();
 
     if (!g_gm.enabled)

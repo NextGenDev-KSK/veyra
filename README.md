@@ -1,79 +1,160 @@
 # Veyra Sounds
 
 [![build](https://github.com/NextGenDev-KSK/veyra/actions/workflows/build.yml/badge.svg)](https://github.com/NextGenDev-KSK/veyra/actions/workflows/build.yml)
+[![license](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
+[![platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey.svg)]()
+
+**Veyra Sounds** is a free, open-source, system-wide audio enhancer for Windows 10/11 (x64).
+It routes audio through a Windows Audio Processing Object (APO) — the same in-driver hook used
+by Dolby Atmos and DTS — giving you realtime EQ, dynamics, spatial audio, voice processing, a
+gamer Sound Tracker HUD, and a 30+ effect DSP chain at under 5 ms latency.
+Licensed under the **GNU GPLv3**.
 
 Maintainer: **Krithik S** ([@NextGenDev-KSK](https://github.com/NextGenDev-KSK))
 
-**Veyra Sounds** is a free, open-source, system-wide audio enhancer for Windows
-10/11 (x64) — EQ, dynamics, spatial audio, voice processing, a gamer Sound
-Tracker HUD, and more — built to be faster, lighter, and prettier than the
-commercial alternatives. Licensed under the **GNU GPLv3**.
+---
 
-> **Project status: Phase 1 (service + UI + IPC backbone).**
-> The service runs under the SCM (or `--console`), hosts the
-> `\\.\pipe\veyra-control` named-pipe server, and owns `config.json`. The UI is
-> a minimal native shell that shows live connection status with auto-reconnect.
-> Real DSP and the APO are still no-op stubs; the JUCE UI lands in Phase 4.
-> See [the build order](#build-order).
+## Features
+
+### Audio Engine
+- **10-band Graphic EQ** and **16-band Parametric EQ** with a node editor
+- **Bass Boost**, **Treble Shelf**, **Stereo Widener**, **Multiband Width**
+- **Compressor**, **Transient Shaper**, **Harmonic Exciter**
+- **Saturation** (transparent / tape / tube) with 2× oversampling
+- **Adaptive Bass Enhancer**, **Headphone Safe** mode
+- **True-Peak Limiter** — 64-sample lookahead, 4× polyphase ISP detection (BS.1770-style)
+- **EBU R128 Loudness Normaliser** and **ISO-226 Equal Loudness** curve
+- **Night Mode**, **Reference Mode** (flat A/B bypass for critical listening)
+
+### Spatial Audio
+- **KEMAR HRTF Virtualisation** — MIT measured HRIRs, ITD-aware interpolation
+- **Bauer/Meier Crossfeed** with frequency-dependent compensation
+- **Freeverb Room Reverb** — full 8 comb + 4 allpass per channel (Schroeder tuning)
+- **Room Simulator** — 6-tap early reflection network
+- **Field Compensation** — free-field / diffuse-field / custom
+
+### Voice & Microphone
+- **RNNoise** ML denoiser (v0.1.1), **NLMS Acoustic Echo Canceller**
+- **Noise Gate**, **Auto Gain Control** (−16 LUFS), **De-esser**, **Presence EQ**
+
+### Gamer Features
+- **Sound Tracker HUD** — anti-cheat-safe layered overlay, footstep / gunshot / voice detection
+- **Directional radar** with 3 styles (competitive / rich / compass strip)
+- **Game auto-detection** by process name, **per-app rule engine**
+
+### Application
+- **11 themes** with live switching and custom accent colour
+- **27 built-in presets** + user preset library with categories and favourites
+- **16 AutoEQ profiles** (oratory1990 format), **Hearing Test** personalisation
+- **Sound Lab** — 7 diagnostic tools (sweep, noise, polarity, 10-octave meter, hearing test)
+- **8 visualiser modes**, **Mini Mode**, **global hotkeys**, **system tray**
+- **DWM Acrylic backdrop** (Windows 11 native glass), **MSIX + portable ZIP** packaging
+
+---
 
 ## Architecture
 
-Veyra runs as three cooperating processes plus an APO DLL loaded into the
-Windows audio engine. See **[ARCHITECTURE.md](ARCHITECTURE.md)** for the full
-diagram and rationale.
+```
+audiodg.exe (SYSTEM)              veyra-service.exe
+┌──────────────────────┐          ┌────────────────────────────────────┐
+│ VeyraApoEfx          │◄────────►│ ApoPublisher → SharedMemory        │
+│ DspChain (30+ fx)    │ seqlock  │ ControlServer (\\.\pipe\veyra-ctrl)│
+│ VeyraMicApo          │          │ TrackerService (WASAPI loopback)    │
+│ VoiceChain + RNNoise │          │ AudioBridge, Presets, Updater, ...  │
+└──────────────────────┘          └────────────────────────────────────┘
+                                               ▲ named pipes
+                                               ▼
+                                  veyra.exe (JUCE 8 UI)
+                                  veyra-overlay.exe (GDI+ HUD)
+```
 
-| Binary | Role |
-|---|---|
-| `veyra-apo.dll` | Real-time DSP inside `audiodg.exe` (the only true system-wide, low-latency path). |
-| `veyra-service.exe` | Orchestrator service: config/preset state, detection, Sound Tracker, updater. |
-| `veyra.exe` | The JUCE UI app. |
-| `veyra-overlay.exe` | The anti-cheat-safe layered-window Sound Tracker HUD. |
+Parameters flow service → APO via lock-free seqlock shared memory.
+Analyzer and tracker events flow via SPSC ring buffers.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full data-flow diagram.
+
+---
 
 ## Building
 
-> **Heads-up:** Phase 0 stubs link no third-party dependencies, so a clean
-> build needs only MSVC + the base Windows SDK + CMake + Ninja. The canonical
-> build is the GitHub Actions workflow on `windows-latest`; local builds are
-> optional. Full toolchain setup (incl. the WDK needed for the APO later) is in
-> **[BUILD_GUIDE.md](BUILD_GUIDE.md)**.
+**Requirements:** Visual Studio 2022 with "Desktop development with C++" workload
+(includes MSVC, Windows SDK 10.0.22000+, CMake 3.25+, Ninja).
 
-```sh
+```powershell
+# In Developer PowerShell for VS 2022:
+git clone https://github.com/NextGenDev-KSK/veyra.git
+cd veyra
+git submodule update --init --recursive
 cmake --preset windows-release
 cmake --build --preset windows-release
 ```
 
-Outputs land in `build/windows-release/bin/`:
-`veyra.exe`, `veyra-service.exe`, `veyra-apo.dll`, `veyra-overlay.exe`.
+Outputs: `build\windows-release\bin\` → `veyra.exe`, `veyra-service.exe`,
+`veyra-apo.dll`, `veyra-overlay.exe`
 
-### Trying the Phase 1 backbone
+See [BUILD_GUIDE.md](BUILD_GUIDE.md) for APO test-signing and service installation.
 
-```sh
-# Option A — run the service in the foreground (no admin needed):
-build/windows-release/bin/veyra-service.exe --console
+### Running (development mode — no admin needed)
 
-# Option B — install + start the real Windows service (run as admin):
-build/windows-release/bin/veyra-service.exe --install
-sc start VeyraAudioService
-# ... later: veyra-service.exe --uninstall
+```powershell
+# Terminal 1:
+.\build\windows-release\bin\veyra-service.exe --console
 
-# Then launch the UI; it shows "Service connected · v<version>" when the
-# pipe handshake succeeds, and an animated reconnect indicator otherwise.
-build/windows-release/bin/veyra.exe
+# Terminal 2:
+.\build\windows-release\bin\veyra.exe
 ```
 
-Config and logs are written under `%APPDATA%\Veyra\` (`config.json`, `logs/`).
+Config and logs: `%APPDATA%\Veyra\` (`config.json`, `logs\`, `crashes\`)
 
+### Running tests
 
-## Build order
+```powershell
+cmake --preset windows-release -DVEYRA_BUILD_TESTS=ON
+cmake --build --preset windows-release
+ctest --test-dir build\windows-release --output-on-failure
+```
 
-The product is built in numbered phases, each with acceptance criteria; see the
-engineering spec. Phase 0 is complete when CI builds all four binaries green.
+---
+
+## DSP chain order
+
+```
+Input → Balance/Mono → Graphic EQ → Parametric EQ → Tone Shelves
+      → Compressor → Transient → Bass Enhancer → Headphone Safe
+      → Equal Loudness → Exciter → Saturator → Multiband Width
+      → Stereo Width → Reverb → HRTF Surround → Room Simulator
+      → Crossfeed → Field Compensation → Night Mode
+      → Volume → Loudness Normaliser → True-Peak Limiter → Analyser → Output
+```
+
+---
+
+## Project structure
+
+```
+apps/veyra-apo/        ← APO COM DLL (audiodg.exe host)
+apps/veyra-service/    ← Orchestrator service
+apps/veyra-ui/         ← JUCE 8 UI application
+apps/veyra-overlay/    ← GDI+ layered window HUD
+modules/veyra-common/  ← Config, IPC, presets, shared memory, localisation
+modules/veyra-dsp/     ← Header-only DSP chain (30+ effects, allocation-free)
+modules/veyra-rnnoise/ ← RNNoise denoiser PIMPL wrapper
+resources/autoeq/      ← 16 oratory1990 headphone correction files
+resources/lang/        ← Localisation templates
+resources/themes/      ← Design token JSON for 11 themes
+tests/                 ← Catch2 unit + performance tests
+installer/driver/      ← APO INF template
+installer/msix/        ← MSIX manifest
+```
+
+---
 
 ## Contributing
 
-See **[CONTRIBUTING.md](CONTRIBUTING.md)**. All contributions are GPLv3, and PRs
-must respect the performance budget.
+See [CONTRIBUTING.md](CONTRIBUTING.md). All contributions are GPLv3.
 
 ## License
 
-GPLv3 — see [LICENSE](LICENSE).
+GNU General Public License v3.0 — see [LICENSE](LICENSE).
+
+Third-party licences: `third_party/*/LICENSE`.
+MIT KEMAR HRTF dataset: `third_party/hrtf/mit_kemar/LICENSE` (non-commercial research licence).
