@@ -31,7 +31,7 @@ gaps are called out so the remaining work is unambiguous.
 ✅ `veyra-apo.dll`, `veyra-service.exe`, `veyra.exe`, `veyra-overlay.exe` all build; shared-memory params + ring buffers + two named pipes. Anti-cheat strategy = layered-window only ✅; D3D-hook opt-in mode ⬜ (intentionally not built).
 
 ## §4 DSP chains
-**Output chain:** loudness norm ✅ · mono/balance ✅ · 10-band graphic EQ ✅ · **parametric EQ ✅** (16-band engine + draggable node editor, both render paths) · bass/treble shelves ✅ · compressor ✅ · stereo widener ✅ · **reverb ✅** (Freeverb in the live chain; Home knob wired; unit-tested) · **echo/delay 🟡** (`DelayLine` exists; deliberately not in the chain — no reference UI + low value for an enhancer) · virtual surround/HRTF ✅ · volume gain ✅ · true-peak limiter ✅.
+**Output chain:** loudness norm ✅ · mono/balance ✅ · 10-band graphic EQ ✅ · **parametric EQ ✅** (16-band engine + draggable node editor, both render paths) · bass/treble shelves ✅ · compressor ✅ · stereo widener ✅ · **reverb ✅** (Freeverb in the live chain; `reverbAmount` now carried in `VeyraParamsPayload` and applied in both APO + Bridge paths; unit-tested) · **echo/delay 🟡** (`DelayLine` exists; deliberately not in the chain — no reference UI + low value for an enhancer) · virtual surround/HRTF ✅ · volume gain ✅ · true-peak limiter ✅.
 **Mic chain:** HPF ✅ · NS ✅ (RNNoise default @ v0.1.1; custom expander fallback) · **noise gate ✅** (config + NS expander) · **AEC ✅** (NLMS engine + VoiceChain overload, tested; live far-end feed ⏵) · voice EQ/presence ✅ · de-esser ✅ · **AGC ✅** (−16 LUFS auto-level, unit-tested) · side-tone 🟡 (level field; APO routing ⬜).
 Parameter smoothing (5 ms) ✅.
 
@@ -81,7 +81,7 @@ CMake → 4 binaries ✅ · MSIX ✅ · portable ZIP (CI artifact) ✅ · signin
 
 **Solid & CI-green:** the 3-process + APO architecture, the core real-time output DSP (EQ/tone/dynamics/width/spatial/loudness/limiter), config/preset/per-app/per-device models, IPC, packaging, crash capture, hotkeys, onboarding, performance guard.
 
-**Done since the first audit:** parametric 16-band EQ + node editor · all 8 visualizer modes (2D) · the 7 Sound Lab tools + tone engine · AGC · noise gate · live game detection · Sound Tracker producer · crash UI banner · updater HTTPS check · reverb in the live chain · fixed 1600×900 canvas · Home master polish + active-preset chip · offline app index with EXE icons · Settings Updates section.
+**Done since the first audit:** parametric 16-band EQ + node editor · all 8 visualizer modes (2D) · the 7 Sound Lab tools + tone engine · AGC · noise gate · live game detection · Sound Tracker producer · crash UI banner · updater HTTPS check · reverb in the live chain (APO + Bridge paths) · fixed 1200×675 canvas · Home master polish + active-preset chip · offline app index with EXE icons · Settings Updates section.
 
 **Real remaining gaps (need external assets / are research-scale — not faked):** **6-language human translations** · OpenGL/shader-grade unique visualizers (current are 2D) · pitch/time · scene-aware **learned** model (rule-based v1 ships) · signature-verified silent updater download/apply. **Runtime-only ⏵:** APO endpoint registration, AEC live far-end feed, overlay hold-to-interact + per-game memory, per-screen spacing polish. Smaller/by-choice: echo-delay in the chain (no reference UI), audio-session per-app detection, side-tone routing.
 

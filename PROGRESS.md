@@ -45,16 +45,22 @@ All CI-green:
 - **Window**: fixed 1200×675 canvas (centered, no resize/maximise); padding-trimmed taskbar icon.
 - **Home**: realigned master cluster (toggle + MASTER label + slider + %), live active-preset chip, per-feature info "ⓘ" tooltips (what / does / shortcut).
 - **Equalizer**: **Parametric EQ end-to-end** — 16-band engine (bell/shelf/notch/HP/LP) + draggable node editor (drag freq/gain, wheel = Q, right-click = type, double-click = reset) + summed response curve; Graphic↔Parametric toggle real on both APO + bridge paths.
-- **Effects DSP in the live chain**: Reverb (Freeverb), loudness, true-peak limiter, width, HRTF — all process audio (delay intentionally omitted).
+- **Effects DSP in the live chain**: Reverb (Freeverb) on both APO + Bridge paths, loudness, true-peak limiter, width, HRTF — all process audio (delay intentionally omitted).
 - **Visualizers**: all 8 modes (Bars/Monstercat/Circular/Waveform/Particle/Wavy/Ferrofluid/3D) — 2D-canvas (OpenGL/shader rewrite ⬜).
 - **Presets**: 27 built-ins across Gaming/Music/Movies/Streaming/Voice/Night; category column, search (oval), sort (A–Z/Category), grid/list, **Favorites** (★, persisted), **Recently Used** (persisted), duplicate, import/export; white BUILT-IN badge.
 - **Apps**: themed table (App·Detection·Preset·Volume·Auto-mute·Status), Per-App Switching toggle, offline **app index with EXE-icon picker**.
 - **Sound Lab**: 7-tool tab bar + real `SoundLabEngine` (tone/sweep/noise/per-channel/polarity + live mic meter).
 - **Gamer Mode**: 2×2 dashboard (Sound Tracker / Spatial / Voice & Mic / Night) + **game auto-detection** (process-name, anti-cheat-safe).
-- **Mic**: AGC (−16 LUFS), noise gate, **AEC** (NLMS engine, tested), de-esser, presence, side-tone.
+- **Mic**: AGC (−16 LUFS), noise gate, **AEC** (NLMS engine, tested), de-esser, presence, side-tone (field plumbed; sidetone audio routing is ⏵ — requires service-side WASAPI render stream fed from the capture APO).
 - **Scene-aware detector** (§16 v1): rule-based content classifier (stub interface, no ML), tested.
 - **Settings**: sub-nav (Appearance / Audio Engine / Microphone / Spatial / Loudness / Updates / About), real Audio Engine panel.
 - **Service**: updater HTTPS check (WinHTTP, daily); crash-recovery banner in the UI.
+- **APO Win 10/11 compatibility**: both render + capture APOs now implement `IAudioSystemEffects2` (empty effects list) so Windows 10 v2004+ audio policy does not skip them on modern endpoints. CI-green.
+- **App Rules IPC sync**: `AppsScreen::save()` now sends `SetAppRules` to the service via `ServiceClient::setAppRules()` in addition to writing the JSON file — the service's in-memory AppRuleEngine stays in sync without a restart.
+- **AudioBridge sample-rate tolerance**: destination client now initialized with `AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY` so VB-CABLE and headphones with different sample rates work without manual format matching.
+- **Config version guard**: `Config::fromJson()` now normalises the `version` field to the current schema version so a downgrade can't leave an unknown version tag in the file.
+- **Reverb on APO path**: `reverbAmount` added to `VeyraParamsPayload`; `ApoPublisher` and `VeyraApo::refreshParametersFromShared()` wired — reverb now applies on both APO + Bridge paths. CI-green.
+- **SharedParameters padding**: seqlock pad formula made edge-case safe for payload sizes that are exact cache-line multiples.
 
 ---
 

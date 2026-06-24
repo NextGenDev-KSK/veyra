@@ -29,7 +29,8 @@ public:
 
     void setPresets(const std::vector<veyra::Preset>& presets); // populate the pickers
     void setSwitchingEnabled(bool on);                          // reflect, no callback
-    std::function<void(bool)> onSwitchingChanged;               // master per-app toggle
+    std::function<void(bool)>              onSwitchingChanged; // master per-app toggle
+    std::function<void(const std::string&)> onRulesSaved;      // push JSON rules to service
 
 private:
     class Card;

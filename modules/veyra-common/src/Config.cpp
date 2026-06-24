@@ -67,7 +67,15 @@ std::optional<Config> Config::fromJson(const std::string& text)
         return std::nullopt;
 
     Config c;
-    c.version          = j.value("version", c.version);
+    c.version = j.value("version", c.version);
+
+    // If the file was written by a newer build (version > 1), parse what we
+    // understand best-effort and clamp back to 1 so the next save normalises the
+    // file. This prevents a downgrade from silently keeping an unknown version tag.
+    constexpr int kCurrentVersion = 1;
+    if (c.version != kCurrentVersion)
+        c.version = kCurrentVersion;
+
     c.masterEnabled    = j.value("master_enabled", c.masterEnabled);
     c.masterVolumeGain = j.value("master_volume_gain", c.masterVolumeGain);
     c.activePresetUuid = j.value("active_preset_uuid", c.activePresetUuid);

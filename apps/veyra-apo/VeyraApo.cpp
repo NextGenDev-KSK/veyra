@@ -42,6 +42,8 @@ STDMETHODIMP VeyraApoEfx::QueryInterface(REFIID riid, void** ppv)
         *ppv = static_cast<IAudioProcessingObjectConfiguration*>(this);
     else if (riid == __uuidof(IAudioSystemEffects))
         *ppv = static_cast<IAudioSystemEffects*>(this);
+    else if (riid == __uuidof(IAudioSystemEffects2))
+        *ppv = static_cast<IAudioSystemEffects2*>(this);
     else
     {
         *ppv = nullptr;
@@ -105,7 +107,7 @@ STDMETHODIMP VeyraApoEfx::GetRegistrationProperties(APO_REG_PROPERTIES** ppRegPr
     props->u32MaxOutputConnections = 1;
     props->u32MaxInstances = 0xFFFFFFFF;
     props->u32NumAPOInterfaces = 1;
-    props->iidAPOInterfaceList[0] = __uuidof(IAudioSystemEffects);
+    props->iidAPOInterfaceList[0] = __uuidof(IAudioSystemEffects2);
 
     *ppRegProps = props;
     return S_OK;
@@ -228,6 +230,21 @@ STDMETHODIMP VeyraApoEfx::UnlockForProcess()
     return S_OK;
 }
 
+// ---- IAudioSystemEffects2 --------------------------------------------------
+
+STDMETHODIMP VeyraApoEfx::GetEffectsList(LPGUID* ppEffectsIds, UINT* pcEffects,
+                                          HANDLE /*hEvent*/)
+{
+    if (!ppEffectsIds || !pcEffects)
+        return E_POINTER;
+    // Veyra's DSP is one unified chain, not a set of individually togglable OS
+    // effects. Return an empty list so the Windows Effects panel shows nothing,
+    // but the audio engine still loads this APO correctly on Windows 10/11.
+    *ppEffectsIds = nullptr;
+    *pcEffects    = 0;
+    return S_OK;
+}
+
 // ---- IAudioProcessingObjectRT (real-time; no alloc, no locks) ---------------
 
 void VeyraApoEfx::refreshParametersFromShared() noexcept
@@ -260,6 +277,7 @@ void VeyraApoEfx::refreshParametersFromShared() noexcept
     dp.multibandWidth = p.multibandWidth;
     dp.transientAmount = p.transientAmount;
     dp.bassEnhanceAmount = p.bassEnhanceAmount;
+    dp.reverbAmount = p.reverbAmount;
     dp.stereoWidth = p.stereoWidth;
     dp.volumeGain = p.volumeGain;
     dp.crossfeedAmount = p.crossfeedAmount;

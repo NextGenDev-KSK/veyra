@@ -32,7 +32,7 @@ class VeyraMicApo final
     : public IAudioProcessingObjectRT
     , public IAudioProcessingObject
     , public IAudioProcessingObjectConfiguration
-    , public IAudioSystemEffects
+    , public IAudioSystemEffects2   // IAudioSystemEffects2 extends IAudioSystemEffects
 {
 public:
     VeyraMicApo();
@@ -69,6 +69,9 @@ public:
                               UINT32 u32NumOutputConnections,
                               APO_CONNECTION_DESCRIPTOR** ppOutputConnections) override;
     STDMETHOD(UnlockForProcess)() override;
+
+    // IAudioSystemEffects2: expose no individual OS-togglable effects.
+    STDMETHOD(GetEffectsList)(LPGUID* ppEffectsIds, UINT* pcEffects, HANDLE hEvent) override;
 
 private:
     ~VeyraMicApo();

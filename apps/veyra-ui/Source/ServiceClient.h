@@ -60,9 +60,10 @@ public:
     void loadPreset(const std::string& uuid);   // apply a preset to the live config
     void savePreset(const veyra::Preset& preset); // save/replace a user preset
     void deletePreset(const std::string& uuid);   // delete a user preset
+    void setAppRules(const std::string& rulesJson); // push rules to the service
 
 private:
-    enum class CmdKind { LoadPreset, SavePreset, DeletePreset };
+    enum class CmdKind { LoadPreset, SavePreset, DeletePreset, SetAppRules };
     struct Command { CmdKind kind; std::string payload; };
 
     void run();

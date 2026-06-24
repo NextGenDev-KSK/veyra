@@ -339,7 +339,8 @@ private:
 
 class AppsScreen::Card : public GlassPanel {
 public:
-    std::function<void(bool)> onSwitchingChanged;
+    std::function<void(bool)>              onSwitchingChanged;
+    std::function<void(const std::string&)> onRulesSaved;
 
     Card()
     {
@@ -530,9 +531,11 @@ private:
                 rs.push_back(rule);
         }
         engine.setRules(rs);
+        const std::string rulesJson = engine.toJson();
         auto f = rulesFile();
         f.getParentDirectory().createDirectory();
-        f.replaceWithText(juce::String(engine.toJson()));
+        f.replaceWithText(juce::String(rulesJson));
+        if (onRulesSaved) onRulesSaved(rulesJson); // sync service in-memory state
         status_ = "Saved " + juce::String((int) rs.size()) + " rule(s).";
         repaint();
     }
@@ -554,6 +557,7 @@ AppsScreen::AppsScreen()
 {
     card_ = std::make_unique<Card>();
     card_->onSwitchingChanged = [this](bool on) { if (onSwitchingChanged) onSwitchingChanged(on); };
+    card_->onRulesSaved = [this](const std::string& j) { if (onRulesSaved) onRulesSaved(j); };
     addAndMakeVisible(*card_);
 }
 

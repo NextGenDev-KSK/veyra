@@ -33,6 +33,7 @@ struct VeyraParamsPayload {
     float    multibandWidth = 0.0f;
     float    transientAmount = 0.0f;
     float    bassEnhanceAmount = 0.0f;
+    float    reverbAmount = 0.0f;
     float    stereoWidth = 1.0f;
     float    volumeGain = 1.0f;
     float    crossfeedAmount = 0.0f;
@@ -50,11 +51,14 @@ struct VeyraParamsPayload {
 };
 
 // Cache-line aligned so the seqlock counter doesn't false-share with anything.
+// The _reserved array pads the struct to a multiple of 64 bytes. The outer % 64
+// ensures the array has size 0 (not 64) when the fields already fill a whole
+// cache line.
 struct alignas(64) VeyraSharedParameters {
     std::atomic<uint64_t> generation;
     VeyraParamsPayload     payload;
-    // pad out to a multiple of the cache line.
-    char _reserved[64 - (sizeof(std::atomic<uint64_t>) + sizeof(VeyraParamsPayload)) % 64];
+    static constexpr size_t kPad = (64 - (sizeof(std::atomic<uint64_t>) + sizeof(VeyraParamsPayload)) % 64) % 64;
+    char _reserved[kPad == 0 ? 1 : kPad]; // C++ forbids zero-size arrays
 };
 
 // Writer side (service): publish a new payload atomically w.r.t. readers.
@@ -112,7 +116,8 @@ struct VeyraMicParamsPayload {
 struct alignas(64) VeyraMicSharedParameters {
     std::atomic<uint64_t> generation;
     VeyraMicParamsPayload  payload;
-    char _reserved[64 - (sizeof(std::atomic<uint64_t>) + sizeof(VeyraMicParamsPayload)) % 64];
+    static constexpr size_t kMicPad = (64 - (sizeof(std::atomic<uint64_t>) + sizeof(VeyraMicParamsPayload)) % 64) % 64;
+    char _reserved[kMicPad == 0 ? 1 : kMicPad];
 };
 
 inline void publishMicParameters(VeyraMicSharedParameters* shm,

@@ -34,7 +34,7 @@ class VeyraApoEfx final
     : public IAudioProcessingObjectRT
     , public IAudioProcessingObject
     , public IAudioProcessingObjectConfiguration
-    , public IAudioSystemEffects
+    , public IAudioSystemEffects2   // IAudioSystemEffects2 extends IAudioSystemEffects
 {
 public:
     VeyraApoEfx();
@@ -71,6 +71,10 @@ public:
                               UINT32 u32NumOutputConnections,
                               APO_CONNECTION_DESCRIPTOR** ppOutputConnections) override;
     STDMETHOD(UnlockForProcess)() override;
+
+    // IAudioSystemEffects2: expose no individual OS-togglable effects — Veyra's
+    // DSP is a single unified chain, not a set of enumerable effects.
+    STDMETHOD(GetEffectsList)(LPGUID* ppEffectsIds, UINT* pcEffects, HANDLE hEvent) override;
 
 private:
     ~VeyraApoEfx();

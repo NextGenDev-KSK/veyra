@@ -456,10 +456,6 @@ protected:
         g.drawText(pct(strength_.getValue()), sl.removeFromRight(48), juce::Justification::centredRight, false);
 
         c.removeFromTop(22 + 12);
-        g.setColour(palette_.textTertiary);
-        g.setFont(fonts::mono(10.0f, true));
-        g.drawText("AUTO-ENABLE 22:00 - 07:00", c.removeFromTop(16),
-                   juce::Justification::centredLeft, false);
     }
 
 private:

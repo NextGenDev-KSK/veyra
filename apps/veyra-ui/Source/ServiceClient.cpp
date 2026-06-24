@@ -103,9 +103,10 @@ void ServiceClient::enqueue(Command cmd)
     wait_.notify_all();
 }
 
-void ServiceClient::loadPreset(const std::string& uuid)   { enqueue({CmdKind::LoadPreset, uuid}); }
-void ServiceClient::savePreset(const veyra::Preset& p)     { enqueue({CmdKind::SavePreset, p.toJson()}); }
-void ServiceClient::deletePreset(const std::string& uuid)  { enqueue({CmdKind::DeletePreset, uuid}); }
+void ServiceClient::loadPreset(const std::string& uuid)     { enqueue({CmdKind::LoadPreset, uuid}); }
+void ServiceClient::savePreset(const veyra::Preset& p)      { enqueue({CmdKind::SavePreset, p.toJson()}); }
+void ServiceClient::deletePreset(const std::string& uuid)   { enqueue({CmdKind::DeletePreset, uuid}); }
+void ServiceClient::setAppRules(const std::string& json)    { enqueue({CmdKind::SetAppRules, json}); }
 
 void ServiceClient::setStatus(ConnectionState state, std::wstring version)
 {
@@ -223,21 +224,30 @@ void ServiceClient::run()
                     }
                     else if (cmd)
                     {
-                        const MessageType type =
-                            cmd->kind == CmdKind::LoadPreset   ? MessageType::LoadPreset :
-                            cmd->kind == CmdKind::SavePreset   ? MessageType::SavePreset :
-                                                                 MessageType::DeletePreset;
-                        Message ack;
-                        ok = client.request({type, cmd->payload}, ack) &&
-                             ack.type == MessageType::PresetAck;
-                        if (ok)
+                        if (cmd->kind == CmdKind::SetAppRules)
                         {
-                            if (cmd->kind == CmdKind::LoadPreset)
-                                fetchConfig(); // applying a preset changed the live config
-                            else
-                                fetchPresets(); // the user preset set changed
-                            if (onChange_)
-                                onChange_();
+                            Message ack;
+                            ok = client.request({MessageType::SetAppRules, cmd->payload}, ack) &&
+                                 ack.type == MessageType::AppRulesAck;
+                        }
+                        else
+                        {
+                            const MessageType type =
+                                cmd->kind == CmdKind::LoadPreset   ? MessageType::LoadPreset :
+                                cmd->kind == CmdKind::SavePreset   ? MessageType::SavePreset :
+                                                                     MessageType::DeletePreset;
+                            Message ack;
+                            ok = client.request({type, cmd->payload}, ack) &&
+                                 ack.type == MessageType::PresetAck;
+                            if (ok)
+                            {
+                                if (cmd->kind == CmdKind::LoadPreset)
+                                    fetchConfig(); // applying a preset changed the live config
+                                else
+                                    fetchPresets(); // the user preset set changed
+                                if (onChange_)
+                                    onChange_();
+                            }
                         }
                     }
                     else

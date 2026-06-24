@@ -39,6 +39,8 @@ STDMETHODIMP VeyraMicApo::QueryInterface(REFIID riid, void** ppv)
         *ppv = static_cast<IAudioProcessingObjectConfiguration*>(this);
     else if (riid == __uuidof(IAudioSystemEffects))
         *ppv = static_cast<IAudioSystemEffects*>(this);
+    else if (riid == __uuidof(IAudioSystemEffects2))
+        *ppv = static_cast<IAudioSystemEffects2*>(this);
     else
     {
         *ppv = nullptr;
@@ -105,7 +107,7 @@ STDMETHODIMP VeyraMicApo::GetRegistrationProperties(APO_REG_PROPERTIES** ppRegPr
     props->u32MaxOutputConnections = 1;
     props->u32MaxInstances = 0xFFFFFFFF;
     props->u32NumAPOInterfaces = 1;
-    props->iidAPOInterfaceList[0] = __uuidof(IAudioSystemEffects);
+    props->iidAPOInterfaceList[0] = __uuidof(IAudioSystemEffects2);
 
     *ppRegProps = props;
     return S_OK;
@@ -216,6 +218,18 @@ STDMETHODIMP VeyraMicApo::LockForProcess(UINT32 u32NumInputConnections,
 STDMETHODIMP VeyraMicApo::UnlockForProcess()
 {
     locked_ = false;
+    return S_OK;
+}
+
+// ---- IAudioSystemEffects2 --------------------------------------------------
+
+STDMETHODIMP VeyraMicApo::GetEffectsList(LPGUID* ppEffectsIds, UINT* pcEffects,
+                                          HANDLE /*hEvent*/)
+{
+    if (!ppEffectsIds || !pcEffects)
+        return E_POINTER;
+    *ppEffectsIds = nullptr;
+    *pcEffects    = 0;
     return S_OK;
 }
 

@@ -54,6 +54,7 @@ void ApoPublisher::publish(const Config& config)
     p.multibandWidth    = e.multibandWidth;
     p.transientAmount   = e.transientAmount;
     p.bassEnhanceAmount = e.bassEnhanceAmount;
+    p.reverbAmount      = e.reverbAmount;
     p.crossfeedAmount     = config.spatial.enabled ? config.spatial.crossfeed : 0.0f;
     p.virtualizationAmount = config.spatial.enabled ? config.spatial.virtualization : 0.0f;
     p.fieldComp           = (config.spatial.enabled && config.spatial.fieldComp > 0)
@@ -66,7 +67,6 @@ void ApoPublisher::publish(const Config& config)
     p.referenceMode       = config.referenceMode ? 1u : 0u;
     p.headphoneSafe       = config.headphoneSafe ? 1u : 0u;
     p.nonlinearOversampling = config.nonlinearOversampling ? 1u : 0u;
-    // Reverb has no DSP stage yet; e.reverbAmount is carried in Config for the UI.
 
     ipc::publishParameters(params_, p);
 }

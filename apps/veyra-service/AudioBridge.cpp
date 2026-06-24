@@ -192,12 +192,12 @@ bool AudioBridge::session()
     if (FAILED(srcClient->GetMixFormat(&srcFmt)) || FAILED(dstClient->GetMixFormat(&dstFmt)))
     { cleanup(); return false; }
 
-    if (!isFloat32(srcFmt) || !isFloat32(dstFmt) ||
-        srcFmt->nChannels != 2 || dstFmt->nChannels != 2 ||
-        srcFmt->nSamplesPerSec != dstFmt->nSamplesPerSec)
+    if (!isFloat32(srcFmt) || srcFmt->nChannels != 2)
     {
         if (log_)
-            log_->warn("AudioBridge: source/target must both be stereo 32-bit float at the same rate (no resampling yet)");
+            log_->warn("AudioBridge: source must be stereo float32 (got "
+                       + std::to_string(srcFmt->nChannels) + " ch, "
+                       + std::to_string(srcFmt->wBitsPerSample) + "-bit)");
         cleanup();
         return false;
     }
@@ -208,7 +208,13 @@ bool AudioBridge::session()
         FAILED(srcClient->GetService(__uuidof(IAudioCaptureClient), reinterpret_cast<void**>(&capture))))
     { cleanup(); return false; }
 
-    if (FAILED(dstClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, dur, 0, dstFmt, nullptr)) ||
+    // Initialize the destination with the source format and ask Windows to resample
+    // if the endpoint's native rate differs. This handles VB-CABLE/headphones having
+    // different rates (e.g. 44100 vs 48000) without hard-failing.
+    if (FAILED(dstClient->Initialize(AUDCLNT_SHAREMODE_SHARED,
+                                      AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM |
+                                      AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
+                                      dur, 0, srcFmt, nullptr)) ||
         FAILED(dstClient->GetService(__uuidof(IAudioRenderClient), reinterpret_cast<void**>(&render))))
     { cleanup(); return false; }
 
@@ -222,7 +228,8 @@ bool AudioBridge::session()
     if (FAILED(srcClient->Start()) || FAILED(dstClient->Start()))
     { cleanup(); return false; }
 
-    std::vector<float> left, right;
+    // Pre-size to the render buffer so the hot path never allocates.
+    std::vector<float> left(dstBufFrames), right(dstBufFrames);
 
     while (running_.load())
     {
@@ -250,8 +257,7 @@ bool AudioBridge::session()
             if (FAILED(capture->GetBuffer(&data, &frames, &flags, nullptr, nullptr)))
                 break;
 
-            left.resize(frames);
-            right.resize(frames);
+            if (frames > left.size()) { left.resize(frames); right.resize(frames); }
             const bool silent = (flags & AUDCLNT_BUFFERFLAGS_SILENT) != 0;
             const auto* in = reinterpret_cast<const float*>(data);
             for (UINT32 i = 0; i < frames; ++i)

@@ -79,8 +79,9 @@ RootComponent::RootComponent()
     devices_.onBridgeChanged = [this](const veyra::BridgeConfig& b) { working_.bridge = b; pushConfig(); };
     devices_.setBridge(working_.bridge);
 
-    // Apps: master per-app-switching toggle.
+    // Apps: master per-app-switching toggle + rule push to service.
     apps_.onSwitchingChanged = [this](bool on) { working_.appSwitching = on; pushConfig(); };
+    apps_.onRulesSaved = [this](const std::string& json) { client_.setAppRules(json); };
     apps_.setSwitchingEnabled(working_.appSwitching);
 
     // Gamer Mode dashboard -> the gamer / spatial / voice / loudness blocks.
