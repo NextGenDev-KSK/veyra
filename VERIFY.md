@@ -56,7 +56,7 @@ build\windows-release\bin\veyra.exe
 Check, in order:
 
 1. ✅ Glass window opens; the **brand LED** (top-left, by the "V") turns **green** = connected to the service. (Amber = service not reachable → check Terminal 1.)
-2. ✅ Drag **EQ bands** / **knobs**, toggle **Master**, move the **master volume** → Terminal 1 prints `ConfigManager: applied + saved config` each change. `%APPDATA%\Veyra\config.json` updates live.
+2. ✅ Drag **EQ bands** / **knobs**, toggle **Master**, move the **master volume** → Terminal 1 prints `ConfigManager: applied + saved config` each change. `%ProgramData%\Veyra\config.json` updates live.
 3. ✅ **Sidebar → Settings → Appearance**: theme tiles recolor the whole UI live; **UI Opacity** lowers (you'll see the desktop blurred through the glass = acrylic); **Reduce Motion** freezes the visualizer.
 4. ✅ **Settings** also has **Microphone**, **Spatial**, **Loudness**, and **About** cards — move their controls, watch Terminal 1 log the config writes.
 5. ✅ **Presets** (sidebar): apply a built-in (Bass Boost, FPS Footstep Boost…); the EQ/knobs jump to it. Save current, import/export `.vpreset`.
@@ -138,7 +138,7 @@ the tracker writes **blips** (footsteps/gunshots/voice) with direction.
 | 10-band EQ + curve | Home | Drag nodes → tooltip (Hz + dB); audio changes (Stage B) |
 | Bass/Treble/Volume/Width/Compression knobs | Home | Live value text; audio changes |
 | Presets (8 built-in + user) | Presets | Apply/save/import/export `.vpreset` |
-| Per-app rules | `%APPDATA%\Veyra\app_rules.json` | Focus an app → its preset auto-applies (see below) |
+| Per-app rules | `%ProgramData%\Veyra\app_rules.json` | Focus an app → its preset auto-applies (see below) |
 | Spatial (crossfeed + virtualization) | Settings → Spatial | Cinematic = wide/out-of-head; Competitive = neutral |
 | Night Mode | Settings → Loudness | Quiet parts lifted, peaks tamed |
 | Loudness Match | Settings → Loudness | Levels normalize toward target LUFS |
@@ -146,7 +146,7 @@ the tracker writes **blips** (footsteps/gunshots/voice) with direction.
 | Mic chain | Settings → Microphone | (needs the capture path; config persists) |
 | Theme / opacity / reduce-motion | Settings → Appearance | Live + persists across restart |
 
-**Per-app rules quick test:** create `%APPDATA%\Veyra\app_rules.json`:
+**Per-app rules quick test:** create `%ProgramData%\Veyra\app_rules.json`:
 ```json
 [ { "match": "chrome", "preset_uuid": "v-bass-boost", "priority": 0, "enabled": true },
   { "match": "spotify", "preset_uuid": "v-cinematic", "priority": 5, "enabled": true } ]

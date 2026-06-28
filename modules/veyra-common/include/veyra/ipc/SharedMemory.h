@@ -1,8 +1,10 @@
 #pragma once
 
 // RAII wrapper over a named Win32 file mapping used to share the parameter
-// block between the service (creator/writer) and the APO (opener/reader). The
-// service creates it with a permissive (NULL) DACL so audiodg.exe can open it.
+// block between the service (creator/writer) and the APO (opener/reader).
+// Created with an explicit DACL: full access for System and Administrators,
+// read-only for Everyone. Global\ prefix for cross-session objects; Local\
+// fallback in console mode where SeCreateGlobalPrivilege is absent.
 
 #include <cstddef>
 #include <string>

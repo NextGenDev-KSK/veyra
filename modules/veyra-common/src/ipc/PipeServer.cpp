@@ -34,6 +34,44 @@ bool buildPipeSa(SECURITY_ATTRIBUTES& sa, PSECURITY_DESCRIPTOR& sd)
     return true;
 }
 
+// Returns true if the connected client is in a trusted session.
+//
+// Named pipes are always local — no remote-connection risk. We additionally
+// restrict to Session 0 (LocalService self-connections) and the active console
+// session (the interactive user running the UI / overlay). This rejects RDP
+// users logged into other sessions from manipulating another user's audio.
+//
+// GetNamedPipeClientSessionId and WTSGetActiveConsoleSessionId are in
+// Kernel32.dll (Vista+); no extra library dependency.
+bool isAuthorizedClient(HANDLE pipe, Logger* log)
+{
+    ULONG clientSession = 0;
+    if (!GetNamedPipeClientSessionId(pipe, &clientSession))
+    {
+        logLine(log, LogLevel::Warn,
+                "PipeServer: GetNamedPipeClientSessionId failed — rejecting");
+        return false;
+    }
+
+    ULONG pid = 0;
+    GetNamedPipeClientProcessId(pipe, &pid); // best-effort; ignore failure
+
+    const DWORD consoleSession = WTSGetActiveConsoleSessionId();
+    if (clientSession != 0 && clientSession != consoleSession)
+    {
+        logLine(log, LogLevel::Warn,
+                "PipeServer: rejected pid=" + std::to_string(pid) +
+                " session=" + std::to_string(clientSession) +
+                " (active console session=" + std::to_string(consoleSession) + ")");
+        return false;
+    }
+
+    logLine(log, LogLevel::Info,
+            "PipeServer: accepted pid=" + std::to_string(pid) +
+            " session=" + std::to_string(clientSession));
+    return true;
+}
+
 } // namespace
 
 PipeServer::PipeServer(std::wstring pipeName, RequestHandler handler, Logger* log)
@@ -124,7 +162,12 @@ void PipeServer::listenLoop()
         }
 
         if (connected)
-            serveClient(pipe);
+        {
+            if (isAuthorizedClient(pipe, log_))
+                serveClient(pipe);
+            else
+                DisconnectNamedPipe(pipe);
+        }
 
         CloseHandle(pipe);
     }
@@ -132,8 +175,6 @@ void PipeServer::listenLoop()
 
 void PipeServer::serveClient(HANDLE pipe)
 {
-    logLine(log_, LogLevel::Info, "PipeServer: client connected");
-
     while (running_.load())
     {
         Message request;

@@ -22,6 +22,10 @@ bool readMessage(HANDLE pipe, Message& out)
         if (GetLastError() == ERROR_MORE_DATA)
         {
             bytes.append(buffer, read);
+            // Guard against a rogue client sending a huge multi-chunk message
+            // and exhausting server memory before parse() can reject it.
+            if (bytes.size() > sizeof(MessageHeader) + kMaxPayloadBytes)
+                return false;
             continue;
         }
         return false; // ERROR_BROKEN_PIPE, ERROR_OPERATION_ABORTED, etc.

@@ -9,6 +9,16 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Security
+- **Pipe client session authentication** — After `ConnectNamedPipe`, the server
+  validates the client's Windows session via `GetNamedPipeClientSessionId` against
+  `WTSGetActiveConsoleSessionId`. Connections from non-console sessions (e.g. an RDP
+  user in a parallel session on a multi-user machine) are rejected and logged with the
+  client PID and session ID. Session 0 (LocalService) and the active console session
+  are the only accepted origins.
+- **IPC payload size cap** — `Protocol.h` now defines `kMaxPayloadBytes` (4 MiB).
+  `parse()` rejects oversized payloads before the bounds check, preventing integer
+  wraparound on `sizeof(header) + payloadSize`. `readMessage()` also stops accumulating
+  early if the in-flight size exceeds the cap, preventing OOM from multi-chunk messages.
 - **Named pipe DACL** — `CreateNamedPipeW` now passes an explicit SDDL
   `D:(A;;FA;;;SY)(A;;FA;;;BA)(A;;GRGW;;;IU)` instead of `nullptr`. Restricts pipe
   connections to LocalSystem, Administrators, and the current interactive user. Prevents

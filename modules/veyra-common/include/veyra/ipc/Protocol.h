@@ -23,6 +23,10 @@ inline constexpr wchar_t kTrackerPipeName[] = L"\\\\.\\pipe\\veyra-tracker";
 inline constexpr uint32_t kMagic = 0x56595241u;
 inline constexpr uint16_t kProtocolVersion = 1;
 
+// Hard cap on payload size (4 MiB). All real messages are well under 1 MiB;
+// this prevents memory exhaustion from a malformed or malicious header.
+inline constexpr uint32_t kMaxPayloadBytes = 4u * 1024u * 1024u;
+
 enum class MessageType : uint16_t {
     Ping         = 1,   // -> Pong
     Pong         = 2,
@@ -85,7 +89,7 @@ inline std::string serialize(const Message& msg)
 }
 
 // Parse a complete wire byte string into a Message. Returns false on a short
-// buffer, bad magic, or version mismatch.
+// buffer, bad magic, version mismatch, oversized payload, or truncated data.
 inline bool parse(const std::string& bytes, Message& out)
 {
     if (bytes.size() < sizeof(MessageHeader))
@@ -96,7 +100,12 @@ inline bool parse(const std::string& bytes, Message& out)
 
     if (header.magic != kMagic || header.version != kProtocolVersion)
         return false;
-    if (bytes.size() < sizeof(header) + header.payloadSize)
+
+    // Reject oversized payloads before the bounds check to avoid any chance of
+    // integer wraparound when sizeof(header) + header.payloadSize is formed.
+    if (header.payloadSize > kMaxPayloadBytes)
+        return false;
+    if (header.payloadSize > bytes.size() - sizeof(header))
         return false;
 
     out.type = static_cast<MessageType>(header.type);

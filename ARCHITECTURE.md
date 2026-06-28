@@ -15,7 +15,7 @@ into the Windows audio stack.
                  ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  Veyra Audio Service (veyra-service.exe)                    │
-│  └─ Windows Service, runs as SYSTEM, autostarts              │
+│  └─ Windows Service, NT AUTHORITY\LocalService, autostarts   │
 │       - Mediates between UI and APO                          │
 │       - Holds canonical config + preset state                │
 │       - Performs Sound Tracker DSP analysis on capture       │
@@ -45,9 +45,9 @@ into the Windows audio stack.
 - **APO** lives inside `audiodg.exe`, the Windows audio engine — the *only* way
   to do true system-wide low-latency processing. It MUST be lean, non-blocking,
   and allocation-free in the real-time thread.
-- **Service** is the orchestrator. It can run as SYSTEM and do filesystem I/O,
-  network calls, and process enumeration. The UI never touches the APO
-  directly — the service mediates.
+- **Service** is the orchestrator. It runs as `NT AUTHORITY\LocalService` and
+  performs filesystem I/O, network calls, and process enumeration. The UI never
+  touches the APO directly — the service mediates.
 - **UI** is a normal user-mode JUCE app. If it crashes, audio keeps running.
 - **Overlay** is its own process so a game/GPU-driver crash can't take down the
   UI or audio. It uses a **layered window only** — never D3D hooks — so it is
@@ -65,7 +65,14 @@ mode (for non-anti-cheat games where a layered window doesn't render in
 exclusive fullscreen). The blocklist is fetched from a signed source at launch
 and cached.
 
-## Phase 0 mapping
+## IPC security
 
-In Phase 0 each box above is a no-op stub binary; the diagram is the target
-architecture that the numbered build phases fill in.
+- **Named pipe DACL** — `veyra-control` is restricted to LocalSystem, Administrators,
+  and Interactive Users (`D:(A;;FA;;;SY)(A;;FA;;;BA)(A;;GRGW;;;IU)`).
+- **Session validation** — after `ConnectNamedPipe`, the server checks
+  `GetNamedPipeClientSessionId` against `WTSGetActiveConsoleSessionId`. Connections
+  from non-console sessions (e.g. RDP users in other sessions) are rejected and logged.
+- **Shared memory DACL** — `Global\VeyraTracker_v1` / `Global\VeyraAnalyzer_v1` grant
+  full access only to System and Administrators; read-only to Everyone.
+- **Data directory** — `C:\ProgramData\Veyra` (accessible by both LocalService and
+  the interactive user). Not `%AppData%` which resolves to the service account's profile.
