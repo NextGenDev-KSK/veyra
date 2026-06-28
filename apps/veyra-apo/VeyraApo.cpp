@@ -12,8 +12,12 @@
 // Defined in dllmain.cpp; keeps the DLL alive while objects exist.
 extern std::atomic<LONG> g_apoObjectCount;
 
+using veyra::ipc::PayloadBand;
 using veyra::ipc::VeyraParamsPayload;
 using veyra::ipc::VeyraSharedParameters;
+using veyra::dsp::EqBand;
+using veyra::dsp::EqBandType;
+using veyra::dsp::ParametricEq;
 
 VeyraApoEfx::VeyraApoEfx()
 {
@@ -292,6 +296,32 @@ void VeyraApoEfx::refreshParametersFromShared() noexcept
     dp.headphoneSafe = p.headphoneSafe != 0;
     dp.nonlinearOversampling = p.nonlinearOversampling != 0;
     dp.limiterCeilingDb = p.limiterCeilingDb;
+    dp.parametricMode = p.parametricMode != 0;
+
+    // Apply parametric editor bands before setParameters() so DspChain finds
+    // explicitParametric_=true and doesn't overwrite them with the 10-band fallback.
+    if (p.parametricMode && p.parametricCount > 0)
+    {
+        std::array<EqBand, ParametricEq::kMaxBands> bands{};
+        const uint32_t n = std::min(p.parametricCount,
+                                    static_cast<uint32_t>(ParametricEq::kMaxBands));
+        for (uint32_t i = 0; i < n; ++i)
+        {
+            const PayloadBand& src = p.parametricBands[i];
+            EqBand& dst            = bands[i];
+            dst.enabled = src.enabled != 0;
+            dst.type    = static_cast<EqBandType>(std::clamp((int) src.type, 0, 5));
+            dst.freq    = src.freq;
+            dst.gainDb  = src.gainDb;
+            dst.q       = src.q;
+        }
+        chain_.setParametricBands(bands, (int) n);
+    }
+    else
+    {
+        chain_.setParametricBands({}, 0); // revert to derived / graphic
+    }
+
     chain_.setParameters(dp);
 }
 

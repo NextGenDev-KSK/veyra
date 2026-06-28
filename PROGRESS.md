@@ -4,7 +4,7 @@ A running, honest record of what's built. For the precise, feature-by-feature
 audit against the engineering spec see [`docs/FEATURE_COVERAGE.md`](docs/FEATURE_COVERAGE.md).
 
 **Repo:** https://github.com/NextGenDev-KSK/veyra
-**Current version:** 0.3.0
+**Current version:** 0.9.0
 
 > Verification model: this machine has no local C++ toolchain, so every change is
 > proven by the GitHub Actions `windows-latest` build (compile + link +

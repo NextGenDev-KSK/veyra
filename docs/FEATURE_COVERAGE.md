@@ -70,7 +70,7 @@ CMake → 4 binaries ✅ · MSIX ✅ · portable ZIP (CI artifact) ✅ · signin
 🟡 framework + `en`/`es`; **⬜ 6 full languages, `TRANS()` routing, RTL pass.**
 
 ## §15 Crash reporting
-✅ local-first capture. **⬜ UI "recovered from a crash" banner**, "send to developers" flow.
+✅ local-first capture. **✅ UI "recovered from a crash" banner** (CrashBanner wired in RootComponent.cpp, shown on next launch when crash files are found). "Send to developers" flow: ⬜.
 
 ## §16 Scene-aware adaptive EQ
 ✅ v1 — rule-based `SceneDetector` (Silence/Music/Movie/Game/Voice + hysteresis), unit-tested. This is the prompt's "stub the interface, ship without inference" intent; a learned model is ⬜.

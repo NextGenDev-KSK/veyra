@@ -108,9 +108,15 @@ service Terminal shows the bridge started, and Source/Output are set in Devices.
 Optional, lower-latency alternative to the bridge. ⚠️ Bluetooth endpoints often
 reject custom APOs — Stage B is the reliable route for the Buds. Use Stage C on
 a **wired/built-in** output. Full steps in [BUILD_GUIDE.md](BUILD_GUIDE.md) §2:
-enable test-signing + reboot → `installer\driver\register-apo.ps1` (elevated) →
-set the endpoint's `PKEY_FX_PostMixEffectClsid` to the Veyra CLSID → run the
-service → play audio. Tell me your wired device and I'll give exact registry steps.
+
+1. Enable test-signing and reboot: `bcdedit /set testsigning on`
+2. Register the COM server (elevated): `installer\driver\register-apo.ps1 -DllPath build\windows-release\bin\veyra-apo.dll`
+3. Associate the APO with an endpoint (elevated): `installer\driver\associate-apo.ps1`
+   - Lists all render endpoints; pick one, or pass `-EndpointGuid "{...}"` directly.
+   - For the capture (mic) APO: add `-Capture`.
+   - To remove: add `-Unassociate`.
+   - The script restarts `AudioSrv` automatically so `audiodg.exe` reloads the APO chain.
+4. Start the service (`veyra-service.exe --console`) and play audio.
 
 ---
 

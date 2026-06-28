@@ -19,6 +19,18 @@ inline constexpr wchar_t kSharedParametersName[] = L"Local\\VeyraAPOParameters_v
 // Plain-old-data payload (no atomics) so it can be copied by value. Bools are
 // uint32 for a stable cross-module layout. Mirrors veyra::dsp::DspParameters;
 // the APO maps between the two.
+
+// One parametric EQ band as transmitted through the shared-memory block.
+// Mirrors veyra::dsp::EqBand; kept as POD so it can live inside the payload.
+// type values mirror EqBandType: 0=Bell 1=LowShelf 2=HighShelf 3=Notch 4=HighPass 5=LowPass
+struct PayloadBand {
+    float    freq    = 1000.0f;
+    float    gainDb  = 0.0f;
+    float    q       = 1.0f;
+    uint32_t type    = 0;
+    uint32_t enabled = 0;
+};
+
 struct VeyraParamsPayload {
     uint32_t bypass = 0;
     uint32_t monoMode = 0;
@@ -48,6 +60,14 @@ struct VeyraParamsPayload {
     uint32_t headphoneSafe = 0;
     uint32_t nonlinearOversampling = 0;
     float    limiterCeilingDb = -0.3f;
+
+    // Parametric EQ for the APO path. parametricMode=1 activates the parametric
+    // chain; parametricCount gives the number of valid bands in parametricBands[].
+    // When parametricCount==0 with parametricMode==1, DspChain derives the
+    // parametric curve from eqBandsDb[] (the 10-band fallback).
+    uint32_t    parametricMode  = 0;
+    uint32_t    parametricCount = 0;
+    PayloadBand parametricBands[16];
 };
 
 // Cache-line aligned so the seqlock counter doesn't false-share with anything.

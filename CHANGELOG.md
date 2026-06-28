@@ -9,6 +9,22 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- **Parametric EQ APO path** — `parametricMode` and editor band data now flow from the
+  service through shared memory (`VeyraParamsPayload`) to the render APO. Previously the APO
+  always ran graphic EQ regardless of the UI's parametric mode setting. Added `PayloadBand`
+  struct and `parametricMode` / `parametricCount` / `parametricBands[16]` fields to the
+  shared-memory contract; `ApoPublisher` publishes them; `VeyraApo` applies them via
+  `DspChain::setParametricBands()` before `setParameters()` so the explicit bands take
+  precedence over the 10-band fallback.
+- **Mic noise gate honoured** — `MicPublisher` now sets `noiseSuppression = 0` when
+  `VoiceConfig::noiseGate` is `false`, so the noise suppressor actually disables when the
+  user turns the gate off. Previously the suppressor ran regardless of the gate toggle.
+
+---
+
+## [0.4.0]
+
+### Fixed
 - **Denormal protection** — Added `_mm_setcsr` (FTZ+DAZ) on the first `APOProcess` call in
   both render and capture APOs via a `denormalsSet_` flag. Without this, decayed filter states
   on x86 CPUs without hardware DAZ/FTZ cause 10–100× CPU overhead during silence. Biquad also

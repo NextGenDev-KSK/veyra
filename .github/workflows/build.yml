@@ -70,7 +70,10 @@ jobs:
 
       - name: Package portable ZIP
         shell: pwsh
-        run: pwsh installer/portable/make-portable.ps1 -BinDir dist -RepoRoot . -OutDir dist-portable -Version "0.3.0"
+        run: |
+          $ver = (Select-String -Path CMakeLists.txt -Pattern 'set\(VEYRA_VERSION\s+([\d.]+)' |
+                  Select-Object -First 1).Matches[0].Groups[1].Value
+          pwsh installer/portable/make-portable.ps1 -BinDir dist -RepoRoot . -OutDir dist-portable -Version $ver
 
       - name: Upload portable
         uses: actions/upload-artifact@v4

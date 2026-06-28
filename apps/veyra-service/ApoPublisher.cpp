@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "veyra/Logging.h"
+#include "eq/ParametricEq.h"
 
 namespace veyra::service {
 
@@ -67,6 +68,30 @@ void ApoPublisher::publish(const Config& config)
     p.referenceMode       = config.referenceMode ? 1u : 0u;
     p.headphoneSafe       = config.headphoneSafe ? 1u : 0u;
     p.nonlinearOversampling = config.nonlinearOversampling ? 1u : 0u;
+
+    // Parametric EQ — transmit mode + editor bands so the APO path applies the
+    // same curve that the AudioBridge path does.
+    p.parametricMode = (e.eqMode == "parametric") ? 1u : 0u;
+    if (p.parametricMode)
+    {
+        const size_t n = std::min(e.parametricBands.size(),
+                                  static_cast<size_t>(dsp::ParametricEq::kMaxBands));
+        p.parametricCount = static_cast<uint32_t>(n);
+        for (size_t i = 0; i < n; ++i)
+        {
+            const auto& src = e.parametricBands[i];
+            auto& dst       = p.parametricBands[i];
+            dst.freq    = src.freq;
+            dst.gainDb  = src.gainDb;
+            dst.q       = src.q;
+            dst.type    = static_cast<uint32_t>(std::clamp(src.type, 0, 5));
+            dst.enabled = src.enabled ? 1u : 0u;
+        }
+    }
+    else
+    {
+        p.parametricCount = 0;
+    }
 
     ipc::publishParameters(params_, p);
 }

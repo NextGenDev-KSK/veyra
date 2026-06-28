@@ -24,7 +24,10 @@ PnpLockdown = 1
 [Manufacturer]
 %ProviderName% = Veyra, NTamd64.10.0...19041
 
-; TODO: target the audio endpoint device this APO attaches to.
+; Replace the empty hardware ID below with the HardwareId of the target audio
+; device (e.g. HDAUDIO\FUNC_01&...). Each unique audio codec/device family that
+; Veyra should attach to needs its own line here. See BUILD_GUIDE.md §2 for the
+; developer test path that avoids modifying this INF.
 [Veyra.NTamd64.10.0...19041]
 %Veyra.DeviceDesc% = Veyra_APO_Install, ; <HardwareId of the target audio device>
 

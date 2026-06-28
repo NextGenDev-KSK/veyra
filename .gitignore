@@ -34,3 +34,6 @@ desktop.ini
 # Runtime / user data produced by the app (never committed)
 /**/crashes/
 /**/logs/
+
+# Developer scratch files
+Run.txt

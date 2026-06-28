@@ -33,7 +33,7 @@ void MicPublisher::publish(const Config& config)
     ipc::VeyraMicParamsPayload p;
     p.enabled           = v.enabled ? 1u : 0u;
     p.highPassHz        = v.highPassHz;
-    p.noiseSuppression  = v.noiseSuppression;
+    p.noiseSuppression  = v.noiseGate ? v.noiseSuppression : 0.0f;
     p.compressionAmount = v.compressionAmount;
     p.deEssAmount       = v.deEssAmount;
     p.presenceDb        = v.presenceDb;
