@@ -8,7 +8,31 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Security
+- **Named pipe DACL** — `CreateNamedPipeW` now passes an explicit SDDL
+  `D:(A;;FA;;;SY)(A;;FA;;;BA)(A;;GRGW;;;IU)` instead of `nullptr`. Restricts pipe
+  connections to LocalSystem, Administrators, and the current interactive user. Prevents
+  any unprivileged background process from connecting and issuing control commands.
+- **Shared memory DACL** — Replaced the null DACL (world-writable) on all named shared
+  memory sections with an explicit DACL granting full access only to LocalSystem and
+  Administrators, and read-only to Everyone. The APO/overlay/UI only need to read.
+- **Service account** — Installed service now runs as `NT AUTHORITY\LocalService` instead
+  of LocalSystem. LocalService has `SeCreateGlobalPrivilege` (needed for `Global\` objects)
+  while carrying a significantly smaller privilege set than LocalSystem.
+- **Cross-session shared memory** — Tracker and analyzer shared blocks renamed to
+  `Global\VeyraTracker_v1` / `Global\VeyraAnalyzer_v1` so the Session-0 service and
+  Session-1 UI/overlay can both see them when the service is installed. APO parameter
+  blocks stay `Local\` (both service and audiodg.exe are in Session 0). A `Local\`
+  fallback is applied automatically in console mode where `SeCreateGlobalPrivilege`
+  is absent.
+
 ### Fixed
+- **Data path** — Service and UI now store config, presets, logs, and crash reports in
+  `%ProgramData%\Veyra` (`C:\ProgramData\Veyra`) instead of `%AppData%\Veyra`. This
+  ensures both the installed LocalService account and the interactive user process resolve
+  the same directory. Existing configs in `%AppData%\Veyra` should be migrated manually.
+- **JUCE deprecation** — Replaced `juce::Displays::Display::userArea` with `userBounds`
+  in `RootComponent.cpp`, eliminating the C4996 compiler warning.
 - **Parametric EQ APO path** — `parametricMode` and editor band data now flow from the
   service through shared memory (`VeyraParamsPayload`) to the render APO. Previously the APO
   always ran graphic EQ regardless of the UI's parametric mode setting. Added `PayloadBand`

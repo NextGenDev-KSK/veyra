@@ -1,5 +1,7 @@
 #include "veyra/ipc/PipeServer.h"
 
+#include <sddl.h>
+
 #include "veyra/Logging.h"
 #include "veyra/ipc/PipeIo.h"
 
@@ -13,6 +15,25 @@ void logLine(Logger* log, LogLevel level, std::string_view msg)
     if (log)
         log->log(level, msg);
 }
+
+// Build a SECURITY_ATTRIBUTES for the named pipe that restricts connections to:
+//   SY  LocalSystem (the service)
+//   BA  Built-in Administrators
+//   IU  Interactive Users (the logged-on user running the UI / overlay)
+// Callers must call LocalFree(sd) after CreateNamedPipeW returns.
+bool buildPipeSa(SECURITY_ATTRIBUTES& sa, PSECURITY_DESCRIPTOR& sd)
+{
+    static constexpr wchar_t kSddl[] =
+        L"D:(A;;FA;;;SY)(A;;FA;;;BA)(A;;GRGW;;;IU)";
+    if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(
+            kSddl, SDDL_REVISION_1, &sd, nullptr))
+        return false;
+    sa.nLength              = sizeof(sa);
+    sa.lpSecurityDescriptor = sd;
+    sa.bInheritHandle       = FALSE;
+    return true;
+}
+
 } // namespace
 
 PipeServer::PipeServer(std::wstring pipeName, RequestHandler handler, Logger* log)
@@ -69,12 +90,22 @@ void PipeServer::listenLoop()
 
     while (running_.load())
     {
+        PSECURITY_DESCRIPTOR sd  = nullptr;
+        SECURITY_ATTRIBUTES  sa{};
+        SECURITY_ATTRIBUTES* pSa = buildPipeSa(sa, sd) ? &sa : nullptr;
+
         HANDLE pipe = CreateNamedPipeW(
             pipeName_.c_str(),
             PIPE_ACCESS_DUPLEX,
             PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
             PIPE_UNLIMITED_INSTANCES,
-            kPipeBuffer, kPipeBuffer, 0, nullptr);
+            kPipeBuffer, kPipeBuffer, 0, pSa);
+
+        if (sd)
+        {
+            LocalFree(sd);
+            sd = nullptr;
+        }
 
         if (pipe == INVALID_HANDLE_VALUE)
         {

@@ -11,7 +11,8 @@
 
 namespace veyra::ipc {
 
-inline constexpr wchar_t kSharedAnalyzerName[] = L"Local\\VeyraAnalyzer_v1";
+// Global\ prefix — see kSharedTrackerName in TrackerData.h for rationale.
+inline constexpr wchar_t kSharedAnalyzerName[] = L"Global\\VeyraAnalyzer_v1";
 inline constexpr int      kAnalyzerBars = 48; // matches the visualizer bar count
 
 struct VeyraAnalyzerPayload {

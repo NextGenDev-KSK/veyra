@@ -1,8 +1,8 @@
 #pragma once
 
-// Placeholder content for navigation sections not yet built (Presets, Apps,
-// Devices, Sound Lab, Gamer Mode). Keeps routing functional and on-brand until
-// each lands in its own phase.
+// Fallback screen shown when a navIndex doesn't map to any built screen.
+// All primary screens (Home, Presets, Apps, Devices, GamerMode, Settings) have
+// dedicated implementations; this is only reached for unmapped indices.
 
 #include "Components/GlassPanel.h"
 #include "Theme/Fonts.h"

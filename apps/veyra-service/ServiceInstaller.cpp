@@ -52,8 +52,8 @@ bool installService(std::wstring& error)
         SERVICE_WIN32_OWN_PROCESS, SERVICE_AUTO_START, SERVICE_ERROR_NORMAL,
         binPath.c_str(),
         nullptr, nullptr, nullptr,
-        nullptr,   // lpServiceStartName == nullptr -> LocalSystem
-        nullptr);
+        L"NT AUTHORITY\\LocalService", // reduced-privilege built-in account
+        nullptr);                       // password: null for built-in accounts
 
     if (!svc)
     {

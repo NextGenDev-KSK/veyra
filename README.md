@@ -103,7 +103,7 @@ See [BUILD_GUIDE.md](BUILD_GUIDE.md) for APO test-signing and service installati
 .\build\windows-release\bin\veyra.exe
 ```
 
-Config and logs: `%APPDATA%\Veyra\` (`config.json`, `logs\`, `crashes\`)
+Config and logs: `%ProgramData%\Veyra\` (`config.json`, `logs\`, `crashes\`)
 
 ### Running tests
 

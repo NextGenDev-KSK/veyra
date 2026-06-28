@@ -157,9 +157,9 @@ Focus Chrome → EQ jumps to Bass Boost; focus Spotify → Cinematic. (No file =
 
 ## 7. Where things live / troubleshooting
 
-- Config: `%APPDATA%\Veyra\config.json` · Logs: `%APPDATA%\Veyra\logs\veyra-service.log`
-- Presets: `%APPDATA%\Veyra\presets\*.vpreset` · Crashes: `%APPDATA%\Veyra\crashes\`
-- App-rules: `%APPDATA%\Veyra\app_rules.json`
+- Config: `%ProgramData%\Veyra\config.json` · Logs: `%ProgramData%\Veyra\logs\veyra-service.log`
+- Presets: `%ProgramData%\Veyra\presets\*.vpreset` · Crashes: `%ProgramData%\Veyra\crashes\`
+- App-rules: `%ProgramData%\Veyra\app_rules.json`
 - **Build fails** → paste the first error from `cmake --build`.
 - **LED stays amber** → the service isn't running / a stale `veyra-service.exe` is; restart Terminal 1.
 - **No audio in Stage B** → see the ❓ note in §3.

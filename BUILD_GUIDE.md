@@ -98,12 +98,21 @@ runtime testing on your own machine:
    `{7E9C2B14-3F6A-4D8E-9B21-5C0A1F2E3D44}` under the chosen endpoint's
    `FxProperties` subkey, then restarts `AudioSrv` to reload the chain.
 5. **Start the service** (`veyra-service.exe --console` or installed) so the
-   shared parameter block (`Local\VeyraAPOParameters_v1`) exists; the APO
-   reads it live.
+   shared parameter block exists; the APO reads it live.
 
-> The shared parameter block is `Local\VeyraAPOParameters_v1` (a sequence-locked
-> `VeyraSharedParameters`). The service is the single writer; the APO reads it
-> wait-free on the audio thread.
+6. **To fully remove**: run `installer\driver\uninstall-apo.ps1` (elevated).
+   This removes all FxProperties entries from every endpoint, restarts AudioSrv,
+   and unregisters the COM server in one step.
+
+> **Shared-memory names:**
+> - `Local\VeyraAPOParameters_v1` (service ↔ APO, both in Session 0)
+> - `Local\VeyraMicParameters_v1` (service ↔ capture APO, both in Session 0)
+> - `Global\VeyraAnalyzer_v1` (service → UI visualizer, cross-session)
+> - `Global\VeyraTracker_v1` (service → overlay radar, cross-session)
+>
+> `Global\` objects are created by the service (LocalService has `SeCreateGlobalPrivilege`)
+> and can be opened by any interactive user process. In console mode, a `Local\` fallback
+> is used automatically if `Global\` creation fails.
 
 > ⚠️ CI verifies the APO **compiles and links** only. Registration, endpoint
 > association, and audio passthrough are inherently runtime/admin/test-signing

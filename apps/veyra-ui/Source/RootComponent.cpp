@@ -145,9 +145,8 @@ RootComponent::RootComponent()
         onboarding_.setVisible(false);
     };
 
-    // "More Effects" card removed (unfinished). The advanced Sound Quality DSP is
-    // reached via Settings -> Sound Quality. The effects rack stays wired for a
-    // future re-entry but is not surfaced from Home.
+    // The advanced Sound Quality DSP is reached via Settings -> Sound Quality.
+    // The effects rack back-navigation is wired here in case it's re-surfaced.
     effects_.onBack = [this] { sidebar_.setActive(0); showScreen(0); };
     effects_.onOpenSoundQuality = [this] // surface the advanced DSP from the Effects rack
     { sidebar_.setActive(5); showScreen(5); settings_.openSection(5); }; // 5=Settings, 5=Sound Quality
@@ -743,7 +742,7 @@ void RootComponent::enterMiniMode()
     // Park the bar at the top-centre of the primary display.
     if (auto* disp = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay())
     {
-        const auto area = disp->userArea;
+        const auto area = disp->userBounds.toNearestInt();
         mini_->setTopLeftPosition(area.getCentreX() - mini_->getWidth() / 2, area.getY() + 24);
     }
     mini_->setVisible(true);

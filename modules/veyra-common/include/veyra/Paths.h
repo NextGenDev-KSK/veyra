@@ -1,26 +1,28 @@
 #pragma once
 
-// Canonical on-disk locations for Veyra state, all under %APPDATA%\Veyra.
-// (For the LocalSystem service this resolves to the system profile's roaming
-// AppData, which is the intended behaviour for service-owned config + logs.)
+// Canonical on-disk locations for Veyra state, all under %ProgramData%\Veyra
+// (C:\ProgramData\Veyra).  Using ProgramData instead of %AppData% lets both the
+// installed LocalSystem service and the interactive user process (UI, overlay)
+// resolve the same directory regardless of which Windows account runs each binary.
+// ProgramData is machine-wide and writable by Authenticated Users by default.
 
 #include <filesystem>
 
 namespace veyra::paths {
 
-// %APPDATA%\Veyra
+// C:\ProgramData\Veyra
 std::filesystem::path appDataDir();
 
-// %APPDATA%\Veyra\logs
+// C:\ProgramData\Veyra\logs
 std::filesystem::path logsDir();
 
-// %APPDATA%\Veyra\config.json
+// C:\ProgramData\Veyra\config.json
 std::filesystem::path configFile();
 
-// %APPDATA%\Veyra\presets
+// C:\ProgramData\Veyra\presets
 std::filesystem::path presetsDir();
 
-// %APPDATA%\Veyra\crashes
+// C:\ProgramData\Veyra\crashes
 std::filesystem::path crashesDir();
 
 // Create a directory (and parents) if missing. Best-effort; ignores errors.

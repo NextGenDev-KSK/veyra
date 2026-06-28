@@ -11,7 +11,11 @@
 
 namespace veyra::ipc {
 
-inline constexpr wchar_t kSharedTrackerName[] = L"Local\\VeyraTracker_v1";
+// Global\ prefix so the Session-0 service and the Session-1 overlay/UI see the
+// same object when the service runs as LocalSystem/LocalService. SharedMemory-
+// Region::create() falls back to Local\ if Global\ creation fails (non-elevated
+// console mode where SeCreateGlobalPrivilege is absent).
+inline constexpr wchar_t kSharedTrackerName[] = L"Global\\VeyraTracker_v1";
 
 // Mirrors veyra::dsp::SoundClass as a stable wire value.
 enum class TrackerEventType : int32_t {
