@@ -22,7 +22,7 @@ gaps are called out so the remaining work is unambiguous.
 | IPC | 🟡 | custom framed **binary** protocol over named pipes (not FlatBuffers; functionally complete) |
 | Installer (MSIX + portable) | ✅ | portable ZIP built by CI; MSIX manifest+script |
 | Updater | 🟡 | semver version-check done; HTTPS fetch/apply ⬜ |
-| Crash reporting | ✅ | minidump + JSON to `%APPDATA%\Veyra\crashes` |
+| Crash reporting | ✅ | minidump + JSON to `%ProgramData%\Veyra\crashes` |
 | Logging (spdlog) | ✅ | rotating file + optional console |
 | Localization | 🟡 | base catalog + JSON overlay + `tr()`; only `en` + sample `es`; not JUCE `TRANS()`; 6 langs ⬜ |
 | Overlay rendering | ✅ | Win32 **GDI+** layered window (prompt suggested Direct2D; GDI+ meets the no-hook/ban-safe goal) |

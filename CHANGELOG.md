@@ -8,6 +8,10 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+---
+
+## [0.9.0] — 2026-06-28
+
 ### Security
 - **Pipe client session authentication** — After `ConnectNamedPipe`, the server
   validates the client's Windows session via `GetNamedPipeClientSessionId` against

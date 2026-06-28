@@ -22,6 +22,11 @@
 .PARAMETER Unassociate
   Remove the APO association instead of writing it.
 
+.PARAMETER ListEndpoints
+  List all audio endpoints (render + capture) and show which ones currently
+  have a Veyra CLSID in their FxProperties. Does not modify anything.
+  Useful for verifying the state after install or uninstall.
+
 .EXAMPLE
   # List render endpoints and pick one interactively:
   .\associate-apo.ps1
@@ -34,11 +39,15 @@
 
   # Associate the mic APO with a capture endpoint:
   .\associate-apo.ps1 -Capture
+
+  # Show current Veyra APO state on all endpoints (post-uninstall verify):
+  .\associate-apo.ps1 -ListEndpoints
 #>
 param(
     [string]$EndpointGuid = "",
     [switch]$Capture,
-    [switch]$Unassociate
+    [switch]$Unassociate,
+    [switch]$ListEndpoints
 )
 
 $ErrorActionPreference = "Stop"
@@ -83,6 +92,38 @@ $principal = New-Object Security.Principal.WindowsPrincipal $identity
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Write-Error "This script must be run as Administrator (the FxProperties key requires HKLM write access)."
     exit 1
+}
+
+# ── List-endpoints mode (diagnostic; read-only) ───────────────────────────────
+
+if ($ListEndpoints) {
+    $PreMixKey   = "{D04E05A6-594B-4FB6-A80D-01AF5EEC11D9},4"
+    $PostMixKey  = "{D04E05A6-594B-4FB6-A80D-01AF5EEC11D9},6"
+    $veyraClsids = @($RenderClsid, $CaptureClsid)
+    Write-Host ""
+    Write-Host "Audio endpoints — Veyra APO association status:"
+    Write-Host ""
+    foreach ($f in @("Render", "Capture")) {
+        $base = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\$f"
+        if (-not (Test-Path $base)) { continue }
+        Get-ChildItem $base | ForEach-Object {
+            $guid = $_.PSChildName
+            $name = try { Get-ItemPropertyValue (Join-Path $base "$guid\Properties") $FriendlyNameKey -EA Stop } catch { $guid }
+            $fxp  = Join-Path $_.PSPath "FxProperties"
+            $hits = @()
+            if (Test-Path $fxp) {
+                foreach ($key in @($PostMixKey, $PreMixKey)) {
+                    $v = Get-ItemProperty -Path $fxp -Name $key -EA SilentlyContinue
+                    if ($v -and ($veyraClsids -contains $v.$key)) { $hits += $v.$key }
+                }
+            }
+            $status = if ($hits.Count -gt 0) { "VEYRA APO PRESENT: $($hits -join ', ')" } else { "no Veyra APO" }
+            Write-Host ("  [{0}] {1}" -f $f, $name)
+            Write-Host ("         {0}  ->  {1}" -f $guid, $status)
+        }
+    }
+    Write-Host ""
+    exit 0
 }
 
 # ── Resolve endpoint GUID ─────────────────────────────────────────────────────

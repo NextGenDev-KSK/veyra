@@ -1,11 +1,11 @@
 # ============================================================================
 #  Veyra Sounds — top-level build
 #
-#  Phase 0 goal: every target compiles to a no-op binary so the repository
-#  layout and toolchain are proven end-to-end on CI before any real DSP,
-#  COM/APO, IPC, or JUCE code lands. Heavy third-party dependencies are
-#  declared (see third_party/) but intentionally NOT linked yet; they switch
-#  on in later phases via -DVEYRA_FETCH_DEPS=ON.
+#  Produces four binaries: veyra.exe (JUCE UI), veyra-service.exe (Windows
+#  Service), veyra-apo.dll (APO COM DLL for audiodg.exe), veyra-overlay.exe
+#  (GDI+ layered HUD). Requires Visual Studio 2022 with the "Desktop
+#  development with C++" workload (MSVC, Windows SDK 10.0.22000+, Ninja).
+#  See BUILD_GUIDE.md for full build and APO test-signing instructions.
 # ============================================================================
 cmake_minimum_required(VERSION 3.25)
 

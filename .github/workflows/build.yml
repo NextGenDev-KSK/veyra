@@ -1,7 +1,7 @@
 name: build
 
-# Phase 0 acceptance gate: prove the four no-op binaries build on a clean
-# Windows runner (VS 2022 + Windows SDK) and upload them as artifacts.
+# CI gate: build all four Veyra binaries on Windows x64 (MSVC, VS 2022),
+# run unit tests (dsp_tests + common_tests), and upload the portable artifact.
 
 on:
   push:

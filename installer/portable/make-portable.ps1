@@ -85,7 +85,7 @@ CONTENTS
   resources/lang/      localization catalogs
   driver/              optional APO dev-registration (test-signing required)
 
-Config + logs live under %APPDATA%\Veyra. Veyra Sounds is free software (GPLv3);
+Config + logs live under %ProgramData%\Veyra. Veyra Sounds is free software (GPLv3);
 see LICENSE.
 "@ | Set-Content (Join-Path $stage "README-PORTABLE.txt") -Encoding utf8
 
