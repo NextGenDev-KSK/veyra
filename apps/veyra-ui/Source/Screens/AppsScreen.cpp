@@ -8,6 +8,7 @@
 #include "Theme/Fonts.h"
 
 #include "veyra/AppRules.h"
+#include "veyra/Paths.h"
 
 #include <algorithm>
 #include <set>
@@ -17,8 +18,8 @@ namespace veyra::ui {
 namespace {
 juce::File rulesFile()
 {
-    return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
-        .getChildFile("Veyra").getChildFile("app_rules.json");
+    return juce::File(juce::String(
+        (veyra::paths::appDataDir() / "app_rules.json").string()));
 }
 
 // Column boundaries as fractions of the row width: App | Detection | Preset |
@@ -75,7 +76,7 @@ public:
 
         auto chev = r.removeFromRight(16);
         juce::Path p;
-        const float cx = chev.getCentreX(), cy = chev.getCentreY();
+        const float cx = (float) chev.getCentreX(), cy = (float) chev.getCentreY();
         p.startNewSubPath(cx - 3.0f, cy - 2.0f); p.lineTo(cx, cy + 2.0f); p.lineTo(cx + 3.0f, cy - 2.0f);
         g.setColour(palette_.textSecondary);
         g.strokePath(p, juce::PathStrokeType(1.3f));

@@ -56,9 +56,10 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 # ---- Options ---------------------------------------------------------------
-# OFF in Phase 0: the no-op stubs must not pull JUCE / RNNoise / etc. so the
-# CI build stays fast and green. Each phase that needs a dependency flips this
-# on and wires the matching submodule in third_party/CMakeLists.txt.
+# FETCH_DEPS is OFF by default so a plain configure (without third-party
+# submodules) succeeds for documentation/CI-only environments. The full build
+# with JUCE, RNNoise, nlohmann/json, and spdlog requires third_party/ to be
+# populated (git submodule update --init --recursive) — see BUILD_GUIDE.md.
 option(VEYRA_FETCH_DEPS "Configure bundled third-party dependencies" OFF)
 option(VEYRA_BUILD_TESTS "Build the test suite" OFF)
 

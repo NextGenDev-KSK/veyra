@@ -98,10 +98,9 @@ RootComponent::RootComponent()
     // Crash-recovery banner: surface a previous session's crash report (§15).
     addChildComponent(crashBanner_);
     crashBanner_.onDismiss = [this] { crashBanner_.setVisible(false); resized(); };
-    crashBanner_.onOpenFolder = [this]
+    crashBanner_.onOpenFolder = []
     {
-        juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
-            .getChildFile("Veyra").getChildFile("crashes").revealToUser();
+        juce::File(juce::String(veyra::paths::crashesDir().string())).revealToUser();
     };
     if (auto crash = veyra::latestCrashReport(veyra::paths::crashesDir()))
     {

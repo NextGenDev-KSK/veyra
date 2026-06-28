@@ -16,8 +16,8 @@ MSIX + driver signing are local/release steps documented below.
 ## 1. Portable ZIP
 
 ```powershell
-pwsh installer/portable/make-portable.ps1 -BinDir build/windows-release/bin -Version 0.3.0
-# -> dist-portable/veyra-portable-0.3.0-x64.zip
+pwsh installer/portable/make-portable.ps1 -BinDir build/windows-release/bin -Version 0.9.0
+# -> dist-portable/veyra-portable-0.9.0-x64.zip
 ```
 Unzip anywhere, run `veyra-service.exe` then `veyra.exe`. No admin for the basics.
 
@@ -26,8 +26,8 @@ Unzip anywhere, run `veyra-service.exe` then `veyra.exe`. No admin for the basic
 ## 2. MSIX
 
 ```powershell
-pwsh installer/msix/make-msix.ps1 -BinDir build/windows-release/bin -Version 0.3.0
-# -> dist-msix/veyra-0.3.0-x64.msix   (unsigned)
+pwsh installer/msix/make-msix.ps1 -BinDir build/windows-release/bin -Version 0.9.0
+# -> dist-msix/veyra-0.9.0-x64.msix   (unsigned)
 ```
 The package is a **full-trust desktop** MSIX (`runFullTrust`); the UI is the
 entry point. `Identity/@Publisher` in `AppxManifest.xml` **must equal the signing
@@ -44,8 +44,8 @@ $pwd = ConvertTo-SecureString -String "test" -Force -AsPlainText
 Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath veyra-test.pfx -Password $pwd
 Import-PfxCertificate -FilePath veyra-test.pfx -Password $pwd -CertStoreLocation Cert:\LocalMachine\TrustedPeople
 # 3. Sign + install:
-pwsh installer/msix/make-msix.ps1 -Version 0.3.0 -CertPath veyra-test.pfx -CertPassword test
-Add-AppxPackage dist-msix/veyra-0.3.0-x64.msix
+pwsh installer/msix/make-msix.ps1 -Version 0.9.0 -CertPath veyra-test.pfx -CertPassword test
+Add-AppxPackage dist-msix/veyra-0.9.0-x64.msix
 ```
 
 ### Production signing (pick one)

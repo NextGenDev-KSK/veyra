@@ -8,6 +8,43 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- **App rules path** — `AppsScreen.cpp` `rulesFile()` now resolves to
+  `%ProgramData%\Veyra\app_rules.json` (via `veyra::paths::appDataDir()`) instead
+  of `%AppData%\Veyra\app_rules.json`. The old path caused rules saved from the UI
+  to be invisible to the service on restart, as both use `%ProgramData%\Veyra` since v0.9.0.
+- **Crash folder path** — `crashBanner_.onOpenFolder` now calls
+  `juce::File(veyra::paths::crashesDir().string()).revealToUser()` instead of the
+  stale `userApplicationDataDirectory / Veyra / crashes` path. The "Open Folder"
+  button in the crash-recovery banner now opens the correct `%ProgramData%\Veyra\crashes` directory.
+
+### Added
+- **NSIS end-user installer** — `installer/setup/veyra-setup.nsi` produces a
+  signed-ready `veyra-sounds-setup-{version}-x64.exe` that installs binaries,
+  registers the COM server, installs and starts the Windows service, creates Start
+  Menu + Desktop shortcuts (including "Setup Audio Driver (Advanced)"), and writes a
+  complete Programs & Features uninstall entry. Matching `build-installer.ps1`
+  assembles the staging directory and invokes `makensis`.
+- **APO setup helper** — `installer/setup/setup-audio-driver.cmd` is installed to
+  `%ProgramFiles%\Veyra Sounds\` and linked from the Start Menu. It re-launches
+  elevated and runs `associate-apo.ps1` interactively, so users never need to open
+  a PowerShell window manually.
+- **TROUBLESHOOTING.md** — covers the 9 most common issues (LED amber, no APO
+  effect, Audio Bridge, app rules, overlay, crash banner, launch/single-instance,
+  high CPU, startup registration) with root causes, diagnostic commands, and fixes.
+- **HARDWARE_VALIDATION.md** — 54-item hardware validation checklist covering
+  install, UI/UX, APO render, capture APO, Audio Bridge, overlay, visualizer,
+  hot-plug, sleep/resume, Sound Lab, uninstall, and 8-hour soak, with expected
+  results, failure modes, and a rollback guide for each section.
+
+### Changed
+- **`make-portable.ps1`** — the driver/ folder in the portable ZIP now includes
+  `associate-apo.ps1` and `uninstall-apo.ps1` in addition to `register-apo.ps1`,
+  so portable users have the complete APO management toolkit.
+- **`SIGNING.md`** — version examples updated from `0.3.0` to `0.9.0`.
+- **`CMakeLists.txt`** — `VEYRA_FETCH_DEPS` option comment updated to remove stale
+  Phase 0 language.
+
 ---
 
 ## [0.9.0] — 2026-06-28

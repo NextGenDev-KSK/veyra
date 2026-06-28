@@ -54,7 +54,7 @@ $drv = Join-Path $RepoRoot "installer/driver"
 if (Test-Path $drv) {
     $dst = Join-Path $stage "driver"
     New-Item -ItemType Directory -Force $dst | Out-Null
-    foreach ($f in @("register-apo.ps1", "veyra_apo.inf")) {
+    foreach ($f in @("register-apo.ps1", "associate-apo.ps1", "uninstall-apo.ps1", "veyra_apo.inf")) {
         $p = Join-Path $drv $f
         if (Test-Path $p) { Copy-Item $p $dst }
     }
