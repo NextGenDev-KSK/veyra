@@ -79,13 +79,27 @@ runtime testing on your own machine:
    cd installer\driver
    .\register-apo.ps1 -DllPath ..\..\build\windows-release\bin\veyra-apo.dll
    ```
-4. **Associate the APO with an output endpoint.** This is the device-specific
-   step: either install the (adapted, signed) `veyra_apo.inf` as an extension
-   driver for your audio device, or set the endpoint's FX PropertyStore keys
-   (`PKEY_FX_PostMixEffectClsid`) to `{7E9C2B14-3F6A-4D8E-9B21-5C0A1F2E3D44}`.
-   Then disable/enable the device so `audiodg.exe` reloads the APO chain.
+4. **Associate the APO with an output endpoint** (writes
+   `PKEY_FX_PostMixEffectClsid` to the endpoint's FxProperties PropertyStore
+   and restarts Windows Audio so `audiodg.exe` reloads the APO chain):
+   ```powershell
+   cd installer\driver
+   .\associate-apo.ps1          # lists endpoints, pick one interactively
+   # or, non-interactively:
+   .\associate-apo.ps1 -EndpointGuid "{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}"
+   # to remove:
+   .\associate-apo.ps1 -EndpointGuid "{...}" -Unassociate
+   # for the microphone (VeyraMicApo):
+   .\associate-apo.ps1 -Capture
+   ```
+   The script enumerates endpoints from
+   `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render`,
+   writes `{D04E05A6-594B-4FB6-A80D-01AF5EEC11D9},6` =
+   `{7E9C2B14-3F6A-4D8E-9B21-5C0A1F2E3D44}` under the chosen endpoint's
+   `FxProperties` subkey, then restarts `AudioSrv` to reload the chain.
 5. **Start the service** (`veyra-service.exe --console` or installed) so the
-   shared parameter block exists; the APO reads it live.
+   shared parameter block (`Local\VeyraAPOParameters_v1`) exists; the APO
+   reads it live.
 
 > The shared parameter block is `Local\VeyraAPOParameters_v1` (a sequence-locked
 > `VeyraSharedParameters`). The service is the single writer; the APO reads it
