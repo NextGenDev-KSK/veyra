@@ -10,16 +10,25 @@ and [BUILD_GUIDE.md](../BUILD_GUIDE.md); for the architecture see
 
 ## Getting sound through Veyra
 
-Veyra processes audio two ways:
+Veyra's primary audio path is the **APO** — a Windows Audio Processing Object
+that loads directly into `audiodg.exe` alongside Dolby Atmos and DTS. Once
+installed and associated with your output endpoint, every app's audio passes
+through Veyra automatically at < 5 ms latency. No virtual cable, no rerouting,
+no change to your Windows default output device.
 
-- **APO (system-wide, lowest latency)** — registers into the Windows audio engine
-  (`audiodg.exe`). Needs the driver package + test-signing/admin (see
-  BUILD_GUIDE §2). Once associated with your output endpoint, *everything* is
-  processed.
-- **Audio Bridge (no driver)** — Devices → Audio Bridge captures a source endpoint
-  (loopback), runs the DSP, and renders to a target endpoint (incl. Bluetooth).
-  Pick **Source** = your default playback, **Output** = your headphones, toggle
-  **Enable**. No admin needed.
+**Setup (one time, admin):**
+1. Enable test-signing and reboot: `bcdedit /set testsigning on`
+2. Register + associate via **Start → Veyra Sounds → Setup Audio Driver (Advanced)**,
+   or follow [BUILD_GUIDE.md §2](../BUILD_GUIDE.md).
+3. Launch Veyra — the brand LED turns green and DSP is live.
+
+**Audio Bridge (advanced / Bluetooth fallback):**  
+Bluetooth endpoints often reject the APO. For these, Devices → Audio Bridge
+provides a WASAPI loopback path: apps play into a virtual sink (e.g. VB-CABLE),
+Veyra processes the audio, and renders to your headphones. See
+[AUDIO_BRIDGE.md](AUDIO_BRIDGE.md) for setup. This adds ~30–80 ms latency and
+requires a virtual cable installation — use it only when the APO path does not
+work on your endpoint.
 
 The **service** (`veyra-service.exe`) holds the canonical config and drives the
 DSP; the **app** (`veyra.exe`) is the UI. The brand LED is green when connected.
@@ -55,9 +64,12 @@ from your Start-Menu apps with their real EXE icons. When an app takes focus its
 rule applies automatically.
 
 ### Devices
-Output + input **device cards** (name, form-factor badge, status; the active
-output shows the preset + volume, the active input its mic profile) over the
-**Audio Bridge** router (the no-driver path above).
+Output + input **device cards** showing each endpoint's name, form-factor badge,
+and status (the active output shows the current preset + volume; the active input
+shows its mic profile). Below the cards, the **Preferred Output** picker sets
+which endpoint the APO follows as the Windows default. The **Audio Bridge**
+(advanced Bluetooth fallback) is accessible from this screen for endpoints that
+reject the APO.
 
 ### Sound Lab
 Seven calibration tools as a tab bar — Speaker Test, 7.1 Surround, Microphone,
@@ -92,5 +104,6 @@ RNNoise is the default suppressor (custom expander is the fallback), then noise
 gate → AEC → leveling/AGC (−16 LUFS) → de-esser → presence → side-tone.
 
 ## Where state lives
-`%APPDATA%\Veyra\` — `config.json`, `presets\`, `app_rules.json`, `logs\`,
-`crashes\`. Veyra never sends anything without consent.
+`%ProgramData%\Veyra\` — `config.json`, `presets\`, `app_rules.json`, `logs\`,
+`crashes\`. Accessible by both the service (`NT AUTHORITY\LocalService`) and the
+interactive user. Veyra never sends anything without consent.

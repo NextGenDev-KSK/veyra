@@ -1,8 +1,9 @@
 #pragma once
 
-// Devices screen: lists the system output endpoints and hosts the Audio Bridge
-// router (enable + source/target pickers) so the user can process any app's
-// audio to any output — including Bluetooth — without editing config.json.
+// Devices screen: lists system output/input endpoints and provides the Preferred
+// Output Device selector for the APO path. The Audio Bridge (WASAPI loopback
+// compatibility mode for Bluetooth endpoints that reject APOs) is an advanced
+// secondary option, not the primary workflow.
 
 #include "AudioDevices.h"
 #include "Theme/DesignTokens.h"

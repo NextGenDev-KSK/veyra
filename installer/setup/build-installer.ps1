@@ -81,29 +81,32 @@ foreach ($b in @("veyra.exe", "veyra-service.exe", "veyra-apo.dll", "veyra-overl
 $license = Join-Path $RepoRoot "LICENSE"
 if (Test-Path $license) { Copy-Item $license $stage }
 
-# README-PORTABLE.txt (re-used as the installer quick-start guide)
-$readme = Join-Path $RepoRoot "installer/portable"
-$tmpReadme = Join-Path $stage "README-PORTABLE.txt"
+# INSTALLATION.txt (Quick Start guide bundled in the installer)
+$tmpReadme = Join-Path $stage "INSTALLATION.txt"
 if (-not (Test-Path $tmpReadme)) {
-    # Generate inline if not produced by make-portable.ps1 already
     @"
 Veyra Sounds $Version — Quick Start
 
-1. The Veyra Audio Service starts automatically with Windows.
-   If it does not, run veyra-service.exe --console to diagnose.
+Veyra is running. Here's how to get started:
 
-2. Launch veyra.exe. The brand LED turns green when connected.
+1. The brand LED in the top-left turns GREEN when the service is connected.
+   If it stays AMBER, open the Devices screen and check the service status.
 
-3. To hear effects immediately (no driver required):
-   Install a virtual audio cable (e.g. VB-CABLE),
-   set it as your Windows default output, then in Veyra go to
-   Devices -> Audio Bridge: Source = cable, Output = headphones, Enable.
+2. Audio is being processed on the output device you selected during setup.
+   To change it: Devices screen -> Preferred Output.
 
-4. For the full APO (system-wide, no virtual cable):
-   Run "Setup Audio Driver (Advanced)" from the Start Menu.
-   Requires test-signing for unsigned builds (see BUILD_GUIDE.md).
+3. The effect is live immediately. Open any app and play audio —
+   the EQ, compressor, and spatial audio are already active.
+
+4. To set up the APO on an additional device (e.g. after buying new headphones):
+   Start -> Veyra Sounds -> Setup Audio Driver (Advanced)
+   This runs once and takes about 30 seconds.
+
+5. If you use Bluetooth headphones that do not work with the APO:
+   Devices -> Audio Bridge -> enable it for Bluetooth compatibility mode.
 
 Config and logs: %ProgramData%\Veyra
+Need help? https://github.com/NextGenDev-KSK/veyra
 "@ | Set-Content $tmpReadme -Encoding utf8
 }
 
@@ -114,8 +117,10 @@ Copy-Item (Join-Path $scriptDir "setup-audio-driver.cmd") $stage
 $drvSrc = Join-Path $RepoRoot "installer/driver"
 $drvDst = Join-Path $stage "driver"
 New-Item -ItemType Directory -Force $drvDst | Out-Null
-foreach ($f in @("register-apo.ps1", "associate-apo.ps1", "uninstall-apo.ps1")) {
+foreach ($f in @("register-apo.ps1", "associate-apo.ps1", "uninstall-apo.ps1", "apo-helper.ps1")) {
     $p = Join-Path $drvSrc $f
+    # apo-helper.ps1 lives in installer/setup/ (installer-specific helper)
+    if ($f -eq "apo-helper.ps1") { $p = Join-Path $scriptDir "apo-helper.ps1" }
     if (Test-Path $p) { Copy-Item $p $drvDst; Write-Host "  driver/$f -> staging/driver/" }
 }
 
@@ -134,6 +139,24 @@ if (Test-Path $lang) {
     $dst = Join-Path $stage "resources/lang"
     New-Item -ItemType Directory -Force $dst | Out-Null
     Copy-Item (Join-Path $lang "*.json") $dst -ErrorAction SilentlyContinue
+}
+
+# Themes
+$themes = Join-Path $RepoRoot "resources/themes"
+if (Test-Path $themes) {
+    $dst = Join-Path $stage "resources/themes"
+    New-Item -ItemType Directory -Force $dst | Out-Null
+    Copy-Item (Join-Path $themes "*.json") $dst -Recurse -ErrorAction SilentlyContinue
+    Write-Host "  resources/themes/ -> staging/resources/themes/"
+}
+
+# AutoEQ profiles
+$autoeq = Join-Path $RepoRoot "resources/autoeq"
+if (Test-Path $autoeq) {
+    $dst = Join-Path $stage "resources/autoeq"
+    New-Item -ItemType Directory -Force $dst | Out-Null
+    Copy-Item (Join-Path $autoeq "*") $dst -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Host "  resources/autoeq/ -> staging/resources/autoeq/"
 }
 
 # ── Run makensis ──────────────────────────────────────────────────────────────

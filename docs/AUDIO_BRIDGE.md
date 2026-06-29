@@ -1,63 +1,72 @@
-# Hearing Veyra on Bluetooth (the AudioBridge path)
+# Audio Bridge — Advanced Bluetooth Compatibility Mode
 
-Bluetooth outputs (e.g. **OnePlus Nord Buds 3 Pro**) reject endpoint APOs, so the
-Tier-B "register the APO on your headphones" route usually won't work for them.
-The **AudioBridge** is the alternative: a user-mode loop in `veyra-service` that
+> **Most users do not need this.** Veyra's primary audio path is the APO, which
+> loads directly into the Windows audio engine and processes all audio on your
+> chosen output device — no virtual cable, no configuration. The Audio Bridge
+> exists only as a fallback for Bluetooth endpoints that reject the APO.
+
+## When to use the Audio Bridge
+
+Bluetooth endpoints (e.g. **OnePlus Nord Buds 3 Pro**, AirPods, most TWS devices)
+often reject custom endpoint APOs. If you associate the Veyra APO with a Bluetooth
+endpoint and hear no effect (or silence), fall back to the Audio Bridge.
+
+The bridge works as follows:
 
 ```
-captures a source endpoint (loopback) -> runs the DspChain -> renders to your headphones
+Apps → virtual sink (loopback source) → DspChain → Bluetooth headphones
 ```
 
-So apps must play into a **source** that isn't the Buds, and Veyra renders the
-processed result **to** the Buds. That source is a *virtual* playback device.
+Apps must play into a virtual source endpoint; Veyra processes and renders to the Buds.
 
 ## What you need
 
-1. **A virtual playback device** (a "sink" apps can target). Two options:
-   - **Now:** install a free virtual audio cable (any that creates a render
-     endpoint). It shows up as a playback device.
-   - **Later:** Veyra ships its own signed virtual device (see
-     `drivers/veyra-vad/` — WDK + code-signing, not yet built).
+1. **A virtual playback device** — a render endpoint apps can target as their
+   output while the bridge captures it.
+   - Free option: install **VB-CABLE** (vb-audio.com/Cable) — one installer,
+     one reboot — adds `CABLE Input` (playback) and `CABLE Output` (capture).
+   - Future option: Veyra will ship its own signed virtual device (`drivers/veyra-vad/`).
 2. The Veyra service running.
 
 ## Setup
 
-1. Install the virtual sink and set it as the **Windows default playback device**
-   (so Spotify/YouTube play into it). You won't hear anything yet — it has no
-   real speakers.
-2. Start the service so it logs the endpoint ids:
+1. Install the virtual sink and **set CABLE Input as the Windows default output**
+   (Settings → System → Sound → Output). Apps will now play into the cable; you
+   won't hear anything yet.
+2. Start the service:
    ```
    build\windows-release\bin\veyra-service.exe --console
    ```
-   It prints lines like:
-   ```
-   AudioBridge: render endpoint "CABLE Input (VB-Audio...)" = {0.0.0.00000000}.{...}
-   AudioBridge: render endpoint "OnePlus Nord Buds 3 Pro Stereo" = {0.0.0.00000000}.{...}
-   ```
-3. Put those two ids into `%APPDATA%\Veyra\config.json` under `bridge`:
-   ```json
-   "bridge": {
-     "enabled": true,
-     "source_device_id": "<the virtual sink id>",
-     "target_device_id": "<the Nord Buds id>"
-   }
-   ```
-   (Save — the service applies it live; the bridge thread restarts the session.)
-4. Play music. You should hear it on the Buds **with the EQ/knobs/Night
-   Mode/crossfeed applied**, and the controls change it in real time.
+3. In the Veyra UI → **Devices**:
+   - Source = `CABLE Output`
+   - Output = your Bluetooth headphones
+   - Enable = ON
+4. Play music. You should hear it through the headphones with DSP applied.
 
-## Limits (v1)
+> **Tip:** Set both CABLE Input and your headphones to the same sample rate
+> (48 kHz, 16-bit) in Windows Sound → Properties → Advanced to avoid silence
+> from format mismatch.
 
-- Source and target must share the **same sample rate** and be **stereo 32-bit
-  float** (shared-mode default); no resampling yet — the service logs and idles
-  if they don't match.
-- Loopback adds ~10–30 ms latency — fine for music, may lag video lip-sync.
-- This is a user-mode bridge; the in-app device picker UI is a follow-up (for
-  now the ids are set in `config.json`).
+## Limitations
 
-## Why not just the APO?
+- Source and target must share the same sample rate and be stereo 32-bit float
+  (shared-mode default). The service logs and idles if they don't match.
+- Loopback adds ~30–80 ms latency — acceptable for music, may lag video lip-sync.
+- Audio Bridge is not active if Source or Output is not set.
 
-The APO path (Tier B) is lower latency and the "proper" Windows mechanism, but
-it depends on the endpoint accepting a custom post-mix effect — which generic
-**Bluetooth** endpoints generally don't. The bridge trades a little latency for
-working on *any* output device.
+## Switching back to APO
+
+When you switch to a wired endpoint (USB-C DAC, built-in audio, USB headset),
+disable the Audio Bridge in Devices and associate the APO with that endpoint via
+**Devices → Preferred Output** or the "Setup Audio Driver (Advanced)" Start Menu
+shortcut. The APO path delivers < 5 ms latency.
+
+## Why APO is preferred
+
+| | APO (primary) | Audio Bridge (fallback) |
+|-|--------------|------------------------|
+| Latency | < 5 ms | 30–80 ms (loopback) |
+| Setup | Install once, use forever | Requires virtual cable + default device swap |
+| Bluetooth | Varies by endpoint | Works on any endpoint |
+| CPU | audiodg.exe, RT-safe | Service thread, user-mode |
+| Admin | Test-signing (dev), WHQL (release) | None |

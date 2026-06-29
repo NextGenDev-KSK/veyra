@@ -59,10 +59,14 @@ Add-AppxPackage dist-msix/veyra-0.9.0-x64.msix
 ## 3. APO driver package (audio path)
 
 The system-effect APO must be in a signed driver package to load into the
-protected `audiodg.exe`. For development use **test-signing** (see
+protected `audiodg.exe`. This is the **primary audio path** — the same mechanism
+used by Dolby Atmos and DTS. For development use **test-signing** (see
 [BUILD_GUIDE.md](../BUILD_GUIDE.md) §2 and `installer/driver/register-apo.ps1`).
 For release, the package needs a WHQL/attestation signature via the Microsoft
-Hardware Dev Center. The portable build's **Audio Bridge** path needs none of
-this and is the default way to hear effects.
+Hardware Dev Center.
+
+The **Audio Bridge** is an advanced fallback for Bluetooth endpoints that reject
+the APO; it is not the default path. Users on wired or USB-C audio will use the
+APO exclusively.
 
 > Turn test-signing off when done: `bcdedit /set testsigning off` + reboot.

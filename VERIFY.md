@@ -1,9 +1,13 @@
 # Veyra Sounds — Run & Test Runbook
 
-A hands-on, step-by-step pass to **build, run, hear, and test** Veyra. Do the
-stages in order. Stage A (no admin) proves the app + service + IPC. Stage B is
-the one that makes you **actually hear effects** on your headphones (incl.
-Bluetooth) with no driver. Stages C/D are optional/advanced.
+A hands-on, step-by-step pass to **build, run, hear, and test** Veyra.
+
+**Stage order:**
+- **Stage A** — app + service + IPC (no admin, no audio). Proves connectivity.
+- **Stage B** — APO path ⭐ (test-signing + admin). The primary way to hear effects.
+- **Stage C** — Audio Bridge (no admin, needs VB-CABLE). Advanced fallback for
+  Bluetooth endpoints that reject the APO.
+- **Stage D** — Overlay / Gamer Mode.
 
 > Host: Windows 11. Report back per stage with ✅ / ❓ / ❌ and I'll fix forward.
 
@@ -69,54 +73,71 @@ Stop: close the UI, `Ctrl+C` Terminal 1.
 
 ---
 
-## 3. Stage B — HEAR the effects (Audio Bridge, no driver)  ⭐
+## 3. Stage B — APO path: HEAR the effects ⭐  (admin + test-signing)
 
-This is the realistic path for **Bluetooth** (your Nord Buds): a virtual sink
-catches app audio, Veyra processes it, and renders to the Buds. No admin, no
-test-signing.
+This is the **primary** path. The APO loads into `audiodg.exe` and processes
+every app's audio on your chosen output — no virtual cable, no rerouting.
+Full steps in [BUILD_GUIDE.md](BUILD_GUIDE.md) §2:
 
-1. **Install a virtual audio cable** (one-time): e.g. **VB-CABLE**
-   (https://vb-audio.com/Cable/) → run its installer → reboot. It adds
-   "CABLE Input" (playback) + "CABLE Output" (recording).
-2. **Make the cable the default output:** Windows Sound settings → Output →
-   **CABLE Input**. (Now Spotify/YouTube play into the cable — you'll hear
-   nothing yet; that's expected.)
-3. **Match formats:** in Sound → both **CABLE Input** and **Nord Buds** →
-   Properties → Advanced → set the same format, e.g. **16-bit/24-bit, 48000 Hz**.
-   (The bridge currently expects matching rates.)
-4. **Start the service** (`veyra-service.exe --console`) and **the UI**.
-5. In the UI → **Devices**:
-   - **Source** = `CABLE Output` (what the apps feed),
-   - **Output** = `OnePlus Nord Buds 3 Pro`,
-   - toggle **Enable** on.
-6. **Play music.** You should now hear it through the Buds. Move the **EQ /
-   Bass Boost / Treble**, switch **Presets**, toggle **Spatial → Cinematic**
-   (crossfeed + HRTF virtualisation), **Night Mode**, **Loudness Match** — each
-   should audibly change the sound in real time.
+1. **Enable test-signing and reboot** (one-time; admin):
+   ```sh
+   bcdedit /set testsigning on
+   ```
+   Reboot. Confirm: `bcdedit /enum | findstr testsigning` → `testsigning Yes`.
 
-> Latency: loopback adds ~30–80 ms — fine for music, slightly noticeable for
-> video. The APO path (Stage C) is lower latency.
+2. **Register the COM server** (elevated, from the repo root):
+   ```sh
+   cd installer\driver
+   powershell -ExecutionPolicy Bypass .\register-apo.ps1 -DllPath ..\..\build\windows-release\bin\veyra-apo.dll
+   ```
 
-❓ If you hear nothing: confirm CABLE Input is the **default** output and music
-is actually playing into it (its volume meter moves in Sound settings), the
-service Terminal shows the bridge started, and Source/Output are set in Devices.
+3. **Associate the APO with your output endpoint** (elevated; interactive picker):
+   ```sh
+   powershell -ExecutionPolicy Bypass .\associate-apo.ps1
+   ```
+   Pick your wired/built-in/USB output. For the mic: add `-Capture`. To remove: `-Unassociate`.
+   The script restarts `AudioSrv` so `audiodg.exe` reloads the chain.
+
+4. **Start the service and UI**:
+   ```sh
+   build\windows-release\bin\veyra-service.exe --console
+   build\windows-release\bin\veyra.exe
+   ```
+
+5. **Play audio** through the associated endpoint. Move the EQ, switch Presets,
+   toggle Spatial → Cinematic — effects should be audible in real time (< 5 ms).
+
+Verify the APO is loaded: **Process Explorer** → `audiodg.exe` → lower pane → DLLs → filter `veyra-apo`.
+
+⚠️ Bluetooth endpoints often reject custom APOs. If you hear no effect (or silence)
+after association, try the Audio Bridge path (Stage C) for those endpoints.
 
 ---
 
-## 4. Stage C — APO in the audio path (lower latency; admin + test-signing)
+## 4. Stage C — Audio Bridge (advanced; Bluetooth fallback)
 
-Optional, lower-latency alternative to the bridge. ⚠️ Bluetooth endpoints often
-reject custom APOs — Stage B is the reliable route for the Buds. Use Stage C on
-a **wired/built-in** output. Full steps in [BUILD_GUIDE.md](BUILD_GUIDE.md) §2:
+Use Stage C **only** if Stage B does not work on your target endpoint (typically
+Bluetooth). The bridge loopback-captures a virtual sink, processes audio through
+the DSP, and renders to your headphones. No admin needed but requires a virtual
+cable installation.
 
-1. Enable test-signing and reboot: `bcdedit /set testsigning on`
-2. Register the COM server (elevated): `installer\driver\register-apo.ps1 -DllPath build\windows-release\bin\veyra-apo.dll`
-3. Associate the APO with an endpoint (elevated): `installer\driver\associate-apo.ps1`
-   - Lists all render endpoints; pick one, or pass `-EndpointGuid "{...}"` directly.
-   - For the capture (mic) APO: add `-Capture`.
-   - To remove: add `-Unassociate`.
-   - The script restarts `AudioSrv` automatically so `audiodg.exe` reloads the APO chain.
-4. Start the service (`veyra-service.exe --console`) and play audio.
+1. **Install VB-CABLE** (one-time): vb-audio.com/Cable → run installer → reboot.
+   It adds `CABLE Input` (playback) + `CABLE Output` (capture).
+2. **Set CABLE Input as the Windows default output** (Sound Settings → Output).
+   Apps now play into the cable; you'll hear nothing yet.
+3. **Match formats:** CABLE Input and your headphones → Properties → Advanced →
+   same rate (e.g. 48 kHz 16-bit).
+4. **Start the service and UI.**
+5. In the UI → **Devices**:
+   - **Source** = `CABLE Output`
+   - **Output** = your Bluetooth headphones
+   - toggle **Enable** on.
+6. **Play music.** Effects should be audible through the headphones.
+
+> Latency: ~30–80 ms (loopback). Use Stage B / APO path where possible.
+
+❓ If you hear nothing: confirm CABLE Input is the default output and its volume
+meter moves in Sound Settings; check the service terminal for `AudioBridge:` lines.
 
 ---
 
@@ -135,7 +156,7 @@ the tracker writes **blips** (footsteps/gunshots/voice) with direction.
 
 | Feature | Where | Expected |
 | --- | --- | --- |
-| 10-band EQ + curve | Home | Drag nodes → tooltip (Hz + dB); audio changes (Stage B) |
+| 10-band EQ + curve | Home | Drag nodes → tooltip (Hz + dB); audio changes (Stage B APO) |
 | Bass/Treble/Volume/Width/Compression knobs | Home | Live value text; audio changes |
 | Presets (8 built-in + user) | Presets | Apply/save/import/export `.vpreset` |
 | Per-app rules | `%ProgramData%\Veyra\app_rules.json` | Focus an app → its preset auto-applies (see below) |

@@ -8,6 +8,36 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed (APO-first architecture)
+- **Primary audio path is now the APO** — `OnboardingOverlay` step 3 updated from
+  "Open Devices → Audio Bridge" to the APO-first message ("Veyra loads into the
+  Windows audio engine on your current output device — no virtual cable needed").
+- **Audio Bridge demoted to advanced fallback** — all user-facing documentation
+  and the onboarding flow now position the Audio Bridge as an optional,
+  Bluetooth-specific compatibility mode, not the default experience.
+- **VERIFY.md** — Stage B is now the APO path (⭐ primary); Audio Bridge moves
+  to Stage C (advanced / Bluetooth fallback). Stage C includes updated setup
+  steps with sample-rate matching note.
+- **docs/AUDIO_BRIDGE.md** — rewritten as an advanced reference with an
+  explicit "most users do not need this" callout, an APO vs Bridge comparison
+  table, and corrected `%ProgramData%` paths.
+- **docs/USER_GUIDE.md** — "Getting sound through Veyra" now leads with the APO
+  setup path; Audio Bridge listed as "advanced / Bluetooth fallback". Devices
+  screen description updated to reflect the Preferred Output / APO workflow.
+  `%APPDATA%` path corrected to `%ProgramData%`.
+- **installer/SIGNING.md** — APO driver package section now states APO is the
+  primary path; Audio Bridge described as a fallback for Bluetooth endpoints.
+- **BUILD_GUIDE.md** — portable fallback note updated: APO is primary (< 5 ms),
+  Audio Bridge is the loopback fallback (~30–80 ms, needs virtual cable).
+- **HARDWARE_VALIDATION.md** — VB-CABLE moved from required prerequisite to
+  optional ("only needed for Section 5 Audio Bridge tests").
+- **TROUBLESHOOTING.md** — Problem 3 (Audio Bridge) header updated to
+  "Bluetooth fallback" and a note added directing users to set up the APO first.
+- **AudioBridge.h** — header comment updated to describe the bridge as the
+  advanced compatibility path, not the primary workflow.
+- **DevicesScreen.h** — class comment updated to reflect APO preferred output as
+  the primary control; Audio Bridge as secondary advanced option.
+
 ### Fixed
 - **App rules path** — `AppsScreen.cpp` `rulesFile()` now resolves to
   `%ProgramData%\Veyra\app_rules.json` (via `veyra::paths::appDataDir()`) instead
@@ -19,16 +49,45 @@ Versioning: [Semantic Versioning](https://semver.org/).
   button in the crash-recovery banner now opens the correct `%ProgramData%\Veyra\crashes` directory.
 
 ### Added
-- **NSIS end-user installer** — `installer/setup/veyra-setup.nsi` produces a
-  signed-ready `veyra-sounds-setup-{version}-x64.exe` that installs binaries,
-  registers the COM server, installs and starts the Windows service, creates Start
-  Menu + Desktop shortcuts (including "Setup Audio Driver (Advanced)"), and writes a
-  complete Programs & Features uninstall entry. Matching `build-installer.ps1`
-  assembles the staging directory and invokes `makensis`.
+- **Professional NSIS installer** — `installer/setup/veyra-setup.nsi` produces a
+  commercial-quality `veyra-sounds-setup-{version}-x64.exe`. Install flow:
+  Welcome → License → Directory → Install Files → Device Setup → Finish. The
+  installer: checks Windows build 19041+; verifies/installs VC++ 2015-2022 x64
+  runtime; extracts all binaries; registers the APO COM server; installs and
+  starts `VeyraAudioService`; shows a **device picker** with friendly endpoint
+  names (no GUIDs exposed); associates the APO; falls back to Audio Bridge mode
+  with a clear explanation on failure; sets Start with Windows; creates Start Menu
+  and optional Desktop shortcuts; writes a full Programs & Features entry; and
+  logs to `%ProgramData%\Veyra\logs\install.log`. The uninstaller asks whether to
+  preserve user presets and settings.
+- **Upgrade detection** — `.onInit` reads the existing `InstallLocation` from the
+  registry and, when an upgrade is detected, stops the old service and replaces
+  binaries in-place without touching user data.
+- **`installer/setup/apo-helper.ps1`** — installer-internal PowerShell helper
+  with five actions: `list` (enumerates active render endpoints, writes an INI
+  for NSIS to read), `associate` (writes `PKEY_FX_PostMixEffectClsid` and
+  restarts AudioSrv), `verify-com` (checks the CLSID is registered and the DLL
+  present), `check-testsign` (bcdedit query), and `unassociate-all` (removes
+  Veyra CLSIDs from every render + capture endpoint — used by the uninstaller).
 - **APO setup helper** — `installer/setup/setup-audio-driver.cmd` is installed to
-  `%ProgramFiles%\Veyra Sounds\` and linked from the Start Menu. It re-launches
-  elevated and runs `associate-apo.ps1` interactively, so users never need to open
-  a PowerShell window manually.
+  `%ProgramFiles%\Veyra\` and linked from the Start Menu as "Setup Audio Driver
+  (Advanced)". It re-launches elevated and runs `associate-apo.ps1` interactively,
+  so users who need to re-associate after hardware changes never need to open a
+  PowerShell window manually.
+- **INSTALLATION.md** — complete end-user installation and quick-start guide.
+  Covers download, setup, Bluetooth fallback, per-device APO association, startup
+  configuration, uninstallation, and data paths.
+
+### Changed
+- **README.md** — "Building" section split into "Installing" (end users, links to
+  INSTALLATION.md) and "Building from source" (developers). Project structure
+  entry for `installer/` updated to reflect the production installer.
+- **BUILD_GUIDE.md** — new §3 "Building the end-user installer" documents the
+  `build-installer.ps1` workflow; PowerShell driver scripts explicitly labelled
+  as developer tools not intended for end-user documentation.
+- **`installer/setup/build-installer.ps1`** — staging now includes
+  `apo-helper.ps1`, `resources/themes/`, `resources/autoeq/`, and an APO-first
+  `INSTALLATION.txt` quick-start file (replaces the old Bridge-first README).
 - **TROUBLESHOOTING.md** — covers the 9 most common issues (LED amber, no APO
   effect, Audio Bridge, app rules, overlay, crash banner, launch/single-instance,
   high CPU, startup registration) with root causes, diagnostic commands, and fixes.

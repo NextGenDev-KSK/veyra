@@ -1,11 +1,12 @@
 #pragma once
 
-// The no-driver processing path. When enabled, the bridge WASAPI-loopback-
-// captures the source endpoint (set it as the Windows default so apps play into
-// it — typically a virtual sink), runs the shared veyra::dsp::DspChain with the
-// live config, and renders the processed audio to the target endpoint (the real
-// headphones). This is how Veyra shapes Spotify/YouTube audio without the APO,
-// which matters for Bluetooth outputs that reject endpoint APOs.
+// Advanced compatibility path for audio endpoints that reject the APO (primarily
+// Bluetooth). The APO path (veyra-apo.dll into audiodg.exe) is the primary
+// architecture; use the bridge only when the target endpoint cannot host an APO.
+//
+// When enabled, the bridge WASAPI-loopback-captures a source endpoint, runs the
+// shared veyra::dsp::DspChain with the live config, and renders the processed
+// audio to the target endpoint (e.g. Bluetooth headphones).
 //
 // v1 limitations (logged at runtime): source and target must share sample rate
 // and be stereo 32-bit float (shared-mode default); no resampling yet.

@@ -13,9 +13,10 @@ const Step kStepContent[] = {
     {"Make it yours",
      "Pick a theme in Settings and dial in the glass. Tweak the 10-band EQ and the "
      "effect knobs on Home, or start from a preset."},
-    {"Hear it anywhere",
-     "Open Devices to route audio through Veyra to any output — including Bluetooth — "
-     "with the Audio Bridge. No driver required."},
+    {"Works on your current device",
+     "Veyra loads into the Windows audio engine and processes everything on your chosen "
+     "output device — no virtual cable, no rerouting. "
+     "For Bluetooth headphones that need it, Devices → Audio Bridge is available as a fallback."},
     {"Quick keys",
      "Global hotkeys: Ctrl+Alt+M mute, Ctrl+Alt+Up/Down volume, "
      "Ctrl+Alt+Left/Right cycle presets, Ctrl+Alt+N mini mode."},

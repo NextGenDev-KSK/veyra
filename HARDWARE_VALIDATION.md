@@ -19,7 +19,7 @@ Complete these before any test:
 [ ] Test machine has a wired output endpoint (built-in or USB audio)
 [ ] Test-signing enabled: bcdedit /set testsigning on + reboot
 [ ] Sysinternals Process Explorer installed (for DLL verification)
-[ ] VB-CABLE virtual audio cable installed (for Audio Bridge tests)
+[ ] VB-CABLE virtual audio cable installed — optional, only required for Section 5 (Audio Bridge / Bluetooth fallback tests)
 [ ] Veyra built from source: cmake --preset windows-release && cmake --build --preset windows-release
 [ ] Service NOT yet installed (clean state for install tests)
 ```
@@ -174,7 +174,7 @@ Complete these before any test:
 
 ---
 
-## Section 5 — Audio Bridge (Bluetooth and virtual cable)
+## Section 5 — Audio Bridge (Advanced Bluetooth Fallback)
 
 ```
 [ ] 5.1  Connect Bluetooth headphones

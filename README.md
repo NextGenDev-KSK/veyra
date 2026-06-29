@@ -74,7 +74,23 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full data-flow diagram.
 
 ---
 
-## Building
+## Installing
+
+Download `veyra-sounds-setup-x.y.z-x64.exe` from
+[Releases](https://github.com/NextGenDev-KSK/veyra/releases) and double-click it.
+
+The installer automatically:
+- Registers the APO COM server
+- Installs and starts the Windows service
+- Lets you pick your playback device (by friendly name — no GUIDs)
+- Associates the APO with that device and restarts Windows Audio
+- Falls back gracefully to Audio Bridge mode for Bluetooth headphones
+
+**→ Full guide: [INSTALLATION.md](INSTALLATION.md)**
+
+---
+
+## Building from source
 
 **Requirements:** Visual Studio 2022 with "Desktop development with C++" workload
 (includes MSVC, Windows SDK 10.0.22000+, CMake 3.25+, Ninja).
@@ -91,9 +107,7 @@ cmake --build --preset windows-release
 Outputs: `build\windows-release\bin\` → `veyra.exe`, `veyra-service.exe`,
 `veyra-apo.dll`, `veyra-overlay.exe`
 
-See [BUILD_GUIDE.md](BUILD_GUIDE.md) for APO test-signing and service installation.
-
-### Running (development mode — no admin needed)
+### Running in development mode (no admin needed)
 
 ```powershell
 # Terminal 1:
@@ -112,6 +126,9 @@ cmake --preset windows-release -DVEYRA_BUILD_TESTS=ON
 cmake --build --preset windows-release
 ctest --test-dir build\windows-release --output-on-failure
 ```
+
+See [BUILD_GUIDE.md](BUILD_GUIDE.md) for APO test-signing, driver scripts, and
+building the installer.
 
 ---
 
@@ -142,7 +159,8 @@ resources/autoeq/      ← 16 oratory1990 headphone correction files
 resources/lang/        ← Localisation templates
 resources/themes/      ← Design token JSON for 11 themes
 tests/                 ← Catch2 unit + performance tests
-installer/driver/      ← APO INF template
+installer/driver/      ← APO developer scripts (register, associate, uninstall)
+installer/setup/       ← NSIS production installer + build scripts
 installer/msix/        ← MSIX manifest
 ```
 

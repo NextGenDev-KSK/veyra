@@ -114,24 +114,33 @@ If the block is absent, the APO has no parameters to read and may crash on first
 
 ---
 
-## Problem 3 — No audio effect heard (Audio Bridge path)
+## Problem 3 — No audio effect heard (Audio Bridge — Bluetooth fallback)
 
-**Symptom:** Audio Bridge is enabled, the source/output are set, but audio is unchanged.
+> The Audio Bridge is not the primary audio path. If you have not set up the APO,
+> follow [BUILD_GUIDE.md §2](BUILD_GUIDE.md) first. The Bridge is only needed when
+> your Bluetooth endpoint rejects the APO.
 
-**Check 1 — Is the virtual cable installed and set as default?**
-Go to Windows Sound Settings → Output. The virtual cable (e.g. CABLE Input) should be the default output.
+**Symptom:** Audio Bridge is enabled and configured, but audio through the
+Bluetooth headphones is unchanged.
 
-**Check 2 — Is the Audio Bridge actually running?**
-In Veyra → Devices, the Bridge card should show "Active". If it shows "Stopped", the service log will have the reason.
+**Check 1 — Is the virtual cable set as the Windows default output?**
+Windows Sound Settings → Output must show `CABLE Input` (or equivalent) as the default.
+Apps play *into* the cable; the Bridge captures from `CABLE Output` and renders to the headphones.
 
-**Check 3 — Are source and output the same device?**
-Source and Output must be different devices. Source = the virtual cable input; Output = your headphones or speakers.
+**Check 2 — Is the Bridge active?**
+Veyra → Devices shows the Bridge status. If "Stopped", check `%ProgramData%\Veyra\logs\veyra-service.log` for `AudioBridge:` lines.
 
-**Fix A — Audio Bridge fails to open the source device:**
-Check `%ProgramData%\Veyra\logs\veyra-service.log` for `AudioBridge:` lines. Common error: `AUDCLNT_E_DEVICE_IN_USE` — another app has exclusive mode on the device. Close it, or switch the other app to shared mode.
+**Check 3 — Source and Output must be different devices.**
+Source = `CABLE Output` (capture); Output = headphones. They cannot be the same device.
 
-**Fix B — Audio Bridge runs but output volume is zero:**
-Ensure the Master Volume slider in Veyra is not at zero. Also check the system volume on the Output endpoint in Windows.
+**Fix A — Bridge fails to open the source device:**
+Common error: `AUDCLNT_E_DEVICE_IN_USE` — another app has exclusive mode. Close it or switch to shared mode.
+
+**Fix B — Sample rate mismatch:**
+Set CABLE Input and your headphones to the same rate (48 kHz, 16-bit) in Windows Sound → Properties → Advanced. The Bridge logs and idles on mismatch.
+
+**Fix C — Bridge runs but output volume is zero:**
+Check the Master Volume slider in Veyra and the system volume on the Output endpoint.
 
 ---
 

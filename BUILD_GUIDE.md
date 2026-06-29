@@ -118,13 +118,48 @@ runtime testing on your own machine:
 > association, and audio passthrough are inherently runtime/admin/test-signing
 > steps that must be done on a real Windows machine.
 
-> The portable build works **without** the driver by falling back to WASAPI
-> loopback (user-mode, no admin, but higher latency ~15 ms). The APO path is
-> what delivers the <5 ms target.
+> The APO path is the **primary and recommended** audio path — the same mechanism
+> used by Dolby Atmos and DTS, < 5 ms latency, no virtual cable required.
+> The Audio Bridge (WASAPI loopback fallback) is available for Bluetooth endpoints
+> that reject the APO; it adds ~30–80 ms latency and requires a virtual cable.
 
-## 3. Packaging (Phase 14)
+## 3. Building the end-user installer
+
+The end-user installer is built with NSIS 3.x and lives in `installer/setup/`.
+Normal users should never need to run any PowerShell script — the installer
+handles everything automatically.
+
+**Prerequisites:**
+- Completed release build (`cmake --build --preset windows-release`)
+- NSIS 3.x installed — [nsis.sourceforge.io](https://nsis.sourceforge.io)
+  (`makensis.exe` must be on PATH, or pass `-NsisDir`)
+
+**Build:**
+```powershell
+pwsh installer/setup/build-installer.ps1 -BinDir build/windows-release/bin
+```
+
+Output: `dist-setup/veyra-sounds-setup-{version}-x64.exe`
+
+**What the installer does automatically:**
+1. Checks Windows version (build 19041+) and VC++ runtime
+2. Extracts all binaries to `%ProgramFiles%\Veyra\`
+3. Creates `%ProgramData%\Veyra\{logs,crashes,presets,themes}` with correct ACLs
+4. Registers `veyra-apo.dll` as a COM server (`regsvr32 /s`)
+5. Installs and starts `VeyraAudioService`
+6. Shows a device picker (friendly names, no GUIDs) — associates the APO
+7. Falls back to Audio Bridge mode with a clear explanation if the APO fails
+8. Writes Programs & Features / Settings → Apps entry + uninstaller
+9. Logs everything to `%ProgramData%\Veyra\logs\install.log`
+
+**Developer / CI note:**  
+The PowerShell scripts in `installer/driver/` (`register-apo.ps1`,
+`associate-apo.ps1`, `uninstall-apo.ps1`) are **developer tools** — for manual
+testing and CI on real hardware. They should not be mentioned in any user-facing
+documentation. The installer helper `installer/setup/apo-helper.ps1` is invoked
+silently by NSIS and is also an internal tool.
+
+## 4. Packaging
 
 - **MSIX** via `MakeAppx.exe` (Windows SDK) — see `installer/msix/`.
 - **Portable ZIP** — see `installer/portable/`.
-
-These are stubs in Phase 0.
