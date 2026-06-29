@@ -8,6 +8,38 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added (commercial installer — no PowerShell)
+- **`apps/veyra-setup-helper/` — VeyraSetupHelper.exe** — native C++ installer
+  helper (static CRT, no VC++ dependency) compiled alongside the main binaries.
+  Replaces `apo-helper.ps1` entirely. Five operations: `--list-devices <ini>`
+  (IMMDeviceEnumerator → INI file for NSIS to read), `--associate <guid>`
+  (writes `PKEY_FX_PostMixEffectClsid` + restarts AudioSrv via SCM API),
+  `--unassociate-all` (removes Veyra CLSIDs from every render + capture endpoint),
+  `--verify-com` (checks HKLM CLSID + DLL on disk), `--restart-audio` (stops +
+  restarts AudioSrv + AudioEndpointBuilder via SCM). No PowerShell. No scripts.
+  No visible windows.
+- **`installer/setup/veyra-setup.nsi` complete rewrite** — zero PowerShell calls.
+  All audio operations delegated to `VeyraSetupHelper.exe`. COM registration via
+  `regsvr32 /s` (system binary, no window). APO unassociation in uninstaller via
+  both `VeyraSetupHelper.exe --unassociate-all` and a native NSIS
+  `EnumRegKey` loop (belt-and-suspenders). Device picker populated from INI
+  written by the helper — user sees friendly device names, never GUIDs.
+- **`CMakeLists.txt`** — `apps/veyra-setup-helper` added as a new target with
+  static CRT linkage (`/MT`) so the helper binary has no VC++ runtime dependency.
+
+### Changed
+- **`installer/setup/build-installer.ps1` — PS 5.1 compatibility** — removed all
+  PowerShell 7-only syntax: `?.` null-conditional operator replaced with explicit
+  `if ($cmd) { $makensis = $cmd.Source }` guard. All operators now compatible with
+  Windows PowerShell 5.1. NSIS auto-detection searches common install paths, then
+  registry (`HKLM\SOFTWARE\NSIS`), then PATH. Friendly error message if not found.
+  `apo-helper.ps1` removed from staging (replaced by `VeyraSetupHelper.exe`).
+- **`docs/USER_GUIDE.md`** — "Getting sound through Veyra" no longer shows
+  `bcdedit` or PowerShell commands. Directs users to the installer.
+- **`VERIFY.md`** — Stage B now offers Option A (installer, recommended) and
+  Option B (manual developer setup). PS developer scripts explicitly labelled as
+  developer tools, not user instructions.
+
 ### Changed (APO-first architecture)
 - **Primary audio path is now the APO** — `OnboardingOverlay` step 3 updated from
   "Open Devices → Audio Bridge" to the APO-first message ("Veyra loads into the

@@ -16,11 +16,15 @@ installed and associated with your output endpoint, every app's audio passes
 through Veyra automatically at < 5 ms latency. No virtual cable, no rerouting,
 no change to your Windows default output device.
 
-**Setup (one time, admin):**
-1. Enable test-signing and reboot: `bcdedit /set testsigning on`
-2. Register + associate via **Start → Veyra Sounds → Setup Audio Driver (Advanced)**,
-   or follow [BUILD_GUIDE.md §2](../BUILD_GUIDE.md).
-3. Launch Veyra — the brand LED turns green and DSP is live.
+**Getting started:**
+1. Install Veyra using the [installer](https://github.com/NextGenDev-KSK/veyra/releases).
+   It picks your playback device and activates the APO automatically.
+2. Launch Veyra — the brand LED turns green and DSP is live.
+3. To change the device later: **Devices → Preferred Output**.
+4. To add a new device (e.g. new headphones): **Start → Veyra Sounds →
+   Setup Audio Driver (Advanced)**.
+
+See [INSTALLATION.md](../INSTALLATION.md) for the full installation guide.
 
 **Audio Bridge (advanced / Bluetooth fallback):**  
 Bluetooth endpoints often reject the APO. For these, Devices → Audio Bridge

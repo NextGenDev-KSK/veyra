@@ -1,33 +1,37 @@
 ; =============================================================================
 ;  Veyra Sounds — Production Installer
-;  Requires NSIS 3.x  (https://nsis.sourceforge.io)
-;
-;  Build:
-;    pwsh installer/setup/build-installer.ps1 -BinDir build/windows-release/bin
-;  Or directly:
-;    makensis /DVERSION=1.0.0 installer/setup/veyra-setup.nsi
+;  NSIS 3.x  |  Unicode  |  No PowerShell  |  No scripts shown to users
 ;
 ;  Install flow:
 ;    Welcome → License → Directory → Install Files → Device Setup → Finish
 ;
-;  What this installer does automatically:
+;  What this installer does automatically (no user intervention):
 ;    1.  Windows 10 build 19041+ check
-;    2.  Upgrade detection — stops old service, preserves user data
-;    3.  VC++ 2015-2022 x64 runtime check
-;    4.  Extracts all binaries and resources to %ProgramFiles%\Veyra
-;    5.  Registers the APO COM server (regsvr32 /s)
-;    6.  Verifies COM registration
-;    7.  Installs and starts the Windows service
-;    8.  Creates %ProgramData%\Veyra\{logs,crashes,presets,themes} directories
-;    9.  Shows device picker — enumerates playback devices (friendly names)
-;   10.  Attempts APO association with selected device
-;   11.  On failure (test-signing off / Bluetooth endpoint) — flags Bridge mode
-;   12.  Configures preferred output in Veyra config
-;   13.  Sets Start with Windows registry key
-;   14.  Creates Start Menu shortcuts + optional Desktop shortcut
-;   15.  Writes Programs & Features / Settings → Apps entry
-;   16.  Runs post-install verification
-;   17.  Writes install.log throughout
+;    2.  Upgrade detection (stop old service, preserve user data)
+;    3.  VC++ 2015-2022 x64 runtime check / install
+;    4.  Extracts all binaries + resources to %ProgramFiles%\Veyra\
+;    5.  Creates %ProgramData%\Veyra\{logs,crashes,presets,themes} + ACLs
+;    6.  Registers veyra-apo.dll COM server (regsvr32 /s — no window)
+;    7.  Installs VeyraAudioService (veyra-service.exe --install)
+;    8.  Starts service (sc.exe start)
+;    9.  Lists active playback devices via VeyraSetupHelper.exe (C++ native)
+;   10.  User picks output device (friendly names — no GUIDs exposed)
+;   11.  Associates APO via VeyraSetupHelper.exe --associate <guid>
+;   12.  On association failure: auto-switches to Audio Bridge mode
+;   13.  Post-install verification (service, COM, directories)
+;   14.  Start Menu + optional Desktop shortcuts
+;   15.  Programs & Features / Settings → Apps entry
+;   16.  Logs every step to %ProgramData%\Veyra\logs\install.log
+;
+;  Uninstaller:
+;    - Asks "Preserve presets and settings?" (default: Yes)
+;    - VeyraSetupHelper.exe --unassociate-all (C++ native, no PS)
+;    - regsvr32 /s /u  (COM unregistration, no window)
+;    - veyra-service.exe --uninstall
+;    - Removes all files, shortcuts, registry entries
+;
+;  Build:
+;    pwsh installer/setup/build-installer.ps1 -BinDir build/windows-release/bin
 ; =============================================================================
 
 !include "MUI2.nsh"
@@ -37,7 +41,7 @@
 !include "FileFunc.nsh"
 !include "nsDialogs.nsh"
 
-; ── Version (overridden by /DVERSION=x.y.z on command line) ──────────────────
+; ── Version (passed by build-installer.ps1 as /DVERSION=x.y.z) ───────────────
 !ifndef VERSION
   !define VERSION "1.0.0"
 !endif
@@ -51,9 +55,10 @@
 !define STARTUP_KEY       "Software\Microsoft\Windows\CurrentVersion\Run"
 !define STARTUP_VALUE     "VeyraSounds"
 !define RENDER_CLSID      "{7E9C2B14-3F6A-4D8E-9B21-5C0A1F2E3D44}"
-!define PS_EXE            "$WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe"
-!define PS_FLAGS          "-NonInteractive -NoProfile -ExecutionPolicy Bypass"
-!define APO_HELPER        "$INSTDIR\driver\apo-helper.ps1"
+!define FX_POSTMIX_KEY    "{D04E05A6-594B-4FB6-A80D-01AF5EEC11D9},6"
+
+; Native helper — handles audio API calls NSIS cannot make directly
+!define HELPER            "$INSTDIR\VeyraSetupHelper.exe"
 !define LOG_FILE          "$PROGRAMDATA\Veyra\logs\install.log"
 
 ; ── Output ────────────────────────────────────────────────────────────────────
@@ -66,27 +71,23 @@ SetCompressor /SOLID lzma
 Unicode true
 BrandingText "${PRODUCT_NAME} ${VERSION}"
 
-; ── Variables ─────────────────────────────────────────────────────────────────
+; ── Runtime variables ─────────────────────────────────────────────────────────
 Var IsUpgrade
 Var OldVersion
 Var DeviceCount
 Var SelectedIndex
 Var SelectedGuid
 Var SelectedName
-Var TestSignEnabled
-Var BridgeFallback
 Var ApoAssociated
 Var hDevicePage
 Var hDeviceList
-Var hDeviceLabel
-Var hDeviceNote
 
-; Windows combobox messages (not defined in NSIS headers)
+; ComboBox messages (not in NSIS headers)
 !define CB_ADDSTRING  0x0143
 !define CB_GETCURSEL  0x0147
 !define CB_SETCURSEL  0x014E
 
-; ── Version info ──────────────────────────────────────────────────────────────
+; ── Version info block ────────────────────────────────────────────────────────
 VIProductVersion "${VERSION}.0"
 VIAddVersionKey /LANG=1033 "ProductName"     "${PRODUCT_NAME}"
 VIAddVersionKey /LANG=1033 "ProductVersion"  "${VERSION}"
@@ -95,27 +96,29 @@ VIAddVersionKey /LANG=1033 "LegalCopyright"  "GPLv3 — see LICENSE"
 VIAddVersionKey /LANG=1033 "FileDescription" "${PRODUCT_NAME} Setup"
 VIAddVersionKey /LANG=1033 "FileVersion"     "${VERSION}.0"
 
-; ── MUI2 appearance ───────────────────────────────────────────────────────────
+; ── MUI2 configuration ────────────────────────────────────────────────────────
 !define MUI_ABORTWARNING
-!define MUI_ABORTWARNING_TEXT "Are you sure you want to cancel the ${PRODUCT_NAME} installation?"
+!define MUI_ABORTWARNING_TEXT "Cancel the ${PRODUCT_NAME} installation?"
 
-!define MUI_WELCOMEPAGE_TITLE   "Welcome to ${PRODUCT_NAME} ${VERSION}"
-!define MUI_WELCOMEPAGE_TEXT    "${PRODUCT_NAME} is a free, open-source system-wide audio enhancer for Windows 10/11.$\r$\n$\r$\nIt installs in about 30 seconds and works immediately with your current output device — no virtual cable, no manual configuration.$\r$\n$\r$\nClick Next to begin."
+!define MUI_WELCOMEPAGE_TITLE "${PRODUCT_NAME} ${VERSION}"
+!define MUI_WELCOMEPAGE_TEXT \
+    "${PRODUCT_NAME} is a free, open-source audio enhancer for Windows 10/11.$\r$\n$\r$\n\
+It processes your audio in the Windows Audio Engine — no virtual cable, no rerouting. \
+You will choose your playback device on the next page.$\r$\n$\r$\n\
+Click Next to begin."
 
 !define MUI_LICENSEPAGE_CHECKBOX
 !define MUI_LICENSEPAGE_CHECKBOX_TEXT "I accept the terms of the GPLv3 license"
 
-!define MUI_DIRECTORYPAGE_TEXT_TOP "Setup will install ${PRODUCT_NAME} in the following folder.$\r$\n$\r$\nTo install in a different folder, click Browse and select another folder. Click Next to continue."
-
-!define MUI_FINISHPAGE_TITLE    "${PRODUCT_NAME} is installed"
-!define MUI_FINISHPAGE_RUN      "$INSTDIR\veyra.exe"
-!define MUI_FINISHPAGE_RUN_TEXT "Launch ${PRODUCT_NAME} now"
+!define MUI_FINISHPAGE_TITLE "${PRODUCT_NAME} is ready"
+!define MUI_FINISHPAGE_RUN "$INSTDIR\veyra.exe"
+!define MUI_FINISHPAGE_RUN_TEXT "Launch ${PRODUCT_NAME}"
 !define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\INSTALLATION.txt"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "Open Quick Start guide"
 
 ; ── Pages ─────────────────────────────────────────────────────────────────────
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE   "staging\LICENSE"
+!insertmacro MUI_PAGE_LICENSE "staging\LICENSE"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 Page custom DevicePageCreate DevicePageLeave
@@ -127,34 +130,36 @@ Page custom DevicePageCreate DevicePageLeave
 !insertmacro MUI_LANGUAGE "English"
 
 ; =============================================================================
-;  Logging helper macro
+;  Log helper — appends a timestamped line to install.log
+;  (VeyraSetupHelper.exe also writes there via --log; this macro adds the NSIS
+;   side of events so the log is complete.)
 ; =============================================================================
-!macro _WriteLog msg
+!macro _AppendLog msg
     Push $9
     FileOpen $9 "${LOG_FILE}" a
     ${If} $9 != ""
         FileSeek $9 0 END
-        FileWrite $9 "${msg}$\r$\n"
+        FileWrite $9 "[NSIS] ${msg}$\r$\n"
         FileClose $9
     ${EndIf}
     Pop $9
 !macroend
-!define WriteLog "!insertmacro _WriteLog"
+!define AppendLog "!insertmacro _AppendLog"
 
 ; =============================================================================
-;  .onInit — upgrade detection, 64-bit registry, initial state
+;  .onInit — 64-bit validation, upgrade detection, state initialisation
 ; =============================================================================
 Function .onInit
-    ; Require 64-bit Windows
     ${If} ${RunningX64}
         ${EnableX64FSRedirection}
         SetRegView 64
     ${Else}
-        MessageBox MB_ICONSTOP "${PRODUCT_NAME} requires a 64-bit version of Windows."
+        MessageBox MB_ICONSTOP \
+            "${PRODUCT_NAME} requires a 64-bit version of Windows 10 or later."
         Abort
     ${EndIf}
 
-    ; Check for existing installation
+    ; Detect existing installation
     ReadRegStr $OldVersion HKLM "${UNINST_KEY}" "DisplayVersion"
     ${If} $OldVersion != ""
         StrCpy $IsUpgrade "1"
@@ -162,228 +167,89 @@ Function .onInit
         StrCpy $IsUpgrade "0"
     ${EndIf}
 
-    ; Initialise state variables
-    StrCpy $SelectedGuid      ""
-    StrCpy $SelectedName      ""
-    StrCpy $TestSignEnabled   "0"
-    StrCpy $BridgeFallback    "0"
-    StrCpy $ApoAssociated     "0"
-    StrCpy $DeviceCount       "0"
-    StrCpy $SelectedIndex     "0"
-FunctionEnd
-
-; =============================================================================
-;  Device Setup page — shown AFTER InstFiles
-;  Enumerates playback endpoints, lets user pick one, attempts APO association.
-; =============================================================================
-Function DevicePageCreate
-    ; Skip in silent mode
-    IfSilent 0 +2
-    Abort
-
-    ; Skip device page for upgrades (keep existing APO association)
-    ${If} $IsUpgrade == "1"
-        Abort
-    ${EndIf}
-
-    ; Check test-signing
-    nsExec::ExecToLog '"${PS_EXE}" ${PS_FLAGS} -File "${APO_HELPER}" -Action check-testsign -LogFile "${LOG_FILE}"'
-    Pop $TestSignEnabled   ; 0 = enabled, 1 = disabled (or error)
-
-    ; Enumerate devices
-    nsExec::ExecToLog '"${PS_EXE}" ${PS_FLAGS} -File "${APO_HELPER}" -Action list -OutFile "$TEMP\veyra-devices.ini" -LogFile "${LOG_FILE}"'
-    Pop $0
-
-    ReadINIStr $DeviceCount "$TEMP\veyra-devices.ini" "Devices" "Count"
-    ${If} $DeviceCount == ""
-        StrCpy $DeviceCount "0"
-    ${EndIf}
-
-    ; Build the custom page
-    !insertmacro MUI_HEADER_TEXT "Audio Device Setup" "Choose where ${PRODUCT_NAME} should process your audio."
-
-    nsDialogs::Create 1018
-    Pop $hDevicePage
-    ${If} $hDevicePage == error
-        Abort
-    ${EndIf}
-
-    ; ── Section: APO status note ─────────────────────────────────────────────
-    ${If} $TestSignEnabled != "0"
-        ; Test-signing off — explain Bridge fallback
-        ${NSD_CreateLabel} 0 0u 100% 50u "Audio Enhancement: Compatibility Mode$\r$\n$\r$\nTest-signing is not enabled on this system, so the low-latency APO driver cannot be activated automatically.$\r$\n$\r$\nVeyra will use Audio Bridge compatibility mode instead. You can enable the APO later via the Devices screen."
-        Pop $hDeviceNote
-        StrCpy $BridgeFallback "1"
-    ${Else}
-        ${If} $DeviceCount == "0"
-            ; No devices found
-            ${NSD_CreateLabel} 0 0u 100% 40u "No active playback devices were detected.$\r$\n$\r$\nVeyra will use Audio Bridge compatibility mode. You can configure your output device in the Devices screen after launch."
-            Pop $hDeviceNote
-            StrCpy $BridgeFallback "1"
-        ${Else}
-            ; Normal APO path — show device picker
-            ${NSD_CreateLabel} 0 0u 100% 28u "Veyra will process all audio on the selected device.$\r$\nYou can change this at any time in the Devices screen."
-            Pop $hDeviceLabel
-
-            ${NSD_CreateLabel} 0 32u 70u 14u "Playback device:"
-            Pop $0
-
-            ${NSD_CreateDropList} 72u 30u 228u 120u ""
-            Pop $hDeviceList
-
-            ; Populate dropdown from INI file
-            StrCpy $0 0
-            devloop:
-                IntCmp $0 $DeviceCount devdone 0 devdone
-                ReadINIStr $R1 "$TEMP\veyra-devices.ini" "Devices" "Name$0"
-                ${If} $R1 != ""
-                    SendMessage $hDeviceList ${CB_ADDSTRING} 0 "STR:$R1"
-                ${EndIf}
-                IntOp $0 $0 + 1
-                Goto devloop
-            devdone:
-
-            ; Add skip option
-            SendMessage $hDeviceList ${CB_ADDSTRING} 0 "STR:Configure later in Devices screen"
-
-            ; Pre-select the default device
-            ReadINIStr $R0 "$TEMP\veyra-devices.ini" "Devices" "Default"
-            ${If} $R0 == ""
-                StrCpy $R0 0
-            ${EndIf}
-            SendMessage $hDeviceList ${CB_SETCURSEL} $R0 0
-
-            ${NSD_CreateLabel} 0 52u 100% 28u "Veyra will activate the audio enhancement on this device. A restart of Windows Audio occurs automatically — you may hear a brief audio interruption."
-            Pop $0
-        ${EndIf}
-    ${EndIf}
-
-    nsDialogs::Show
-FunctionEnd
-
-Function DevicePageLeave
-    ; Nothing to do when Bridge fallback is already decided
-    ${If} $BridgeFallback == "1"
-        ${WriteLog} "Device page: Bridge fallback mode (test-signing off or no devices)."
-        Return
-    ${EndIf}
-
-    ; Get selected index from dropdown
-    SendMessage $hDeviceList ${CB_GETCURSEL} 0 0 $SelectedIndex
-
-    ; "Configure later" is the last item (index == DeviceCount)
-    ${If} $SelectedIndex >= $DeviceCount
-        StrCpy $SelectedGuid ""
-        StrCpy $SelectedName "Not configured"
-        ${WriteLog} "Device page: user chose 'Configure later'."
-        Return
-    ${EndIf}
-
-    ; Look up GUID and name for the selected index
-    ReadINIStr $SelectedGuid "$TEMP\veyra-devices.ini" "Devices" "Guid$SelectedIndex"
-    ReadINIStr $SelectedName "$TEMP\veyra-devices.ini" "Devices" "Name$SelectedIndex"
-    ${WriteLog} "Device page: selected '$SelectedName' ($SelectedGuid)."
-
-    ; Attempt APO association
-    DetailPrint "Activating audio enhancement on $SelectedName..."
-    nsExec::ExecToLog '"${PS_EXE}" ${PS_FLAGS} -File "${APO_HELPER}" -Action associate -EndpointGuid "$SelectedGuid" -LogFile "${LOG_FILE}"'
-    Pop $R0
-
-    ${If} $R0 == "0"
-        StrCpy $ApoAssociated "1"
-        ${WriteLog} "APO association succeeded for '$SelectedName'."
-    ${Else}
-        StrCpy $BridgeFallback "1"
-        ${WriteLog} "APO association failed (exit $R0) for '$SelectedName'. Bridge fallback."
-        MessageBox MB_ICONINFORMATION \
-            "The audio enhancement could not be activated on $SelectedName.$\r$\n$\r$\nThis device may not support the APO (common with Bluetooth endpoints). ${PRODUCT_NAME} will use Audio Bridge compatibility mode.$\r$\n$\r$\nYou can configure this later in the Devices screen." \
-            /SD IDOK
-    ${EndIf}
+    ; Initialise state
+    StrCpy $SelectedGuid  ""
+    StrCpy $SelectedName  ""
+    StrCpy $ApoAssociated "0"
+    StrCpy $DeviceCount   "0"
+    StrCpy $SelectedIndex "0"
 FunctionEnd
 
 ; =============================================================================
 ;  Main install section
 ; =============================================================================
-Section "${PRODUCT_NAME}" SecCore
+Section "${PRODUCT_NAME}" SecMain
+    SectionIn RO
 
-    SectionIn RO   ; required — cannot be deselected
-
-    ; ── OS check ──────────────────────────────────────────────────────────────
+    ; ── OS requirement ────────────────────────────────────────────────────────
     ${IfNot} ${AtLeastBuild} 19041
         MessageBox MB_ICONSTOP \
-            "${PRODUCT_NAME} requires Windows 10 version 2004 (build 19041) or later.$\r$\nPlease update Windows and run the installer again."
+            "${PRODUCT_NAME} requires Windows 10 version 2004 (build 19041) or later.$\r$\n\
+Please update Windows and run Setup again."
         Abort
     ${EndIf}
 
-    ; ── Create ProgramData directories (need them for logging immediately) ────
+    ; ── Create data directories first (needed for logging) ───────────────────
     CreateDirectory "$PROGRAMDATA\Veyra"
     CreateDirectory "$PROGRAMDATA\Veyra\logs"
     CreateDirectory "$PROGRAMDATA\Veyra\crashes"
     CreateDirectory "$PROGRAMDATA\Veyra\presets"
     CreateDirectory "$PROGRAMDATA\Veyra\themes"
 
-    ; Set ACL: LocalService needs full access to write config, logs, crash dumps
-    nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$PROGRAMDATA\Veyra" /grant "NT AUTHORITY\LocalService:(OI)(CI)M" /T /Q'
+    ; Grant LocalService (audio service account) read+write access
+    nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$PROGRAMDATA\Veyra" \
+        /grant "NT AUTHORITY\LocalService:(OI)(CI)M" /T /Q'
+    Pop $0
 
-    ; ── Start logging ─────────────────────────────────────────────────────────
-    ${WriteLog} "============================================================"
-    ${WriteLog} "${PRODUCT_NAME} ${VERSION} — Installation started"
-    ${WriteLog} "============================================================"
+    ; ── Begin logging ─────────────────────────────────────────────────────────
+    ${AppendLog} "======================================"
     ${If} $IsUpgrade == "1"
-        ${WriteLog} "Mode: Upgrade from $OldVersion"
+        ${AppendLog} "${PRODUCT_NAME} ${VERSION} — Upgrade from $OldVersion"
         DetailPrint "Upgrading ${PRODUCT_NAME} from $OldVersion to ${VERSION}..."
     ${Else}
-        ${WriteLog} "Mode: Fresh install"
+        ${AppendLog} "${PRODUCT_NAME} ${VERSION} — Fresh install"
         DetailPrint "Installing ${PRODUCT_NAME} ${VERSION}..."
     ${EndIf}
 
-    ; ── Upgrade: stop running processes ───────────────────────────────────────
+    ; ── Upgrade: stop running processes ──────────────────────────────────────
     ${If} $IsUpgrade == "1"
         DetailPrint "Stopping existing installation..."
-        ${WriteLog} "Upgrade: stopping existing processes and service..."
+        ${AppendLog} "Stopping existing processes..."
         nsExec::ExecToLog '"$SYSDIR\taskkill.exe" /F /IM veyra.exe /IM veyra-overlay.exe'
         Pop $0
-        ; Stop service gracefully (allow 3 s)
         nsExec::ExecToLog '"$SYSDIR\sc.exe" stop ${SERVICE_NAME}'
         Pop $0
-        Sleep 3000
-        ${WriteLog} "Upgrade: old processes stopped."
+        Sleep 2500
     ${EndIf}
 
-    ; ── VC++ 2015-2022 x64 runtime check ─────────────────────────────────────
+    ; ── VC++ 2015-2022 x64 runtime ────────────────────────────────────────────
     DetailPrint "Checking Visual C++ runtime..."
-    ${WriteLog} "Checking VC++ 2015-2022 x64 runtime..."
     ReadRegDWORD $R0 HKLM "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64" "Installed"
     ${If} $R0 != "1"
-        ${WriteLog} "VC++ runtime not found — installing bundled redistributable..."
-        DetailPrint "Installing Visual C++ runtime..."
-        ; Bundle vc_redist.x64.exe in staging/ if present
-        IfFileExists "staging\vc_redist.x64.exe" vcredist_found vcredist_notfound
-        vcredist_found:
-            File "staging\vc_redist.x64.exe"
-            ExecWait '"$INSTDIR\vc_redist.x64.exe" /install /quiet /norestart' $R1
-            Delete "$INSTDIR\vc_redist.x64.exe"
-            ${WriteLog} "VC++ redist installer exited: $R1"
+        ${AppendLog} "VC++ runtime missing — installing bundled redistributable..."
+        DetailPrint "Installing Visual C++ 2015-2022 runtime..."
+        IfFileExists "staging\vc_redist.x64.exe" +3 0
+            ${AppendLog} "vc_redist.x64.exe not bundled — skipping"
             Goto vcredist_done
-        vcredist_notfound:
-            ${WriteLog} "VC++ redist not bundled — proceeding anyway (may fail at runtime)."
-            MessageBox MB_ICONEXCLAMATION \
-                "The Visual C++ 2015-2022 runtime was not found on this system.$\r$\n$\r$\nIf ${PRODUCT_NAME} fails to launch, install the Visual C++ Redistributable from microsoft.com." \
-                /SD IDOK
+        File /oname="$TEMP\vc_redist_veyra.exe" "staging\vc_redist.x64.exe"
+        ExecWait '"$TEMP\vc_redist_veyra.exe" /install /quiet /norestart' $R1
+        Delete "$TEMP\vc_redist_veyra.exe"
+        ${AppendLog} "vc_redist installer exited: $R1"
         vcredist_done:
     ${Else}
-        ${WriteLog} "VC++ runtime present."
+        ${AppendLog} "VC++ runtime present."
     ${EndIf}
 
     ; ── Extract files ─────────────────────────────────────────────────────────
     DetailPrint "Installing files..."
-    ${WriteLog} "Extracting files to $INSTDIR..."
+    ${AppendLog} "Extracting files to $INSTDIR..."
     SetOutPath "$INSTDIR"
 
     File "staging\veyra.exe"
     File "staging\veyra-service.exe"
     File "staging\veyra-apo.dll"
     File "staging\veyra-overlay.exe"
+    File "staging\VeyraSetupHelper.exe"
     File "staging\LICENSE"
     File "staging\INSTALLATION.txt"
     File "staging\setup-audio-driver.cmd"
@@ -400,63 +266,85 @@ Section "${PRODUCT_NAME}" SecCore
     SetOutPath "$INSTDIR\resources\autoeq"
     File /nonfatal /r "staging\resources\autoeq\*.*"
 
+    ; Driver scripts are developer tools — installed for "Setup Audio Driver" shortcut
     SetOutPath "$INSTDIR\driver"
     File "staging\driver\register-apo.ps1"
     File "staging\driver\associate-apo.ps1"
     File "staging\driver\uninstall-apo.ps1"
-    File "staging\driver\apo-helper.ps1"
 
     SetOutPath "$INSTDIR"
-    ${WriteLog} "Files extracted."
+    ${AppendLog} "Files extracted."
 
-    ; ── Register APO COM server ────────────────────────────────────────────────
-    DetailPrint "Registering audio processing component..."
-    ${WriteLog} "Running regsvr32 /s '$INSTDIR\veyra-apo.dll'..."
+    ; ── Register APO COM server (regsvr32, no window, no PowerShell) ─────────
+    DetailPrint "Registering audio component..."
+    ${AppendLog} "Running regsvr32 /s veyra-apo.dll..."
     ExecWait '"$SYSDIR\regsvr32.exe" /s "$INSTDIR\veyra-apo.dll"' $R0
-    ${WriteLog} "regsvr32 exited: $R0"
+    ${AppendLog} "regsvr32 exited: $R0"
     ${If} $R0 != "0"
-        ${WriteLog} "WARN: COM registration failed. APO path will not work. Bridge mode will be used."
-        DetailPrint "Audio component registration failed — Bridge mode will be used."
+        ${AppendLog} "WARN: COM registration returned $R0"
+        DetailPrint "Audio component registration returned $R0 — continuing..."
+    ${EndIf}
+
+    ; Verify registration via native helper (no PowerShell)
+    nsExec::ExecToLog '"${HELPER}" --log "${LOG_FILE}" --verify-com'
+    Pop $R1
+    ${If} $R1 == "0"
+        DetailPrint "Audio component verified."
+        ${AppendLog} "COM registration verified."
     ${Else}
-        ; Verify the registration
-        nsExec::ExecToLog '"${PS_EXE}" ${PS_FLAGS} -File "${APO_HELPER}" -Action verify-com -LogFile "${LOG_FILE}"'
-        Pop $R1
-        ${If} $R1 == "0"
-            ${WriteLog} "COM registration verified."
-            DetailPrint "Audio component registered successfully."
-        ${Else}
-            ${WriteLog} "WARN: COM verify failed after regsvr32. APO may not load."
-        ${EndIf}
+        DetailPrint "Audio component could not be verified (exit $R1)."
+        ${AppendLog} "WARN: COM verify returned $R1"
     ${EndIf}
 
-    ; ── Install Windows service ────────────────────────────────────────────────
+    ; ── Install Windows service ───────────────────────────────────────────────
     DetailPrint "Installing Veyra Audio Service..."
-    ${WriteLog} "Installing service: '$INSTDIR\veyra-service.exe' --install..."
+    ${AppendLog} "Installing service..."
     ExecWait '"$INSTDIR\veyra-service.exe" --install' $R0
-    ${WriteLog} "Service install exited: $R0"
-    ${If} $R0 != "0"
-        ${WriteLog} "WARN: Service install returned $R0."
-        DetailPrint "Service installation returned $R0 — retrying via sc.exe..."
-        ; The service may already exist (upgrade path) — try anyway
-        nsExec::ExecToLog '"$SYSDIR\sc.exe" config ${SERVICE_NAME} start= auto'
-        Pop $0
-    ${EndIf}
+    ${AppendLog} "Service install exited: $R0"
 
-    ; ── Start the service ──────────────────────────────────────────────────────
     DetailPrint "Starting Veyra Audio Service..."
-    ${WriteLog} "Starting service..."
-    ExecWait '"$SYSDIR\sc.exe" start ${SERVICE_NAME}' $R0
-    ${WriteLog} "sc start exited: $R0"
-    Sleep 1500
+    ${AppendLog} "Starting service..."
+    nsExec::ExecToLog '"$SYSDIR\sc.exe" start ${SERVICE_NAME}'
+    Pop $0
+    Sleep 1200
 
-    ; ── Set startup with Windows ──────────────────────────────────────────────
-    WriteRegStr HKCU "${STARTUP_KEY}" "${STARTUP_VALUE}" \
-        '"$INSTDIR\veyra.exe" --minimized'
-    ${WriteLog} "Startup key written."
+    ; ── Enumerate devices for the picker page (runs before page displays) ────
+    DetailPrint "Detecting audio devices..."
+    ${AppendLog} "Listing render endpoints..."
+    nsExec::ExecToLog '"${HELPER}" --log "${LOG_FILE}" --list-devices "$TEMP\veyra-devices.ini"'
+    Pop $0
+    ReadINIStr $DeviceCount "$TEMP\veyra-devices.ini" "Devices" "Count"
+    ${If} $DeviceCount == ""
+        StrCpy $DeviceCount "0"
+    ${EndIf}
+    ${AppendLog} "Detected $DeviceCount active render endpoint(s)."
 
-    ; ── Shortcuts ─────────────────────────────────────────────────────────────
+    ; ── Start with Windows ────────────────────────────────────────────────────
+    WriteRegStr HKCU "${STARTUP_KEY}" "${STARTUP_VALUE}" '"$INSTDIR\veyra.exe" --minimized'
+    ${AppendLog} "Startup key written."
+
+    ; ── Uninstaller ──────────────────────────────────────────────────────────
+    WriteUninstaller "$INSTDIR\uninstall.exe"
+
+    ; ── Programs & Features / Settings → Apps ─────────────────────────────────
+    ${GetSize} "$INSTDIR" "/S=0K" $R0 $R1 $R2
+    IntFmt $R0 "0x%08X" $R0
+    WriteRegStr   HKLM "${UNINST_KEY}" "DisplayName"          "${PRODUCT_NAME}"
+    WriteRegStr   HKLM "${UNINST_KEY}" "DisplayVersion"       "${VERSION}"
+    WriteRegStr   HKLM "${UNINST_KEY}" "Publisher"            "${PRODUCT_PUBLISHER}"
+    WriteRegStr   HKLM "${UNINST_KEY}" "URLInfoAbout"         "${PRODUCT_URL}"
+    WriteRegStr   HKLM "${UNINST_KEY}" "InstallLocation"      "$INSTDIR"
+    WriteRegStr   HKLM "${UNINST_KEY}" "UninstallString"      '"$INSTDIR\uninstall.exe"'
+    WriteRegStr   HKLM "${UNINST_KEY}" "QuietUninstallString" '"$INSTDIR\uninstall.exe" /S'
+    WriteRegStr   HKLM "${UNINST_KEY}" "DisplayIcon"          "$INSTDIR\veyra.exe"
+    WriteRegStr   HKLM "${UNINST_KEY}" "HelpLink"             "${PRODUCT_URL}"
+    WriteRegDWORD HKLM "${UNINST_KEY}" "EstimatedSize"        "$R0"
+    WriteRegDWORD HKLM "${UNINST_KEY}" "NoModify"             1
+    WriteRegDWORD HKLM "${UNINST_KEY}" "NoRepair"             1
+    ${AppendLog} "Programs & Features entry written."
+
+    ; ── Start Menu shortcuts ──────────────────────────────────────────────────
     DetailPrint "Creating shortcuts..."
-    ${WriteLog} "Creating shortcuts..."
     CreateDirectory "$SMPROGRAMS\Veyra Sounds"
     CreateShortcut "$SMPROGRAMS\Veyra Sounds\Veyra Sounds.lnk" \
                    "$INSTDIR\veyra.exe" "" "$INSTDIR\veyra.exe" 0
@@ -467,132 +355,213 @@ Section "${PRODUCT_NAME}" SecCore
     CreateShortcut "$SMPROGRAMS\Veyra Sounds\Uninstall Veyra Sounds.lnk" \
                    "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
 
-    ; ── Uninstaller ───────────────────────────────────────────────────────────
-    WriteUninstaller "$INSTDIR\uninstall.exe"
-
-    ; ── Programs & Features / Settings → Apps ─────────────────────────────────
-    ${GetSize} "$INSTDIR" "/S=0K" $R0 $R1 $R2
-    IntFmt $R0 "0x%08X" $R0
-
-    WriteRegStr   HKLM "${UNINST_KEY}" "DisplayName"          "${PRODUCT_NAME}"
-    WriteRegStr   HKLM "${UNINST_KEY}" "DisplayVersion"       "${VERSION}"
-    WriteRegStr   HKLM "${UNINST_KEY}" "Publisher"            "${PRODUCT_PUBLISHER}"
-    WriteRegStr   HKLM "${UNINST_KEY}" "URLInfoAbout"         "${PRODUCT_URL}"
-    WriteRegStr   HKLM "${UNINST_KEY}" "InstallLocation"      "$INSTDIR"
-    WriteRegStr   HKLM "${UNINST_KEY}" "UninstallString"      "$\"$INSTDIR\uninstall.exe$\""
-    WriteRegStr   HKLM "${UNINST_KEY}" "QuietUninstallString" "$\"$INSTDIR\uninstall.exe$\" /S"
-    WriteRegStr   HKLM "${UNINST_KEY}" "DisplayIcon"          "$INSTDIR\veyra.exe"
-    WriteRegStr   HKLM "${UNINST_KEY}" "HelpLink"             "${PRODUCT_URL}"
-    WriteRegDWORD HKLM "${UNINST_KEY}" "EstimatedSize"        "$R0"
-    WriteRegDWORD HKLM "${UNINST_KEY}" "NoModify"             1
-    WriteRegDWORD HKLM "${UNINST_KEY}" "NoRepair"             1
-    ${WriteLog} "Programs & Features entry written."
-
-    ; ── Post-install verification ──────────────────────────────────────────────
-    DetailPrint "Verifying installation..."
-    ${WriteLog} "--- Post-install verification ---"
-
-    ; 1. Service running?
-    nsExec::ExecToStack '"$SYSDIR\sc.exe" query ${SERVICE_NAME}'
-    Pop $0  ; exit code (0 = service exists)
-    Pop $R1 ; output
-    ${If} $0 == "0"
-        ${WriteLog} "VERIFY OK: Service installed."
-    ${Else}
-        ${WriteLog} "VERIFY WARN: Service query failed (exit $0)."
-    ${EndIf}
-
-    ; 2. COM registered?
-    ReadRegStr $R1 HKLM "SOFTWARE\Classes\CLSID\${RENDER_CLSID}\InprocServer32" ""
-    ${If} $R1 != ""
-        ${WriteLog} "VERIFY OK: COM CLSID registered: $R1"
-    ${Else}
-        ${WriteLog} "VERIFY WARN: COM CLSID not found in HKLM\SOFTWARE\Classes."
-    ${EndIf}
-
-    ; 3. ProgramData directories?
-    ${If} ${FileExists} "$PROGRAMDATA\Veyra\logs"
-        ${WriteLog} "VERIFY OK: ProgramData\Veyra\logs exists."
-    ${Else}
-        ${WriteLog} "VERIFY WARN: ProgramData\Veyra\logs missing."
-    ${EndIf}
-
-    ; 4. Startup key?
-    ReadRegStr $R1 HKCU "${STARTUP_KEY}" "${STARTUP_VALUE}"
-    ${If} $R1 != ""
-        ${WriteLog} "VERIFY OK: Startup key set."
-    ${Else}
-        ${WriteLog} "VERIFY WARN: Startup key not found."
-    ${EndIf}
-
-    ${WriteLog} "--- Verification complete ---"
-    ${WriteLog} "Installation finished. APO associated: $ApoAssociated  Bridge fallback: $BridgeFallback"
+    ${AppendLog} "Install phase complete. Device picker next."
 
 SectionEnd
 
 ; =============================================================================
-;  Optional section: Desktop shortcut
+;  Optional: Desktop shortcut (pre-checked)
 ; =============================================================================
 Section /o "Create Desktop shortcut" SecDesktop
     CreateShortcut "$DESKTOP\Veyra Sounds.lnk" \
                    "$INSTDIR\veyra.exe" "" "$INSTDIR\veyra.exe" 0
-    ${WriteLog} "Desktop shortcut created."
+    ${AppendLog} "Desktop shortcut created."
 SectionEnd
 
-; Pre-check the optional desktop shortcut by default
+; Pre-check the desktop shortcut on launch
 Function .onSelChange
     SectionSetFlags ${SecDesktop} 1
 FunctionEnd
 
 ; =============================================================================
-;  Uninstall section
+;  Device Setup custom page (after InstFiles, before Finish)
+;  Populated by VeyraSetupHelper.exe --list-devices (C++ IMMDeviceEnumerator).
+;  No PowerShell. No endpoint GUIDs shown to user.
+; =============================================================================
+Function DevicePageCreate
+    IfSilent 0 +2
+    Abort   ; skip in silent mode — associate default device later
+
+    ${If} $IsUpgrade == "1"
+        Abort   ; skip for upgrades — keep existing association
+    ${EndIf}
+
+    !insertmacro MUI_HEADER_TEXT "Audio Device Setup" \
+        "Choose where ${PRODUCT_NAME} should process your audio."
+
+    nsDialogs::Create 1018
+    Pop $hDevicePage
+    ${If} $hDevicePage == error
+        Abort
+    ${EndIf}
+
+    ${If} $DeviceCount == "0"
+        ; No devices found — show informational message only
+        ${NSD_CreateLabel} 0 0u 100% 60u \
+            "No active playback devices were detected.$\r$\n$\r$\n\
+You can configure your output device in the Devices screen after Veyra launches.$\r$\n$\r$\n\
+Veyra will start in Audio Bridge compatibility mode."
+        Pop $0
+    ${Else}
+        ; Normal: show device picker
+        ${NSD_CreateLabel} 0 0u 100% 24u \
+            "Veyra will enhance audio on the device you select. \
+You can change this at any time in the Devices screen."
+        Pop $0
+
+        ${NSD_CreateLabel} 0 30u 64u 14u "Playback device:"
+        Pop $0
+
+        ${NSD_CreateDropList} 68u 28u 232u 120u ""
+        Pop $hDeviceList
+
+        ; Populate dropdown from INI file written by VeyraSetupHelper
+        StrCpy $0 0
+        devloop:
+            IntCmp $0 $DeviceCount devdone 0 devdone
+            ReadINIStr $R1 "$TEMP\veyra-devices.ini" "Devices" "Name$0"
+            ${If} $R1 != ""
+                SendMessage $hDeviceList ${CB_ADDSTRING} 0 "STR:$R1"
+            ${EndIf}
+            IntOp $0 $0 + 1
+            Goto devloop
+        devdone:
+
+        SendMessage $hDeviceList ${CB_ADDSTRING} 0 "STR:Configure later in Devices screen"
+
+        ; Pre-select the system default device
+        ReadINIStr $R0 "$TEMP\veyra-devices.ini" "Devices" "Default"
+        ${If} $R0 == ""
+            StrCpy $R0 0
+        ${EndIf}
+        SendMessage $hDeviceList ${CB_SETCURSEL} $R0 0
+
+        ${NSD_CreateLabel} 0 48u 100% 36u \
+            "Windows Audio restarts briefly after you click Next. \
+You may hear a short audio interruption — this is normal."
+        Pop $0
+    ${EndIf}
+
+    nsDialogs::Show
+FunctionEnd
+
+Function DevicePageLeave
+    ${If} $DeviceCount == "0"
+        ${AppendLog} "Device page: no endpoints found. Skipping APO association."
+        Return
+    ${EndIf}
+
+    ; Read selected index
+    SendMessage $hDeviceList ${CB_GETCURSEL} 0 0 $SelectedIndex
+
+    ; "Configure later" = last item (index == DeviceCount)
+    ${If} $SelectedIndex >= $DeviceCount
+        StrCpy $SelectedGuid ""
+        StrCpy $SelectedName "Not configured"
+        ${AppendLog} "Device page: user chose 'Configure later'."
+        Return
+    ${EndIf}
+
+    ; Look up GUID (kept internal — never shown to user)
+    ReadINIStr $SelectedGuid "$TEMP\veyra-devices.ini" "Devices" "Guid$SelectedIndex"
+    ReadINIStr $SelectedName "$TEMP\veyra-devices.ini" "Devices" "Name$SelectedIndex"
+    ${AppendLog} "Device selected: $SelectedName"
+
+    ; Associate APO via native helper (no PowerShell)
+    DetailPrint "Activating audio enhancement on $SelectedName..."
+    nsExec::ExecToLog '"${HELPER}" --log "${LOG_FILE}" --associate "$SelectedGuid"'
+    Pop $R0
+
+    ${If} $R0 == "0"
+        StrCpy $ApoAssociated "1"
+        ${AppendLog} "APO association succeeded: $SelectedName"
+        DetailPrint "Audio enhancement activated on $SelectedName."
+    ${Else}
+        ${AppendLog} "APO association failed (exit $R0): $SelectedName"
+        MessageBox MB_ICONINFORMATION \
+            "The audio enhancement could not be activated on $SelectedName.$\r$\n$\r$\n\
+This is common with Bluetooth headphones. ${PRODUCT_NAME} will use \
+Audio Bridge compatibility mode instead.$\r$\n$\r$\nYou can change this in the \
+Devices screen after launch." \
+            /SD IDOK
+    ${EndIf}
+
+    ; Post-install verification (silent — failures only surface in the log)
+    ${AppendLog} "--- Post-install verification ---"
+
+    ; 1. Service installed?
+    ReadRegStr $R1 HKLM "SYSTEM\CurrentControlSet\Services\${SERVICE_NAME}" "ImagePath"
+    ${If} $R1 != ""
+        ${AppendLog} "VERIFY OK: Service registered."
+    ${Else}
+        ${AppendLog} "VERIFY WARN: Service not found in registry."
+    ${EndIf}
+
+    ; 2. COM registered?
+    ReadRegStr $R1 HKLM "SOFTWARE\Classes\CLSID\${RENDER_CLSID}\InprocServer32" ""
+    ${If} $R1 != ""
+        ${AppendLog} "VERIFY OK: COM CLSID registered: $R1"
+    ${Else}
+        ${AppendLog} "VERIFY WARN: COM CLSID not registered."
+    ${EndIf}
+
+    ; 3. ProgramData dirs?
+    ${If} ${FileExists} "$PROGRAMDATA\Veyra\logs\*.*"
+        ${AppendLog} "VERIFY OK: ProgramData\Veyra\logs exists."
+    ${Else}
+        ${AppendLog} "VERIFY WARN: ProgramData\Veyra\logs missing."
+    ${EndIf}
+
+    ${AppendLog} "--- Verification complete. ApoAssociated=$ApoAssociated ---"
+FunctionEnd
+
+; =============================================================================
+;  Uninstaller
 ; =============================================================================
 Section "Uninstall"
 
-    ; Ask about preserving user data
     MessageBox MB_ICONQUESTION|MB_YESNO \
-        "Do you want to keep your presets, themes, and settings?$\r$\n$\r$\nClick Yes to preserve them in %ProgramData%\Veyra.$\r$\nClick No to delete all ${PRODUCT_NAME} data." \
-        /SD IDYES IDYES preserve_data IDNO delete_data
+        "Keep your presets and settings?$\r$\n$\r$\n\
+Click Yes to preserve them in %ProgramData%\Veyra.$\r$\n\
+Click No to delete all ${PRODUCT_NAME} data." \
+        /SD IDYES IDYES keep_data IDNO del_data
 
-    preserve_data:
-        StrCpy $R9 "preserve"
-        Goto after_data_question
+    keep_data: StrCpy $R9 "keep"  ; Goto after_q is implicit with label fallthrough
+    Goto after_q
+    del_data:  StrCpy $R9 "delete"
+    after_q:
 
-    delete_data:
-        StrCpy $R9 "delete"
+    ; Stop running UI processes
+    DetailPrint "Stopping Veyra..."
+    nsExec::ExecToLog '"$SYSDIR\taskkill.exe" /F /IM veyra.exe /IM veyra-overlay.exe'
+    Pop $0
+    Sleep 800
 
-    after_data_question:
-
-    ; ── Remove APO associations from all endpoints ────────────────────────────
+    ; Remove APO from all endpoints — native helper, no PowerShell
     DetailPrint "Removing audio driver configuration..."
-    nsExec::ExecToLog '"${PS_EXE}" ${PS_FLAGS} -File "$INSTDIR\driver\apo-helper.ps1" -Action unassociate-all -LogFile "${LOG_FILE}"'
+    nsExec::ExecToLog '"$INSTDIR\VeyraSetupHelper.exe" --log "${LOG_FILE}" --unassociate-all'
     Pop $0
 
-    ; ── Belt-and-suspenders COM unregistration ────────────────────────────────
+    ; Unregister COM (regsvr32, no window)
     ExecWait '"$SYSDIR\regsvr32.exe" /s /u "$INSTDIR\veyra-apo.dll"' $0
 
-    ; ── Stop running processes ────────────────────────────────────────────────
-    DetailPrint "Stopping Veyra..."
-    ExecWait '"$SYSDIR\taskkill.exe" /F /IM veyra.exe'         $0
-    ExecWait '"$SYSDIR\taskkill.exe" /F /IM veyra-overlay.exe' $0
-    Sleep 1000
-
-    ; ── Stop and remove Windows service ──────────────────────────────────────
+    ; Stop and remove service
     DetailPrint "Removing Veyra Audio Service..."
+    nsExec::ExecToLog '"$SYSDIR\sc.exe" stop ${SERVICE_NAME}'
+    Pop $0
+    Sleep 1500
     ExecWait '"$INSTDIR\veyra-service.exe" --uninstall' $0
-    Sleep 1000
 
-    ; ── Delete install directory ──────────────────────────────────────────────
+    ; Delete install directory
     DetailPrint "Removing files..."
     RMDir /r "$INSTDIR"
 
-    ; ── Remove user data (only if chosen) ────────────────────────────────────
+    ; Optionally delete user data
     ${If} $R9 == "delete"
         RMDir /r "$PROGRAMDATA\Veyra"
-        DetailPrint "User data removed."
     ${EndIf}
 
-    ; ── Remove shortcuts ──────────────────────────────────────────────────────
+    ; Shortcuts
     Delete "$SMPROGRAMS\Veyra Sounds\Veyra Sounds.lnk"
     Delete "$SMPROGRAMS\Veyra Sounds\Veyra Overlay.lnk"
     Delete "$SMPROGRAMS\Veyra Sounds\Setup Audio Driver (Advanced).lnk"
@@ -600,11 +569,31 @@ Section "Uninstall"
     RMDir  "$SMPROGRAMS\Veyra Sounds"
     Delete "$DESKTOP\Veyra Sounds.lnk"
 
-    ; ── Remove startup registry entry ─────────────────────────────────────────
+    ; Registry cleanup
     DeleteRegValue HKCU "${STARTUP_KEY}" "${STARTUP_VALUE}"
+    DeleteRegKey   HKLM "${UNINST_KEY}"
 
-    ; ── Remove Programs & Features entry ─────────────────────────────────────
-    DeleteRegKey HKLM "${UNINST_KEY}"
+    ; Remove the CLSID entry left by regsvr32 (belt-and-suspenders)
+    DeleteRegKey HKLM "SOFTWARE\Classes\CLSID\${RENDER_CLSID}"
+
+    ; Remove any FxProperties entries NSIS can reach directly
+    ; (belt-and-suspenders after --unassociate-all above)
+    StrCpy $0 0
+    unasc_loop:
+        EnumRegKey $1 HKLM \
+            "SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render" $0
+        StrCmp $1 "" unasc_done
+        ReadRegStr $2 HKLM \
+            "SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render\$1\FxProperties" \
+            "${FX_POSTMIX_KEY}"
+        StrCmp $2 "${RENDER_CLSID}" 0 unasc_next
+        DeleteRegValue HKLM \
+            "SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render\$1\FxProperties" \
+            "${FX_POSTMIX_KEY}"
+        unasc_next:
+        IntOp $0 $0 + 1
+        Goto unasc_loop
+    unasc_done:
 
     DetailPrint "${PRODUCT_NAME} uninstalled."
 

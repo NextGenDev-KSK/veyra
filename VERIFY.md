@@ -79,6 +79,14 @@ This is the **primary** path. The APO loads into `audiodg.exe` and processes
 every app's audio on your chosen output — no virtual cable, no rerouting.
 Full steps in [BUILD_GUIDE.md](BUILD_GUIDE.md) §2:
 
+**Option A — Use the installer (recommended for end-to-end testing):**
+
+1. Build the installer: `pwsh installer/setup/build-installer.ps1 -BinDir build/windows-release/bin`
+2. Run `dist-setup\veyra-sounds-setup-x.y.z-x64.exe`, pick your output device, click Finish.
+3. Launch Veyra — brand LED turns green, effects are live.
+
+**Option B — Manual developer setup (when iterating on the APO DLL itself):**
+
 1. **Enable test-signing and reboot** (one-time; admin):
    ```sh
    bcdedit /set testsigning on
@@ -95,8 +103,7 @@ Full steps in [BUILD_GUIDE.md](BUILD_GUIDE.md) §2:
    ```sh
    powershell -ExecutionPolicy Bypass .\associate-apo.ps1
    ```
-   Pick your wired/built-in/USB output. For the mic: add `-Capture`. To remove: `-Unassociate`.
-   The script restarts `AudioSrv` so `audiodg.exe` reloads the chain.
+   Pick your wired/built-in/USB output. The script restarts `AudioSrv`.
 
 4. **Start the service and UI**:
    ```sh
@@ -106,6 +113,9 @@ Full steps in [BUILD_GUIDE.md](BUILD_GUIDE.md) §2:
 
 5. **Play audio** through the associated endpoint. Move the EQ, switch Presets,
    toggle Spatial → Cinematic — effects should be audible in real time (< 5 ms).
+
+> **Note:** The PowerShell scripts in `installer/driver/` are developer tools only.
+> End users should always use the installer (Option A).
 
 Verify the APO is loaded: **Process Explorer** → `audiodg.exe` → lower pane → DLLs → filter `veyra-apo`.
 

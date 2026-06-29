@@ -77,6 +77,7 @@ add_subdirectory(apps/veyra-apo)
 add_subdirectory(apps/veyra-service)
 add_subdirectory(apps/veyra-ui)
 add_subdirectory(apps/veyra-overlay)
+add_subdirectory(apps/veyra-setup-helper)
 
 if(VEYRA_BUILD_TESTS)
     enable_testing()
