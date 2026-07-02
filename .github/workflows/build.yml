@@ -41,11 +41,12 @@ jobs:
       - name: Test (DSP)
         run: ctest --test-dir build/windows-release --output-on-failure
 
-      - name: Verify all four binaries exist and stage them
+      - name: Verify all shipped binaries exist and stage them
         shell: pwsh
         run: |
           $root = "build/windows-release"
-          $expected = @("veyra.exe", "veyra-service.exe", "veyra-apo.dll", "veyra-overlay.exe")
+          $expected = @("veyra.exe", "veyra-service.exe", "veyra-apo.dll",
+                        "veyra-overlay.exe", "VeyraSetupHelper.exe")
           New-Item -ItemType Directory -Force dist | Out-Null
           $missing = @()
           foreach ($f in $expected) {
@@ -59,7 +60,7 @@ jobs:
             Write-Error "Missing expected artifacts: $($missing -join ', ')"
             exit 1
           }
-          Write-Host "All four binaries present."
+          Write-Host "All shipped binaries present."
 
       - name: Upload binaries
         uses: actions/upload-artifact@v4

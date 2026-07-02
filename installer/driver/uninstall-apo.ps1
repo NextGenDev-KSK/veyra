@@ -32,8 +32,16 @@ $ErrorActionPreference = "Stop"
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-$FxKeyName    = "{D04E05A6-594B-4FB6-A80D-01AF5EEC11D9},6"   # PKEY_FX_PostMixEffectClsid
-$FxKeyNamePre = "{D04E05A6-594B-4FB6-A80D-01AF5EEC11D9},4"   # PKEY_FX_PreMixEffectClsid
+# FMTID {D04E05A6-594B-4FB6-A80D-01AF5EED7D1D} — ED7D1D, NOT the old EC11D9.
+# PID 6 = PKEY_FX_ModeEffectClsid (render), PID 1 = PKEY_FX_PreMixEffectClsid
+# (capture) — the keys VeyraSetupHelper/associate-apo.ps1 write. The legacy
+# EC11D9 keys are also scrubbed in case an older script version wrote them.
+$FxKeys = @(
+    "{D04E05A6-594B-4FB6-A80D-01AF5EED7D1D},6",
+    "{D04E05A6-594B-4FB6-A80D-01AF5EED7D1D},1",
+    "{D04E05A6-594B-4FB6-A80D-01AF5EEC11D9},6",   # legacy (wrong GUID)
+    "{D04E05A6-594B-4FB6-A80D-01AF5EEC11D9},4"    # legacy (wrong GUID + PID)
+)
 $RenderClsid  = "{7E9C2B14-3F6A-4D8E-9B21-5C0A1F2E3D44}"     # VeyraApoEfx
 $CaptureClsid = "{B2D4E6F8-1A3C-4E5D-8F09-2B4C6D8E0A12}"     # VeyraMicApo
 $VeyraClsids  = @($RenderClsid, $CaptureClsid)
@@ -61,7 +69,7 @@ foreach ($flow in @("Render", "Capture")) {
         $fxPath = Join-Path $_.PSPath "FxProperties"
         if (-not (Test-Path $fxPath)) { return }
 
-        foreach ($key in @($FxKeyName, $FxKeyNamePre)) {
+        foreach ($key in $FxKeys) {
             $val = Get-ItemProperty -Path $fxPath -Name $key -EA SilentlyContinue
             if ($val -and ($VeyraClsids -contains $val.$key)) {
                 Remove-ItemProperty -Path $fxPath -Name $key -EA SilentlyContinue

@@ -40,13 +40,15 @@ CopyFiles = Veyra_APO_CopyFiles
 [Veyra_APO_CopyFiles]
 veyra-apo.dll
 
-; Associate the registered CLSID as the endpoint's post-mix (SFX/EFX) effect.
+; Associate the registered CLSID as the endpoint's mode (MFX) effect — the slot
+; the audio engine reads for every endpoint type, including Bluetooth A2DP.
+; The PKEY string is the VALUE NAME under the FX\0 key (standard APO INF form).
 ; CLSID below must match CLSID_VeyraApoEfx in dllmain.cpp.
 [Veyra_APO_Install.Interfaces]
 AddInterface = %KSCATEGORY_AUDIO%, , Veyra_APO_AddReg
 
 [Veyra_APO_AddReg]
-HKR,"FX\\0\\%PKEY_FX_PostMixEffectClsid%",,,"{7E9C2B14-3F6A-4D8E-9B21-5C0A1F2E3D44}"
+HKR,"FX\\0",%PKEY_FX_ModeEffectClsid%,,"{7E9C2B14-3F6A-4D8E-9B21-5C0A1F2E3D44}"
 
 [SourceDisksNames]
 1 = %DiskName%
@@ -62,4 +64,5 @@ ProviderName       = "Veyra Sounds"
 Veyra.DeviceDesc   = "Veyra Audio Enhancer"
 DiskName           = "Veyra APO Installation Media"
 KSCATEGORY_AUDIO   = "{6994AD04-93EF-11D0-A3CC-00A0C9223196}"
-PKEY_FX_PostMixEffectClsid = "{D04E05A6-594B-4FB6-A80D-01AF5EEC11D9},6"
+; ED7D1D, NOT the old EC11D9 — a wrong FMTID is silently ignored by audiodg.
+PKEY_FX_ModeEffectClsid = "{D04E05A6-594B-4FB6-A80D-01AF5EED7D1D},6"

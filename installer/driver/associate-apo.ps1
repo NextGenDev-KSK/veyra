@@ -54,12 +54,17 @@ $ErrorActionPreference = "Stop"
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-# PKEY_FX_PostMixEffectClsid = {D04E05A6-594B-4FB6-A80D-01AF5EEC11D9},6
-$FxKeyName    = "{D04E05A6-594B-4FB6-A80D-01AF5EEC11D9},6"
+# FMTID {D04E05A6-594B-4FB6-A80D-01AF5EED7D1D} — note ED7D1D, NOT the old EC11D9
+# (a wrong-GUID key is silently ignored by audiodg). Render endpoints use
+# PKEY_FX_ModeEffectClsid (PID 6) — the slot audiodg reads for every endpoint
+# type, including Bluetooth A2DP. Capture uses PKEY_FX_PreMixEffectClsid (PID 1).
+# This matches what VeyraSetupHelper.exe writes during installation.
 $RenderClsid  = "{7E9C2B14-3F6A-4D8E-9B21-5C0A1F2E3D44}"   # VeyraApoEfx
 $CaptureClsid = "{B2D4E6F8-1A3C-4E5D-8F09-2B4C6D8E0A12}"   # VeyraMicApo
+$FxKeyName    = "{D04E05A6-594B-4FB6-A80D-01AF5EED7D1D},6"                  # render: ModeEffect
+if ($Capture) { $FxKeyName = "{D04E05A6-594B-4FB6-A80D-01AF5EED7D1D},1" }   # capture: PreMix
 
-# PKEY_Device_FriendlyName = {a45c254e-df1c-4efd-8020-67d146a850e0},2
+# PKEY_Device_DeviceDesc = {a45c254e-df1c-4efd-8020-67d146a850e0},2 ("Speakers" etc.)
 $FriendlyNameKey = "{a45c254e-df1c-4efd-8020-67d146a850e0},2"
 
 $TargetClsid = if ($Capture) { $CaptureClsid } else { $RenderClsid }
@@ -97,8 +102,8 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 # ── List-endpoints mode (diagnostic; read-only) ───────────────────────────────
 
 if ($ListEndpoints) {
-    $PreMixKey   = "{D04E05A6-594B-4FB6-A80D-01AF5EEC11D9},4"
-    $PostMixKey  = "{D04E05A6-594B-4FB6-A80D-01AF5EEC11D9},6"
+    $PreMixKey   = "{D04E05A6-594B-4FB6-A80D-01AF5EED7D1D},1"  # PKEY_FX_PreMixEffectClsid (capture)
+    $PostMixKey  = "{D04E05A6-594B-4FB6-A80D-01AF5EED7D1D},6"  # PKEY_FX_ModeEffectClsid (render)
     $veyraClsids = @($RenderClsid, $CaptureClsid)
     Write-Host ""
     Write-Host "Audio endpoints — Veyra APO association status:"

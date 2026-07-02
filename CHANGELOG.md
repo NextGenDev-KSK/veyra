@@ -12,6 +12,36 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [1.0.0] — 2026-07-01
 
+**Audit Pass 5 — release-candidate pass (2026-07-02)**
+
+### Fixed
+- **`installer/driver/associate-apo.ps1`, `uninstall-apo.ps1`, `veyra_apo.inf` —
+  wrong FxProperties FMTID** — the developer scripts and INF still used the
+  legacy `{D04E05A6-…-EC11D9}` GUID (audiodg silently ignores keys under a
+  wrong FMTID) and mislabeled PIDs (PreMix is PID 1, not 4; PID 6 is
+  ModeEffect, not PostMix). All three now write/remove
+  `{D04E05A6-594B-4FB6-A80D-01AF5EED7D1D}` PID 6 (render) / PID 1 (capture),
+  matching `VeyraSetupHelper.exe`. `uninstall-apo.ps1` additionally scrubs the
+  legacy wrong-GUID keys, and the INF registry line now uses the standard
+  value-name form (`HKR,"FX\0",%PKEY%,,%CLSID%`).
+- **`apps/veyra-service/UpdaterClient.cpp` — service stop latency** — the daily
+  update-check loop slept in 1-minute slices, so stopping the service could
+  block up to 60 s (far past SCM's 3 s wait hint, and past the uninstaller's
+  8 s stop wait). Now sleeps in 250 ms slices.
+- **`apps/veyra-overlay/main.cpp` — tracker attach retry** — if the overlay
+  launched before the service, the shared tracker block was opened once and
+  never retried, leaving the radar dead until relaunch. It now retries on the
+  existing ~10 s config-poll cadence.
+
+### Changed
+- **`.github/workflows/build.yml`** — the artifact gate now also verifies
+  `VeyraSetupHelper.exe` (all five shipped binaries, previously four).
+- **`ARCHITECTURE.md`** — documented that Sound Tracker game auto-detection
+  (`GetForegroundWindow`) is inert in session-0 service mode; the manual Gamer
+  Mode toggle is unaffected.
+- **`RELEASE_AUDIT.md`** — removed a personal filesystem path ahead of the
+  repository going public.
+
 **Audit Pass 4 — hardware verification + release audit (2026-07-01)**
 
 ### Fixed (audio path, verified on hardware)

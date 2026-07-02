@@ -7,7 +7,7 @@ No percentages. No speculation. Verified facts only.
 
 ## Audit Scope
 
-Codebase at `C:\Users\krith\Documents\veyra`. Files read directly:
+Audited from the repository root. Files read directly:
 `ServiceInstaller.cpp`, `ServiceRuntime.cpp`, `ServiceMain.cpp`,
 `AudioBridge.cpp/h`, `SharedParameters.h`, `SharedMemory.cpp`,
 `PipeServer.cpp`, `PipeClient.h`, `Protocol.h`, `ControlServer.cpp`,
@@ -279,7 +279,7 @@ Items **not** considered blockers:
 | `installer/portable/make-portable.ps1` | Fixed README-PORTABLE.txt (APO-first messaging); updated example version |
 | `installer/driver/veyra_apo.inf` | Removed "Phase 2" internal planning language |
 | `installer/setup/setup-audio-driver.cmd` | Clarified test-signing prereq (dev builds only) |
-| `VERIFY.md` | Fixed hardcoded personal path `renuk` → `C:\path\to\veyra` |
+| `VERIFY.md` | Fixed a hardcoded personal path → `C:\path\to\veyra` |
 | `BUILD_GUIDE.md` | Removed stale "Phase N" labels; fixed wrong `apo-helper.ps1` reference |
 | `RELEASE_NOTES.md` | Created — v1.0.0 GitHub release document |
 

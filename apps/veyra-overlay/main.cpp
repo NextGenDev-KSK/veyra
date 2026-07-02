@@ -208,7 +208,19 @@ void render()
     // Poll config.json every 300 frames (~10 s at 30 fps). Full JSON parse on
     // every 15 frames (~0.5 s) stalls the render loop on HDDs and network AppData.
     if (++g_pollCounter % 300 == 0)
+    {
         pollConfig();
+
+        // If the service wasn't up when we launched, keep retrying the tracker
+        // block on the same cadence instead of staying dead until relaunch.
+        if (!g_data &&
+            g_region.open(veyra::ipc::kSharedTrackerName, sizeof(veyra::ipc::VeyraTrackerData)))
+        {
+            g_data = static_cast<const veyra::ipc::VeyraTrackerData*>(g_region.data());
+            if (g_data)
+                g_seen = g_data->writeCount.load(std::memory_order_acquire);
+        }
+    }
 
     if (!g_gm.enabled)
     {

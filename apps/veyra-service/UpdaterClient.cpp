@@ -121,9 +121,10 @@ void UpdaterClient::run()
             log_->warn("Update check failed to reach the release feed.");
         }
 
-        // Re-check daily; wake promptly on shutdown.
-        for (int i = 0; i < 24 * 60 && running_.load(); ++i)
-            std::this_thread::sleep_for(std::chrono::minutes(1));
+        // Re-check daily. Sleep in short slices so stop() never waits more
+        // than ~250 ms — service stop must fit inside SCM's 3 s wait hint.
+        for (int i = 0; i < 24 * 60 * 240 && running_.load(); ++i)
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
     }
 }
 
