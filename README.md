@@ -3,6 +3,9 @@
 [![build](https://github.com/NextGenDev-KSK/veyra/actions/workflows/build.yml/badge.svg)](https://github.com/NextGenDev-KSK/veyra/actions/workflows/build.yml)
 [![license](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
 [![platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey.svg)]()
+[![website](https://img.shields.io/badge/website-veyra-8b5cf6.svg)](https://nextgendev-ksk.github.io/veyra-website/)
+
+**🌐 Website: [nextgendev-ksk.github.io/veyra-website](https://nextgendev-ksk.github.io/veyra-website/)** · **[⬇ Download](https://github.com/NextGenDev-KSK/veyra/releases/latest)**
 
 **Veyra Sounds** is a free, open-source, system-wide audio enhancer for Windows 10/11 (x64).
 It gives you realtime EQ, dynamics, spatial audio, voice processing, a gamer Sound Tracker HUD,
