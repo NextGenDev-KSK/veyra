@@ -1,0 +1,13 @@
+version: 2
+updates:
+  # CI actions (actions/checkout, upload-artifact, msvc-dev-cmd, get-cmake)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Git submodules (third_party/JUCE, third_party/spdlog)
+  - package-ecosystem: gitsubmodule
+    directory: /
+    schedule:
+      interval: weekly
