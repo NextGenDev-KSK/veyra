@@ -17,6 +17,19 @@ Licensed under the **GNU GPLv3**.
 
 Maintainer: **Krithik S** ([@NextGenDev-KSK](https://github.com/NextGenDev-KSK))
 
+![Veyra Sounds — Home](resources/screenshots/home.png)
+
+<table>
+  <tr>
+    <td><img src="resources/screenshots/presets.png" alt="Preset library — 27 built-in presets with categories and favourites"/></td>
+    <td><img src="resources/screenshots/gamermode.png" alt="Gamer Mode — Sound Tracker, spatial audio, voice chain, night mode"/></td>
+  </tr>
+  <tr>
+    <td><img src="resources/screenshots/device.png" alt="Devices — preferred output selection"/></td>
+    <td><img src="resources/screenshots/settings.png" alt="Settings — themes, hotkeys, updates"/></td>
+  </tr>
+</table>
+
 ---
 
 ## Features
