@@ -99,10 +99,21 @@ void PipeServer::stop()
         return; // not running
 
     // Abort the blocking ConnectNamedPipe / ReadFile the listener is parked in.
+    // CancelSynchronousIo only cancels an operation that is already pending; if
+    // the listener happened to be between blocking calls the cancel is lost and
+    // the next call would block forever. Re-issue until the thread exits.
+    for (;;)
     {
-        std::lock_guard<std::mutex> lock(threadHandleMutex_);
-        if (listenerThread_)
-            CancelSynchronousIo(listenerThread_);
+        HANDLE thread = nullptr;
+        {
+            std::lock_guard<std::mutex> lock(threadHandleMutex_);
+            thread = listenerThread_;
+        }
+        if (!thread)
+            break; // listener hasn't started its loop yet; it will see running_==false
+        CancelSynchronousIo(thread);
+        if (WaitForSingleObject(thread, 100) == WAIT_OBJECT_0)
+            break;
     }
 
     if (listener_.joinable())

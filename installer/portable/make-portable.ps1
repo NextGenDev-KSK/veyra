@@ -10,7 +10,7 @@
   so they aren't copied. Run from the repo root after a release build.
 
 .EXAMPLE
-  pwsh installer/portable/make-portable.ps1 -BinDir build/windows-release/bin -Version 0.3.0
+  pwsh installer/portable/make-portable.ps1 -BinDir build/windows-release/bin -Version 1.0.0
 #>
 param(
     [string]$BinDir   = "build/windows-release/bin",
@@ -69,24 +69,38 @@ Veyra Sounds — Portable $Version (x64)
 
 This is a portable build: no installer, no admin needed for the basics.
 
+HOW EFFECTS WORK
+  Veyra processes audio via an APO (Audio Processing Object) loaded into the Windows
+  audio engine — the same mechanism used by Dolby Atmos and DTS. No virtual cable or
+  rerouting required.
+
+  For an official signed release, the APO loads automatically after association.
+  For developer builds from source, test-signing must be enabled first (see driver/).
+
+  Bluetooth headphones that reject the APO can use the Audio Bridge fallback
+  (Devices -> Audio Bridge) with VB-CABLE as the virtual source.
+
 QUICK START
-  1. Run veyra-service.exe       (the background audio service)
+  1. Run veyra-service.exe       (the background audio service - run as Administrator
+                                   for APO association; not required for basic use)
   2. Run veyra.exe               (the app) - the brand LED turns green when connected
-  3. To HEAR effects without a driver: install a virtual audio cable
-     (e.g. VB-CABLE), set it as the Windows default output, then in the app go
-     to Devices -> Audio Bridge: Source = the cable, Output = your headphones,
-     Enable. Play audio and adjust EQ / Spatial / Loudness live.
+  3. Play audio. Move an EQ band on the Home screen to verify effects are audible.
+
+  DEVELOPER: To activate the APO on a dev build (test-signing required):
+    a. Enable test-signing: bcdedit /set testsigning on  (admin, reboot once)
+    b. From an elevated prompt: powershell driver\associate-apo.ps1
+    c. Restart Windows Audio and relaunch Veyra.
 
 CONTENTS
   veyra.exe            the app (UI)
   veyra-service.exe    the audio service (run this first)
-  veyra-apo.dll        the system audio effect (optional, advanced - see driver/)
+  veyra-apo.dll        the system audio effect (APO for audiodg.exe)
   veyra-overlay.exe    the Gamer Mode radar HUD
   resources/lang/      localization catalogs
-  driver/              optional APO dev-registration (test-signing required)
+  driver/              APO developer registration scripts (test-signing required)
 
 Config + logs live under %ProgramData%\Veyra. Veyra Sounds is free software (GPLv3);
-see LICENSE.
+see LICENSE. For help: https://github.com/NextGenDev-KSK/veyra
 "@ | Set-Content (Join-Path $stage "README-PORTABLE.txt") -Encoding utf8
 
 # --- Zip it ---

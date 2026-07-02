@@ -17,11 +17,11 @@ SERVICE_STATUS        g_status{};
 HANDLE                g_stopEvent = nullptr;
 DWORD                 g_checkPoint = 1;
 
-void reportStatus(DWORD state, DWORD waitHintMs = 0)
+void reportStatus(DWORD state, DWORD waitHintMs = 0, DWORD win32ExitCode = NO_ERROR)
 {
     g_status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
     g_status.dwCurrentState = state;
-    g_status.dwWin32ExitCode = NO_ERROR;
+    g_status.dwWin32ExitCode = win32ExitCode;
     g_status.dwWaitHint = waitHintMs;
     g_status.dwControlsAccepted =
         (state == SERVICE_START_PENDING)
@@ -66,14 +66,19 @@ VOID WINAPI serviceMain(DWORD, LPWSTR*)
     g_stopEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
     if (!g_stopEvent)
     {
-        reportStatus(SERVICE_STOPPED);
+        // Report the real error so SCM failure actions fire and the failure is
+        // visible in the event log, rather than looking like a clean stop.
+        reportStatus(SERVICE_STOPPED, 0, GetLastError());
         return;
     }
 
     ServiceRuntime runtime;
     if (!runtime.start())
     {
-        reportStatus(SERVICE_STOPPED);
+        CloseHandle(g_stopEvent);
+        g_stopEvent = nullptr;
+        g_status.dwServiceSpecificExitCode = 1; // runtime failed to start (see service log)
+        reportStatus(SERVICE_STOPPED, 0, ERROR_SERVICE_SPECIFIC_ERROR);
         return;
     }
 

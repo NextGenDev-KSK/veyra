@@ -27,7 +27,11 @@ public:
     // Service side: create (or open if it already exists) a writable region.
     bool create(const std::wstring& name, size_t size);
 
-    // APO side: open an existing region for reading/writing.
+    // Consumer side (APO / UI / overlay): open an existing region read-only.
+    // Every cross-process consumer is a pure reader; requesting read access is
+    // what the DACL grants them (Everyone: read). Requesting write here would
+    // be denied for non-admin/non-System openers — including the APO inside
+    // audiodg.exe, which runs as LocalService.
     bool open(const std::wstring& name, size_t size);
 
     void close();

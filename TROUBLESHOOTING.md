@@ -8,16 +8,13 @@ This guide covers the most common installation and runtime problems, their root 
 
 Before diving into specific issues, run these two checks first — they tell you whether each layer is healthy.
 
-```powershell
-# 1. Is the service running?
-sc query VeyraAudioService
+**Check 1 — Is the service running?** Open the Windows Run dialog (`Win + R`), type `services.msc`, press Enter. Look for **Veyra Audio Service**. It should show Status = **Running** and Startup Type = **Automatic**.
 
-# 2. Are there Veyra CLSIDs on any endpoint?
-pwsh installer/driver/associate-apo.ps1 -ListEndpoints
+**Check 2 — Is the Veyra tray icon present?** Look in the system tray (bottom-right corner of the taskbar). The Veyra icon should be visible. If not, launch Veyra from Start → Veyra Sounds.
 
-# 3. Is the named pipe open?
-Get-ChildItem \\.\pipe\ | Where-Object Name -eq veyra-control
-```
+**Check 3 — Does the top bar LED show green?** In the Veyra app, the circular LED in the top bar is green when connected to the service. Amber means the UI is reconnecting. Grey means disconnected.
+
+> **For developers and advanced users:** Command-line diagnostics are covered in [BUILD_GUIDE.md](BUILD_GUIDE.md).
 
 ---
 
@@ -65,60 +62,30 @@ The service session validation may be rejecting the UI. Check the service log at
 
 **Symptom:** Veyra is running, the LED is green, but EQ changes have no effect on audio.
 
-**Check 1 — Is the APO actually loaded into audiodg.exe?**
-1. Open Process Explorer (Sysinternals)
-2. Find `audiodg.exe`
-3. Lower pane → DLLs → search for `veyra-apo`
-4. If absent → proceed to the fixes below
+**Check 1 — Is the APO loaded? (advanced)**
+Download [Process Explorer](https://learn.microsoft.com/en-us/sysinternals/downloads/process-explorer) (free Microsoft tool), find `audiodg.exe`, open its lower DLL pane, and search for `veyra-apo`. If it is absent, the APO did not load — proceed to the fixes below. If it is present, the APO is loaded and the issue may be in the device association (Check 2).
 
-**Check 2 — Is the APO associated with the correct endpoint?**
-```powershell
-pwsh installer/driver/associate-apo.ps1 -ListEndpoints
-```
-The endpoint you are playing through should show `VEYRA APO PRESENT`.
+**Check 2 — Is Veyra set as the audio processor for the correct output?**
+Open Veyra → Devices. The device listed under "Preferred Output" should match the output you are playing through. If no device is selected, choose your speakers or headphones from the list.
 
-**Fix A — test-signing not enabled:**
-```cmd
-# Elevated:
-bcdedit /set testsigning on
-# Reboot, then re-associate:
-pwsh installer/driver/associate-apo.ps1
-```
-Confirm: `bcdedit /enum | findstr testsigning` should show `testsigning Yes`.
+**Fix A — Re-run audio device setup:**
+1. Open Start → **Veyra Sounds** → **Setup Audio Driver (Advanced)**
+2. Follow the on-screen steps to re-associate Veyra with your output device
+3. Restart your computer and try again
 
-**Fix B — COM server not registered:**
-```cmd
-# Elevated:
-regsvr32 /s veyra-apo.dll
-# Verify:
-reg query "HKCR\CLSID\{7E9C2B14-3F6A-4D8E-9B21-5C0A1F2E3D44}"
-```
+**Fix B — Reinstall Veyra:**
+If Fix A does not work, uninstall Veyra via Settings → Apps → Veyra Sounds → Uninstall, then download and reinstall from the [releases page](https://github.com/NextGenDev-KSK/veyra/releases). The installer re-registers all components automatically.
 
-**Fix C — FxProperties key missing or wrong CLSID:**
-```powershell
-# Elevated:
-pwsh installer/driver/associate-apo.ps1  # re-associate
-```
-Then restart Windows Audio:
-```cmd
-net stop AudioSrv && net start AudioEndpointBuilder && net start AudioSrv
-```
+> **Note for open-source builds:** If you built Veyra from source without a production-signed driver package, the APO will not load into `audiodg.exe` on a standard Windows installation. This is a Windows security requirement. See [installer/SIGNING.md](installer/SIGNING.md) for signing options. This does not affect users who installed from the official VeyraSetup.exe.
 
-**Fix D — audiodg.exe crash loop:**
-Open Event Viewer → Windows Logs → System, Source=AudioDg. If you see repeated crashes, the APO DLL may be loading but faulting. Run the service in console mode first and confirm the shared-memory block is created:
-```
-veyra-service.exe --console
-# Look for: "ApoPublisher: shared memory created"
-```
-If the block is absent, the APO has no parameters to read and may crash on first process callback.
+**Fix C — Windows Audio service crash loop (advanced):**
+If Windows plays a short burst of audio then stops, or Task Manager shows `audiodg.exe` repeatedly restarting, open Event Viewer → Windows Logs → System, filter by Source = AudioDg, and look for crash events. If crashes began after installing Veyra, uninstall and reinstall to reset the component registration. If you are building from source, see [BUILD_GUIDE.md](BUILD_GUIDE.md) for console-mode diagnostics.
 
 ---
 
 ## Problem 3 — No audio effect heard (Audio Bridge — Bluetooth fallback)
 
-> The Audio Bridge is not the primary audio path. If you have not set up the APO,
-> follow [BUILD_GUIDE.md §2](BUILD_GUIDE.md) first. The Bridge is only needed when
-> your Bluetooth endpoint rejects the APO.
+> The APO is Veyra's primary design, but it only loads on a **signed** build. On this unsigned open-source release the APO does not load into `audiodg.exe`, so the **Audio Bridge is the working audio path** — and it is the *only* option for Bluetooth A2DP endpoints, which never host a custom APO regardless of signing. On a future signed build the APO becomes primary and the Bridge is needed only for Bluetooth. See the APO note in the [Release Notes](RELEASE_NOTES.md).
 
 **Symptom:** Audio Bridge is enabled and configured, but audio through the
 Bluetooth headphones is unchanged.
@@ -128,7 +95,10 @@ Windows Sound Settings → Output must show `CABLE Input` (or equivalent) as the
 Apps play *into* the cable; the Bridge captures from `CABLE Output` and renders to the headphones.
 
 **Check 2 — Is the Bridge active?**
-Veyra → Devices shows the Bridge status. If "Stopped", check `%ProgramData%\Veyra\logs\veyra-service.log` for `AudioBridge:` lines.
+Open `%ProgramData%\Veyra\config.json` and confirm the `bridge` block has
+`"enabled": true` with the correct `source_device_id` / `target_device_id`
+(setup steps in [docs/AUDIO_BRIDGE.md](docs/AUDIO_BRIDGE.md)). Then check
+`%ProgramData%\Veyra\logs\veyra-service.log` for `AudioBridge:` lines.
 
 **Check 3 — Source and Output must be different devices.**
 Source = `CABLE Output` (capture); Output = headphones. They cannot be the same device.
@@ -148,12 +118,9 @@ Check the Master Volume slider in Veyra and the system volume on the Output endp
 
 **Symptom:** Per-app rules saved in the Apps screen disappear after restarting Veyra.
 
-**Root cause (pre-v0.9.1):** Rules were written to `%APPDATA%\Veyra\app_rules.json` by the UI but read from `%ProgramData%\Veyra\app_rules.json` by the service. Fixed in v0.9.0 — both now use `%ProgramData%\Veyra\app_rules.json`.
+**Root cause (pre-v1.0.0):** Rules were written to `%APPDATA%\Veyra\app_rules.json` by the UI but read from `%ProgramData%\Veyra\app_rules.json` by the service. Fixed in v1.0.0 — both now use `%ProgramData%\Veyra\app_rules.json`.
 
-**Fix:** Update to v0.9.0 or later. If upgrading from an older version, migrate existing rules:
-```powershell
-Copy-Item "$env:APPDATA\Veyra\app_rules.json" "$env:ProgramData\Veyra\app_rules.json" -Force
-```
+**Fix:** Update to v1.0.0 or later. If upgrading from a pre-1.0 version and your rules disappeared, uninstall and reinstall Veyra — the installer creates the correct data directory structure automatically.
 
 ---
 

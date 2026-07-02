@@ -26,7 +26,7 @@ Windows 11 SDK, **CMake**, and **Ninja**. Git you already have. (No WDK needed.)
 Open **"x64 Native Tools Command Prompt for VS 2022"** (Start menu), then:
 
 ```sh
-cd C:\Users\renuk\Documents\veyra
+cd C:\path\to\veyra
 git submodule update --init --recursive            REM JUCE + spdlog (first time)
 cmake --preset windows-release -DVEYRA_BUILD_TESTS=ON
 cmake --build --preset windows-release
@@ -73,21 +73,33 @@ Stop: close the UI, `Ctrl+C` Terminal 1.
 
 ---
 
-## 3. Stage B — APO path: HEAR the effects ⭐  (admin + test-signing)
+## 3. Stage B — APO path: HEAR the effects ⭐  (admin + test-cert-signed DLL)
 
-This is the **primary** path. The APO loads into `audiodg.exe` and processes
-every app's audio on your chosen output — no virtual cable, no rerouting.
+This is the **primary design** path: the APO loads into `audiodg.exe` and
+processes every app's audio on your chosen output — no virtual cable, no
+rerouting.
+
+> **Signing prerequisite (verified on Windows 11 26200.8655):** `audiodg.exe`
+> loads only **signed** APO DLLs. An unsigned `veyra-apo.dll` never loads —
+> even with test-signing enabled (test-signing only admits *test-certificate-
+> signed* binaries), and the legacy `DisableProtectedAudioDG` override no
+> longer disables the protection on current Windows 11. Sign the DLL with a
+> local test certificate first (BUILD_GUIDE.md §2 has the exact commands).
+> To hear the effects without signing, use the Audio Bridge (Stage C).
+
 Full steps in [BUILD_GUIDE.md](BUILD_GUIDE.md) §2:
 
 **Option A — Use the installer (recommended for end-to-end testing):**
 
 1. Build the installer: `pwsh installer/setup/build-installer.ps1 -BinDir build/windows-release/bin`
 2. Run `dist-setup\veyra-sounds-setup-x.y.z-x64.exe`, pick your output device, click Finish.
-3. Launch Veyra — brand LED turns green, effects are live.
+3. Launch Veyra — brand LED turns green (service connected). Effects are live
+   only if the DLL you installed is signed (see the note above).
 
 **Option B — Manual developer setup (when iterating on the APO DLL itself):**
 
-1. **Enable test-signing and reboot** (one-time; admin):
+1. **Sign the DLL with a test certificate, enable test-signing, reboot**
+   (one-time; admin — commands in BUILD_GUIDE.md §2):
    ```sh
    bcdedit /set testsigning on
    ```

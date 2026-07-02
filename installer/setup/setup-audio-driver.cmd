@@ -24,12 +24,14 @@ echo  Veyra Sounds - Audio Driver Setup
 echo  ==================================
 echo.
 echo  This wizard associates the Veyra audio effect with a render (output)
-echo  endpoint so it processes audio at the system level — no virtual cable
-echo  required. Test-signing must be enabled for unsigned builds.
+echo  endpoint so it processes audio at the system level - no virtual cable
+echo  required.
 echo.
 echo  Prerequisites:
-echo    1. test-signing ON:  bcdedit /set testsigning on  (then reboot once)
-echo    2. Service running:  Start Veyra Sounds first (brand LED green)
+echo    1. Service running: Veyra Sounds must be running (brand LED green)
+echo    2. (Developer builds only) Test-signing must be enabled:
+echo       bcdedit /set testsigning on  then reboot.
+echo       Official signed releases do not require test-signing.
 echo.
 echo  Press Ctrl+C to cancel, or
 pause

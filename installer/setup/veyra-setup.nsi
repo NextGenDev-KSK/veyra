@@ -17,7 +17,8 @@
 ;    9.  Lists active playback devices via VeyraSetupHelper.exe (C++ native)
 ;   10.  User picks output device (friendly names — no GUIDs exposed)
 ;   11.  Associates APO via VeyraSetupHelper.exe --associate <guid>
-;   12.  On association failure: auto-switches to Audio Bridge mode
+;   12.  On association failure: informs the user (Audio Bridge is the manual
+;        fallback — docs/AUDIO_BRIDGE.md; nothing is switched automatically)
 ;   13.  Post-install verification (service, COM, directories)
 ;   14.  Start Menu + optional Desktop shortcuts
 ;   15.  Programs & Features / Settings → Apps entry
@@ -55,11 +56,11 @@
 !define STARTUP_KEY       "Software\Microsoft\Windows\CurrentVersion\Run"
 !define STARTUP_VALUE     "VeyraSounds"
 !define RENDER_CLSID      "{7E9C2B14-3F6A-4D8E-9B21-5C0A1F2E3D44}"
-!define FX_POSTMIX_KEY    "{D04E05A6-594B-4FB6-A80D-01AF5EEC11D9},6"
+!define FX_POSTMIX_KEY    "{D04E05A6-594B-4FB6-A80D-01AF5EED7D1D},6"
 
 ; Native helper — handles audio API calls NSIS cannot make directly
 !define HELPER            "$INSTDIR\VeyraSetupHelper.exe"
-!define LOG_FILE          "$PROGRAMDATA\Veyra\logs\install.log"
+!define LOG_FILE          "$DataDir\Veyra\logs\install.log"
 
 ; ── Output ────────────────────────────────────────────────────────────────────
 Name "${PRODUCT_NAME} ${VERSION}"
@@ -81,11 +82,19 @@ Var SelectedName
 Var ApoAssociated
 Var hDevicePage
 Var hDeviceList
+Var DataDir     ; resolved ProgramData path — $DataDir is not a built-in on all NSIS builds
 
-; ComboBox messages (not in NSIS headers)
-!define CB_ADDSTRING  0x0143
-!define CB_GETCURSEL  0x0147
-!define CB_SETCURSEL  0x014E
+; ComboBox messages — defined in WinMessages.nsh (included by nsDialogs.nsh in
+; NSIS 3.06+). Guard with !ifndef so this builds on older NSIS versions too.
+!ifndef CB_ADDSTRING
+  !define CB_ADDSTRING  0x0143
+!endif
+!ifndef CB_GETCURSEL
+  !define CB_GETCURSEL  0x0147
+!endif
+!ifndef CB_SETCURSEL
+  !define CB_SETCURSEL  0x014E
+!endif
 
 ; ── Version info block ────────────────────────────────────────────────────────
 VIProductVersion "${VERSION}.0"
@@ -97,14 +106,18 @@ VIAddVersionKey /LANG=1033 "FileDescription" "${PRODUCT_NAME} Setup"
 VIAddVersionKey /LANG=1033 "FileVersion"     "${VERSION}.0"
 
 ; ── MUI2 configuration ────────────────────────────────────────────────────────
+; MUI2 owns .onGUIInit internally. Use its hook to run our init code after
+; sections are created (so ${SecDesktop} is valid).
+!define MUI_CUSTOMFUNCTION_GUIINIT VeyraGUIInit
+
 !define MUI_ABORTWARNING
 !define MUI_ABORTWARNING_TEXT "Cancel the ${PRODUCT_NAME} installation?"
 
 !define MUI_WELCOMEPAGE_TITLE "${PRODUCT_NAME} ${VERSION}"
 !define MUI_WELCOMEPAGE_TEXT \
     "${PRODUCT_NAME} is a free, open-source audio enhancer for Windows 10/11.$\r$\n$\r$\n\
-It processes your audio in the Windows Audio Engine — no virtual cable, no rerouting. \
-You will choose your playback device on the next page.$\r$\n$\r$\n\
+You will choose your playback device on the next page. See the Quick Start \
+guide after install for how to hear the effects on this release.$\r$\n$\r$\n\
 Click Next to begin."
 
 !define MUI_LICENSEPAGE_CHECKBOX
@@ -151,7 +164,11 @@ Page custom DevicePageCreate DevicePageLeave
 ; =============================================================================
 Function .onInit
     ${If} ${RunningX64}
-        ${EnableX64FSRedirection}
+        ; Disable WOW64 file-system redirection so $SYSDIR evaluates to the real
+        ; 64-bit C:\Windows\System32 instead of C:\Windows\SysWow64.
+        ; Without this, regsvr32.exe from SysWow64 (32-bit) is called to register
+        ; a 64-bit DLL, which silently fails with ERROR_BAD_EXE_FORMAT.
+        ${DisableX64FSRedirection}
         SetRegView 64
     ${Else}
         MessageBox MB_ICONSTOP \
@@ -167,12 +184,33 @@ Function .onInit
         StrCpy $IsUpgrade "0"
     ${EndIf}
 
+    ; Resolve ProgramData path. $DataDir is not a recognised built-in on all
+    ; NSIS distributions, so read it from the environment / registry instead.
+    ReadEnvStr $DataDir "PROGRAMDATA"
+    ${If} $DataDir == ""
+        ReadRegStr $DataDir HKLM \
+            "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" \
+            "Common AppData"
+    ${EndIf}
+    ${If} $DataDir == ""
+        StrCpy $DataDir "C:\ProgramData"
+    ${EndIf}
+
     ; Initialise state
     StrCpy $SelectedGuid  ""
     StrCpy $SelectedName  ""
     StrCpy $ApoAssociated "0"
     StrCpy $DeviceCount   "0"
     StrCpy $SelectedIndex "0"
+FunctionEnd
+
+; Remove the device-enumeration scratch file once the install finishes.
+Function .onInstSuccess
+    Delete "$TEMP\veyra-devices.ini"
+FunctionEnd
+
+Function .onInstFailed
+    Delete "$TEMP\veyra-devices.ini"
 FunctionEnd
 
 ; =============================================================================
@@ -190,15 +228,26 @@ Please update Windows and run Setup again."
     ${EndIf}
 
     ; ── Create data directories first (needed for logging) ───────────────────
-    CreateDirectory "$PROGRAMDATA\Veyra"
-    CreateDirectory "$PROGRAMDATA\Veyra\logs"
-    CreateDirectory "$PROGRAMDATA\Veyra\crashes"
-    CreateDirectory "$PROGRAMDATA\Veyra\presets"
-    CreateDirectory "$PROGRAMDATA\Veyra\themes"
+    ; Use $LOCALAPPDATA\..\.. to derive ProgramData on NSIS versions where
+    ; $DataDir is not yet a recognised built-in (works on all 3.x builds).
+    CreateDirectory "$DataDir\Veyra"
+    CreateDirectory "$DataDir\Veyra\logs"
+    CreateDirectory "$DataDir\Veyra\crashes"
+    CreateDirectory "$DataDir\Veyra\presets"
+    CreateDirectory "$DataDir\Veyra\themes"
+
+    ; Abort with a clear message if the log directory could not be created
+    ; (e.g. installer somehow not elevated — should not happen with RequestExecutionLevel admin).
+    ${IfNot} ${FileExists} "$DataDir\Veyra\logs\*.*"
+        MessageBox MB_ICONSTOP \
+            "Could not create $DataDir\Veyra\logs.$\r$\n\
+Please ensure you are running Setup as Administrator and that$\r$\n\
+%ProgramData% is writable (usually C:\ProgramData)."
+        Abort
+    ${EndIf}
 
     ; Grant LocalService (audio service account) read+write access
-    nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$PROGRAMDATA\Veyra" \
-        /grant "NT AUTHORITY\LocalService:(OI)(CI)M" /T /Q'
+    nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$DataDir\Veyra" /grant "NT AUTHORITY\LocalService:(OI)(CI)M" /T /Q'
     Pop $0
 
     ; ── Begin logging ─────────────────────────────────────────────────────────
@@ -223,19 +272,23 @@ Please update Windows and run Setup again."
     ${EndIf}
 
     ; ── VC++ 2015-2022 x64 runtime ────────────────────────────────────────────
+    ; HAVE_VCREDIST is defined by build-installer.ps1 only when vc_redist.x64.exe
+    ; was copied into staging/. The File instruction packs files at compile time,
+    ; so it must be guarded with !ifdef to avoid a build-time "file not found" error.
     DetailPrint "Checking Visual C++ runtime..."
     ReadRegDWORD $R0 HKLM "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64" "Installed"
     ${If} $R0 != "1"
+!ifdef HAVE_VCREDIST
         ${AppendLog} "VC++ runtime missing — installing bundled redistributable..."
         DetailPrint "Installing Visual C++ 2015-2022 runtime..."
-        IfFileExists "staging\vc_redist.x64.exe" +3 0
-            ${AppendLog} "vc_redist.x64.exe not bundled — skipping"
-            Goto vcredist_done
-        File /oname="$TEMP\vc_redist_veyra.exe" "staging\vc_redist.x64.exe"
+        File /oname=$TEMP\vc_redist_veyra.exe "staging\vc_redist.x64.exe"
         ExecWait '"$TEMP\vc_redist_veyra.exe" /install /quiet /norestart' $R1
         Delete "$TEMP\vc_redist_veyra.exe"
         ${AppendLog} "vc_redist installer exited: $R1"
-        vcredist_done:
+!else
+        ${AppendLog} "VC++ runtime not bundled — skipping"
+        DetailPrint "VC++ runtime not bundled. Download from microsoft.com/en-us/download/details.aspx?id=48145 if needed."
+!endif
     ${Else}
         ${AppendLog} "VC++ runtime present."
     ${EndIf}
@@ -301,12 +354,34 @@ Please update Windows and run Setup again."
     ${AppendLog} "Installing service..."
     ExecWait '"$INSTDIR\veyra-service.exe" --install' $R0
     ${AppendLog} "Service install exited: $R0"
+    ${If} $R0 != "0"
+        ${AppendLog} "ERROR: Service installation failed (exit $R0)"
+        MessageBox MB_ICONSTOP \
+            "Could not register the ${PRODUCT_NAME} Windows Service (exit code: $R0).$\r$\n$\r$\n\
+Possible causes:$\r$\n\
+  • Installer is not running as Administrator$\r$\n\
+  • A previous incomplete install left a locked service entry$\r$\n$\r$\n\
+Check %ProgramData%\Veyra\logs\install.log for details."
+        Abort
+    ${EndIf}
 
     DetailPrint "Starting Veyra Audio Service..."
     ${AppendLog} "Starting service..."
     nsExec::ExecToLog '"$SYSDIR\sc.exe" start ${SERVICE_NAME}'
     Pop $0
-    Sleep 1200
+    ${AppendLog} "sc.exe start exited: $0"
+    Sleep 1500
+
+    ; Confirm the service actually reached SERVICE_RUNNING before continuing.
+    nsExec::ExecToLog '"${HELPER}" --log "${LOG_FILE}" --verify-service'
+    Pop $R1
+    ${If} $R1 == "0"
+        DetailPrint "Veyra Audio Service is running."
+        ${AppendLog} "Service verified RUNNING."
+    ${Else}
+        DetailPrint "Warning: service may not have started (exit $R1 — see install.log)."
+        ${AppendLog} "WARN: verify-service returned $R1"
+    ${EndIf}
 
     ; ── Enumerate devices for the picker page (runs before page displays) ────
     DetailPrint "Detecting audio devices..."
@@ -368,8 +443,10 @@ Section /o "Create Desktop shortcut" SecDesktop
     ${AppendLog} "Desktop shortcut created."
 SectionEnd
 
-; Pre-check the desktop shortcut on launch
-Function .onSelChange
+; VeyraGUIInit MUST appear after "Section /o ... SecDesktop" so that
+; ${SecDesktop} is defined when NSIS (single-pass) compiles this function.
+; Called via MUI_CUSTOMFUNCTION_GUIINIT — pre-checks the optional shortcut.
+Function VeyraGUIInit
     SectionSetFlags ${SecDesktop} 1
 FunctionEnd
 
@@ -381,10 +458,6 @@ FunctionEnd
 Function DevicePageCreate
     IfSilent 0 +2
     Abort   ; skip in silent mode — associate default device later
-
-    ${If} $IsUpgrade == "1"
-        Abort   ; skip for upgrades — keep existing association
-    ${EndIf}
 
     !insertmacro MUI_HEADER_TEXT "Audio Device Setup" \
         "Choose where ${PRODUCT_NAME} should process your audio."
@@ -399,8 +472,8 @@ Function DevicePageCreate
         ; No devices found — show informational message only
         ${NSD_CreateLabel} 0 0u 100% 60u \
             "No active playback devices were detected.$\r$\n$\r$\n\
-You can configure your output device in the Devices screen after Veyra launches.$\r$\n$\r$\n\
-Veyra will start in Audio Bridge compatibility mode."
+You can pick your output device in the Devices screen after Veyra launches.$\r$\n$\r$\n\
+To hear the effects, follow the Audio Bridge guide (docs/AUDIO_BRIDGE.md)."
         Pop $0
     ${Else}
         ; Normal: show device picker
@@ -476,13 +549,23 @@ Function DevicePageLeave
         StrCpy $ApoAssociated "1"
         ${AppendLog} "APO association succeeded: $SelectedName"
         DetailPrint "Audio enhancement activated on $SelectedName."
+
+        ; Verify the FxProperties entry was written and is readable.
+        nsExec::ExecToLog '"${HELPER}" --log "${LOG_FILE}" --verify-association "$SelectedGuid"'
+        Pop $R2
+        ${If} $R2 == "0"
+            ${AppendLog} "APO association registry entry verified."
+        ${Else}
+            ${AppendLog} "WARN: APO association verify returned $R2 (see log)"
+            DetailPrint "Warning: APO association could not be confirmed in registry."
+        ${EndIf}
     ${Else}
         ${AppendLog} "APO association failed (exit $R0): $SelectedName"
         MessageBox MB_ICONINFORMATION \
             "The audio enhancement could not be activated on $SelectedName.$\r$\n$\r$\n\
-This is common with Bluetooth headphones. ${PRODUCT_NAME} will use \
-Audio Bridge compatibility mode instead.$\r$\n$\r$\nYou can change this in the \
-Devices screen after launch." \
+This is common with Bluetooth headphones. To hear the effects, set up the \
+Audio Bridge — see the Quick Start guide or docs/AUDIO_BRIDGE.md in the \
+${PRODUCT_NAME} repository." \
             /SD IDOK
     ${EndIf}
 
@@ -506,7 +589,7 @@ Devices screen after launch." \
     ${EndIf}
 
     ; 3. ProgramData dirs?
-    ${If} ${FileExists} "$PROGRAMDATA\Veyra\logs\*.*"
+    ${If} ${FileExists} "$DataDir\Veyra\logs\*.*"
         ${AppendLog} "VERIFY OK: ProgramData\Veyra\logs exists."
     ${Else}
         ${AppendLog} "VERIFY WARN: ProgramData\Veyra\logs missing."
@@ -518,6 +601,30 @@ FunctionEnd
 ; =============================================================================
 ;  Uninstaller
 ; =============================================================================
+
+; The uninstaller is a separate process: it does NOT inherit the installer's
+; .onInit state. Without this, $SYSDIR resolves to SysWow64 (so the 32-bit
+; regsvr32 silently fails to unregister the 64-bit DLL — the same WOW64 bug
+; fixed for install), registry deletes target the WOW6432Node view instead of
+; the 64-bit view the installer wrote to, and $DataDir is empty (so "delete my
+; data" silently removes nothing).
+Function un.onInit
+    ${If} ${RunningX64}
+        ${DisableX64FSRedirection}
+        SetRegView 64
+    ${EndIf}
+
+    ReadEnvStr $DataDir "PROGRAMDATA"
+    ${If} $DataDir == ""
+        ReadRegStr $DataDir HKLM \
+            "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" \
+            "Common AppData"
+    ${EndIf}
+    ${If} $DataDir == ""
+        StrCpy $DataDir "C:\ProgramData"
+    ${EndIf}
+FunctionEnd
+
 Section "Uninstall"
 
     MessageBox MB_ICONQUESTION|MB_YESNO \
@@ -558,7 +665,7 @@ Click No to delete all ${PRODUCT_NAME} data." \
 
     ; Optionally delete user data
     ${If} $R9 == "delete"
-        RMDir /r "$PROGRAMDATA\Veyra"
+        RMDir /r "$DataDir\Veyra"
     ${EndIf}
 
     ; Shortcuts
@@ -575,6 +682,10 @@ Click No to delete all ${PRODUCT_NAME} data." \
 
     ; Remove the CLSID entry left by regsvr32 (belt-and-suspenders)
     DeleteRegKey HKLM "SOFTWARE\Classes\CLSID\${RENDER_CLSID}"
+
+    ; Remove the backup key where --associate saved original ModeEffect CLSIDs
+    DeleteRegKey HKLM "SOFTWARE\Veyra\Devices"
+    DeleteRegKey /ifempty HKLM "SOFTWARE\Veyra"
 
     ; Remove any FxProperties entries NSIS can reach directly
     ; (belt-and-suspenders after --unassociate-all above)

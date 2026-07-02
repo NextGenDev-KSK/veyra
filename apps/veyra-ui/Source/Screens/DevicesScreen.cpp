@@ -275,9 +275,9 @@ protected:
 
         g.setColour(palette_.textTertiary);
         g.setFont(fonts::body(11.0f));
-        g.drawText("Veyra processes your audio system-wide via its APO — no virtual cable, no setup.",
-                   c.removeFromTop(16), juce::Justification::topLeft, false);
         g.drawText("Pick a Preferred Output; Veyra keeps it as the Windows default automatically.",
+                   c.removeFromTop(16), juce::Justification::topLeft, false);
+        g.drawText("APO builds process it system-wide; unsigned builds use the Audio Bridge (see the guide).",
                    c.removeFromTop(16), juce::Justification::topLeft, false);
 
         const int y = getLocalBounds().reduced(kPad).getY() + 28 + 40;

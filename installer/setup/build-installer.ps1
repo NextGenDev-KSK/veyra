@@ -137,18 +137,20 @@ $installTxt = Join-Path $stage "INSTALLATION.txt"
 @"
 Veyra Sounds $Version — Quick Start
 
-Veyra is running. The brand LED turns GREEN when the service is connected.
+Veyra is running. The brand LED turns GREEN when the app is connected to the
+Veyra service.
 
-1. Play any audio. The EQ, compressor, and spatial audio are already active.
+1. To HEAR the effects on this release, set up the Audio Bridge:
+   https://github.com/NextGenDev-KSK/veyra/blob/main/docs/AUDIO_BRIDGE.md
+   (This open-source build is unsigned, and Windows only loads signed audio
+   processing objects — so the low-latency APO path stays inactive until a
+   signed release. The Bridge runs the identical DSP in the Veyra service.)
 
 2. To change your playback device:
    Open Veyra -> Devices -> Preferred Output.
 
 3. To re-run the audio driver setup (e.g. after buying new headphones):
    Start -> Veyra Sounds -> Setup Audio Driver (Advanced)
-
-4. If Bluetooth headphones don't respond to the APO:
-   Devices -> Audio Bridge (Bluetooth compatibility mode).
 
 Config and logs: %ProgramData%\Veyra
 Help: https://github.com/NextGenDev-KSK/veyra
@@ -214,9 +216,11 @@ if (Test-Path $autoeq) {
 
 # VC++ redistributable (optional — bundle if present)
 $vcredist = Join-Path $RepoRoot "installer/redist/vc_redist.x64.exe"
+$bundledVcredist = $false
 if (Test-Path $vcredist) {
     Copy-Item $vcredist $stage
     Write-Host "  vc_redist.x64.exe -> staging/ (bundled)"
+    $bundledVcredist = $true
 }
 
 # ── Run makensis ───────────────────────────────────────────────────────────────
@@ -225,7 +229,9 @@ New-Item -ItemType Directory -Force $OutDir | Out-Null
 $nsi = Join-Path $scriptDir "veyra-setup.nsi"
 Write-Host ""
 Write-Host "Building installer..."
-& $makensis /DVERSION=$Version $nsi
+$nsiDefines = @("/DVERSION=$Version")
+if ($bundledVcredist) { $nsiDefines += "/DHAVE_VCREDIST" }
+& $makensis @nsiDefines $nsi
 if ($LASTEXITCODE -ne 0) {
     Write-Error "makensis failed with exit code $LASTEXITCODE"
 }

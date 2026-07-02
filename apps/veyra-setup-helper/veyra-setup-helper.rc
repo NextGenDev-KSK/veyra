@@ -1,7 +1,3 @@
-// Embeds the application manifest into veyra-service.exe.
-// 1 == CREATEPROCESS_MANIFEST_RESOURCE_ID, 24 == RT_MANIFEST.
-1 24 "veyra-service.exe.manifest"
-
 #include <winver.h>
 #include "../../resources/win/veyra_version.h"
 
@@ -16,11 +12,11 @@ BEGIN
         BLOCK "040904B0"
         BEGIN
             VALUE "CompanyName",      VEYRA_RC_COMPANY
-            VALUE "FileDescription",  "Veyra Audio Service"
+            VALUE "FileDescription",  "Veyra Setup Helper"
             VALUE "FileVersion",      VEYRA_RC_VERSION_STR
-            VALUE "InternalName",     "veyra-service"
+            VALUE "InternalName",     "veyra-setup-helper"
             VALUE "LegalCopyright",   VEYRA_RC_COPYRIGHT
-            VALUE "OriginalFilename", "veyra-service.exe"
+            VALUE "OriginalFilename", "VeyraSetupHelper.exe"
             VALUE "ProductName",      VEYRA_RC_PRODUCT
             VALUE "ProductVersion",   VEYRA_RC_VERSION_STR
         END

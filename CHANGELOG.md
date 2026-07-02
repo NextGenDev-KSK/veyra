@@ -8,6 +8,148 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+---
+
+## [1.0.0] — 2026-07-01
+
+**Audit Pass 4 — hardware verification + release audit (2026-07-01)**
+
+### Fixed (audio path, verified on hardware)
+- **`apps/veyra-setup-helper/main.cpp` + `installer/setup/veyra-setup.nsi` —
+  Bluetooth A2DP endpoints use `PKEY_FX_ModeEffectClsid` (PID 6), not
+  `EndpointEffectClsid` (PID 7)** — the association now writes the render CLSID
+  to `{D04E05A6-…-ED7D1D},6`. Verified against `audioenginebaseapo.h`
+  (SDK 10.0.26100.0): the audio engine reads PID 6 for every endpoint type,
+  while PID 7 is silently ignored on A2DP because the Bluetooth stack only
+  declares Stream (5) + Mode (6) effect support.
+- **`apps/veyra-setup-helper/main.cpp` — original ModeEffect CLSID backup and
+  restore** — `--associate` now saves the displaced APO CLSID (e.g. the inbox
+  `WMALFXGFXDSP` mode effect) under `HKLM\SOFTWARE\Veyra\Devices\<endpoint>`
+  *before* the IPropertyStore write (for an active endpoint the Commit hits the
+  physical registry immediately, so reading after would capture our own CLSID).
+  `--unassociate-all` restores it instead of deleting the value, leaving the
+  endpoint exactly as found.
+- **`modules/veyra-common/src/ipc/SharedMemory.cpp` — consumers now map
+  shared-memory regions read-only** — `open()` requested `FILE_MAP_ALL_ACCESS`,
+  which the hardened DACL (System/Admins full, Everyone read) denies to every
+  actual consumer: the APO inside `audiodg.exe` (LocalService), the UI, and the
+  overlay (interactive user). The APO would have silently run on defaults and
+  the UI visualizer/overlay radar silently fell back to idle animation. All
+  consumers are pure readers, so `open()` now requests `FILE_MAP_READ`.
+- **`installer/setup/build-installer.ps1` + NSIS — VC++ runtime now actually
+  bundled** — `installer/redist/vc_redist.x64.exe` is packed and installed
+  silently when the runtime is missing. `veyra-apo.dll` links the dynamic CRT;
+  `audiodg.exe` resolves its imports from `System32` only, so a missing
+  `MSVCP140.dll` fails the APO load with `ERROR_MOD_NOT_FOUND` (126).
+
+### Fixed (installer)
+- **`installer/setup/veyra-setup.nsi` — uninstaller ran without the installer's
+  process-wide fixes** — added `un.onInit` with `${DisableX64FSRedirection}`,
+  `SetRegView 64`, and `$DataDir` resolution. Without it: the 32-bit `SysWow64`
+  regsvr32 silently failed to unregister the 64-bit DLL (the same WOW64 bug
+  Audit Pass 3 fixed for install), registry cleanup targeted the WOW6432Node
+  view so the Programs & Features entry survived, and "delete my data" removed
+  nothing because `$DataDir` was empty.
+- **`installer/setup/veyra-setup.nsi` — device-enumeration scratch file
+  cleanup** — `$TEMP\veyra-devices.ini` (endpoint names + GUIDs) is now deleted
+  when the installer finishes.
+
+### Fixed (service reliability)
+- **`apps/veyra-service/ServiceMain.cpp` — startup failure no longer reports a
+  clean stop** — a failed `ServiceRuntime::start()` reported `SERVICE_STOPPED`
+  with `NO_ERROR`, so SCM recovery never fired and Event Viewer showed nothing.
+  It now reports `ERROR_SERVICE_SPECIFIC_ERROR` (code 1; details in the service
+  log), and a failed stop-event creation reports its real Win32 error.
+- **`apps/veyra-service/ServiceInstaller.cpp` — failure actions on non-crash
+  failures** — SCM only runs recovery actions for processes that die without
+  reporting `SERVICE_STOPPED`; `SERVICE_CONFIG_FAILURE_ACTIONS_FLAG` is now set
+  so self-reported failures (like the above) also trigger the restart ladder.
+- **`modules/veyra-common/src/ipc/PipeServer.cpp` — shutdown race** —
+  `CancelSynchronousIo` only cancels an operation that is already pending; a
+  one-shot cancel could miss the listener between blocking calls and leave
+  `stop()` joined forever (hanging `net stop` and the uninstaller). The cancel
+  is now re-issued until the listener thread exits.
+
+### Changed (documentation honesty)
+- **README, RELEASE_NOTES, INSTALLATION, TROUBLESHOOTING, FEATURE_COVERAGE** —
+  corrected the claim that the APO processes audio on unsigned builds. Verified
+  on Windows 11 26200.8655: `audiodg.exe` loads only signed APO DLLs, enabling
+  test-signing does not help an unsigned DLL, and the `DisableProtectedAudioDG`
+  developer override no longer un-protects `audiodg` (confirmed by reboot test).
+  The Audio Bridge is documented as the working audio path for this release and
+  the only option for Bluetooth A2DP. The INSTALLATION "green LED" row now
+  matches the code: it indicates the app→service connection, not APO activity.
+
+**Audit Pass 3 — root-cause audio fix (2026-06-30)**
+
+### Fixed (Audit Pass 3 — root causes for audio not active after install)
+- **`installer/setup/veyra-setup.nsi` — WOW64 FS redirection** — added
+  `${DisableX64FSRedirection}` in `.onInit`. NSIS is a 32-bit process; without this,
+  `$SYSDIR\regsvr32.exe` resolves to the 32-bit copy in `SysWow64`, which cannot
+  load a 64-bit DLL (`ERROR_BAD_EXE_FORMAT`). COM registration was silently failing
+  on every install. The fix causes `$SYSDIR` to resolve to the real 64-bit
+  `C:\Windows\System32`, so regsvr32 correctly registers `veyra-apo.dll`.
+- **`apps/veyra-service/ServiceInstaller.cpp` — service reinstall on upgrade** —
+  `CreateServiceW` returns `ERROR_SERVICE_EXISTS` when reinstalling over an existing
+  copy. Added handler: `OpenServiceW` + `ChangeServiceConfigW` to update the binary
+  path, start type, account, and error control on the existing entry. Previously the
+  error was swallowed and the service kept the old binary path.
+- **`apps/veyra-setup-helper/main.cpp` — `RestartAudioService` race condition** —
+  replaced fixed `Sleep(1000)` with `WaitForServiceState` polling
+  (`QueryServiceStatus` every 200 ms, up to 8 s). `AudioSrv` and
+  `AudioEndpointBuilder` are now stopped in order (each polled to STOPPED) before
+  starting in order (each polled to RUNNING). The old fixed sleep caused
+  `StartService` to be called before the dependency reached STOPPED state.
+- **`apps/veyra-setup-helper/main.cpp` — APO association readback verify** —
+  `CmdAssociate` now uses `IMMDevice::OpenPropertyStore(STGM_READWRITE)` +
+  `IPropertyStore::SetValue` as the primary write path (correct API for
+  FxProperties), with a direct `RegSetValueExW` fallback. After both paths, reads
+  back `PKEY_FX_PostMixEffectClsid` and compares to `kRenderClsid`. Returns 1 on
+  mismatch. Handles both `REG_SZ` and `REG_BINARY` (PROPVARIANT) value types.
+- **`apps/veyra-setup-helper/main.cpp` — new `--verify-service` command** — queries
+  SCM with `QueryServiceStatusEx`; returns 0 iff `VeyraAudioService` state is
+  `SERVICE_RUNNING`. NSIS calls this after `sc.exe start`.
+- **`apps/veyra-setup-helper/main.cpp` — new `--verify-association <guid>` command**
+  — reads FxProperties for the given endpoint GUID and confirms the CLSID value
+  matches the render APO. NSIS calls this after `--associate`.
+- **`installer/setup/veyra-setup.nsi` — `!ifdef HAVE_VCREDIST` compile guard** —
+  the `File` instruction packs files at compile time; wrapping the optional vcredist
+  block in `!ifdef` prevents a build-time "file not found" error when
+  `vc_redist.x64.exe` is not bundled. Fixed `/oname=` syntax (removed extra quotes).
+- **`installer/setup/build-installer.ps1` — pass `/DHAVE_VCREDIST` flag** — the
+  build script now passes this define to makensis only when `installer/redist/
+  vc_redist.x64.exe` is present.
+
+### Fixed (service reliability)
+- **`apps/veyra-service/ServiceInstaller.cpp` — SCM crash recovery** — added
+  `ChangeServiceConfig2W(SERVICE_CONFIG_FAILURE_ACTIONS)` immediately after
+  service creation. `VeyraAudioService` now auto-restarts on crash: 5 s after the
+  1st failure, 10 s after the 2nd, 60 s after any subsequent failure. Failure
+  count resets after 1 hour of clean uptime. Previously the SCM left the service
+  stopped permanently on any unexpected exit.
+
+### Fixed (installer)
+- **`installer/setup/veyra-setup.nsi` — desktop shortcut always-selected bug** —
+  Removed the `Function .onSelChange` that called `SectionSetFlags ${SecDesktop} 1`
+  on every selection change, which made the "optional" desktop shortcut mandatory.
+  Moved the initial pre-check to `.onInit` where it fires once at installer start.
+  The desktop shortcut is now truly optional — users can uncheck it.
+- **`CMakeLists.txt` — version bump 0.9.0 → 1.0.0** — `VEYRA_VERSION` now reflects
+  the release version. All compiled binaries, version resources, and the About page
+  will report `1.0.0`.
+
+### Fixed (documentation)
+- **`TROUBLESHOOTING.md` — removed developer commands from end-user content** —
+  "Quick Diagnosis" section rewritten for end users (services.msc, tray icon, LED
+  state) instead of PowerShell commands. Problem 2 Fix A removed `bcdedit /set
+  testsigning on` from the user-visible troubleshooting steps; replaced with
+  user-appropriate steps (re-run Setup Audio Driver shortcut, reinstall). A note
+  for open-source builds explains the signing requirement without exposing the
+  bcdedit workaround to end users.
+- **`TROUBLESHOOTING.md` — Problem 3 / Problem 4 version references** — Problem 3
+  now directs Bluetooth users to INSTALLATION.md rather than BUILD_GUIDE.md §2.
+  Problem 4 version reference updated from v0.9.0 to v1.0.0.
+
 ### Added (commercial installer — no PowerShell)
 - **`apps/veyra-setup-helper/` — VeyraSetupHelper.exe** — native C++ installer
   helper (static CRT, no VC++ dependency) compiled alongside the main binaries.

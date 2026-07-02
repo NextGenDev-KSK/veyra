@@ -37,3 +37,13 @@ desktop.ini
 
 # Developer scratch files
 Run.txt
+dev-setup.cmd
+
+# Release artifacts (published to GitHub Releases, not the repo)
+/dist-setup/
+/dist-portable/
+
+# Installer build inputs/outputs (vc_redist is 18 MB; staging is assembled per build)
+/installer/redist/
+/installer/setup/staging/
+/installer/setup/*.exe

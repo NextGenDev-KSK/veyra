@@ -18,6 +18,13 @@
 1. Download **`veyra-sounds-setup-x.y.z-x64.exe`** from the
    [Releases page](https://github.com/NextGenDev-KSK/veyra/releases).
 2. Double-click the installer.
+
+   > **Windows SmartScreen warning:** Because Veyra is a new open-source project,
+   > Windows may show a blue "Windows protected your PC" screen on the first run.
+   > This is normal. Click **"More info"** then **"Run anyway"** to proceed.
+   > This warning disappears as more users install Veyra and it builds a reputation
+   > with Microsoft SmartScreen.
+
 3. Click through: **Next → I Accept → Next → Install**.
 4. When the **Device Setup** page appears, pick your speakers or headphones
    from the dropdown and click **Next**.
@@ -32,18 +39,24 @@ That's it. Veyra is running. The brand LED in the top-left corner turns
 
 | What you see | What it means |
 |---|---|
-| Green LED | APO active — audio is being processed |
+| Green LED | Veyra is connected to its background service |
 | Amber LED | Service not connected — try restarting Veyra |
 
-Play any audio. Go to **Home → EQ** and move a band — you should hear the
-change immediately with < 5 ms latency.
+The LED reflects the app-to-service connection only; it does not indicate
+whether the audio effects are reaching your device.
+
+Play any audio, go to **Home → EQ**, and move a band. On a signed build the APO
+applies the change with < 5 ms latency. On this unsigned open-source build the
+APO does not load (see the APO note in the [Release Notes](RELEASE_NOTES.md)); to
+hear the effects, enable the **Audio Bridge** — setup steps in
+[docs/AUDIO_BRIDGE.md](docs/AUDIO_BRIDGE.md). The Bridge is also the permanent
+path for Bluetooth headphones, which never host the APO.
 
 ---
 
 ## Bluetooth headphones
 
-Bluetooth endpoints sometimes reject the APO driver. If the LED stays amber
-after setup, or if you hear no effect on Bluetooth:
+Bluetooth endpoints sometimes reject the APO driver. If you hear no effect on Bluetooth headphones after setup:
 
 1. Open **Devices** in Veyra.
 2. Under **Audio Bridge (Bluetooth compatibility mode)**, enable the bridge

@@ -57,13 +57,62 @@ bool installService(std::wstring& error)
 
     if (!svc)
     {
-        error = L"CreateService failed " + lastErrorText();
-        CloseServiceHandle(scm);
-        return false;
+        // On upgrade the service already exists. Open it and update the binary
+        // path so the new version is used on next start.
+        if (GetLastError() != ERROR_SERVICE_EXISTS)
+        {
+            error = L"CreateService failed " + lastErrorText();
+            CloseServiceHandle(scm);
+            return false;
+        }
+
+        svc = OpenServiceW(scm, kServiceName, SERVICE_CHANGE_CONFIG | SERVICE_START);
+        if (!svc)
+        {
+            error = L"OpenService (upgrade) failed " + lastErrorText();
+            CloseServiceHandle(scm);
+            return false;
+        }
+
+        if (!ChangeServiceConfigW(svc,
+                SERVICE_NO_CHANGE,          // dwServiceType
+                SERVICE_AUTO_START,         // dwStartType
+                SERVICE_ERROR_NORMAL,       // dwErrorControl
+                binPath.c_str(),            // lpBinaryPathName — update to new path
+                nullptr, nullptr, nullptr,
+                L"NT AUTHORITY\\LocalService",
+                nullptr, nullptr))
+        {
+            error = L"ChangeServiceConfig (upgrade) failed " + lastErrorText();
+            CloseServiceHandle(svc);
+            CloseServiceHandle(scm);
+            return false;
+        }
     }
 
     SERVICE_DESCRIPTIONW desc{const_cast<LPWSTR>(kDescription)};
     ChangeServiceConfig2W(svc, SERVICE_CONFIG_DESCRIPTION, &desc);
+
+    // Auto-restart on crash: 5 s, 10 s, then 60 s for any further failure.
+    // Reset the failure count after 1 hour of clean uptime.
+    SC_ACTION actions[3] = {
+        {SC_ACTION_RESTART, 5000},   // 1st failure: restart after 5 s
+        {SC_ACTION_RESTART, 10000},  // 2nd failure: restart after 10 s
+        {SC_ACTION_RESTART, 60000},  // 3rd+: restart after 60 s
+    };
+    SERVICE_FAILURE_ACTIONSW fa{};
+    fa.dwResetPeriod = 3600; // reset failure count after 1 hour of uptime
+    fa.lpCommand     = nullptr;
+    fa.lpRebootMsg   = nullptr;
+    fa.cActions      = 3;
+    fa.lpsaActions   = actions;
+    ChangeServiceConfig2W(svc, SERVICE_CONFIG_FAILURE_ACTIONS, &fa);
+
+    // By default SCM only runs failure actions when the process dies without
+    // reporting SERVICE_STOPPED. Also trigger them when the service stops
+    // itself with a non-zero exit code (e.g. runtime failed to start).
+    SERVICE_FAILURE_ACTIONS_FLAG faFlag{TRUE};
+    ChangeServiceConfig2W(svc, SERVICE_CONFIG_FAILURE_ACTIONS_FLAG, &faFlag);
 
     CloseServiceHandle(svc);
     CloseServiceHandle(scm);

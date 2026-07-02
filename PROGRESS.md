@@ -4,7 +4,7 @@ A running, honest record of what's built. For the precise, feature-by-feature
 audit against the engineering spec see [`docs/FEATURE_COVERAGE.md`](docs/FEATURE_COVERAGE.md).
 
 **Repo:** https://github.com/NextGenDev-KSK/veyra
-**Current version:** 0.9.0
+**Current version:** 1.0.0
 
 > Verification model: this machine has no local C++ toolchain, so every change is
 > proven by the GitHub Actions `windows-latest` build (compile + link +
@@ -35,6 +35,16 @@ audit against the engineering spec see [`docs/FEATURE_COVERAGE.md`](docs/FEATURE
 | 13 Updater + Crash + i18n | crash capture+banner, updater check; framework i18n | ✅ (6 langs ⬜, fetch✅/apply ⏵) |
 | 14 MSIX + Portable + Signing | portable ZIP (CI artifact), MSIX, signing docs | ✅ (production signing ⏵) |
 | 15 Performance pass | RT-factor benchmark + soak (no NaN, ceiling held) | ✅ (8 h soak / competitor bench ⏵) |
+
+---
+
+## Version 1.0 release fixes (post-0.9.0 audit)
+
+- [x] **SCM crash recovery** — `ChangeServiceConfig2W(SERVICE_CONFIG_FAILURE_ACTIONS)` added in `ServiceInstaller.cpp`. Service auto-restarts on crash (5 s / 10 s / 60 s); failure count resets after 1 h uptime. Previously service required manual restart after unexpected exit.
+- [x] **Commercial NSIS installer (zero PowerShell)** — `VeyraSetupHelper.exe` (static CRT C++) replaces all PS audio ops; NSIS device picker uses native C++ IMMDeviceEnumerator; installer never shows a PowerShell window. PS 5.1 compat in `build-installer.ps1`.
+- [x] **ARCHITECTURE.md** — service reliability, SCM recovery, device change behaviour, and the IMMNotificationClient limitation documented.
+- [~] **Hardware validation** ⏵ — `HARDWARE_VALIDATION.md` checklist exists; items need a real Windows audio session to tick off.
+- [~] ⏵ **Production code signing** — not required for open-source release. SmartScreen warns on first run; users click "More info → Run anyway". Future: apply for SignPath Foundation or purchase EV cert. See [installer/SIGNING.md](installer/SIGNING.md).
 
 ---
 
@@ -81,7 +91,7 @@ All CI-green:
 
 ---
 
-## Roadmap to 1.0 and beyond (Phases 16–20) — PROMPT 2 TODO
+## Roadmap to 1.0 and beyond (Phases 16–20)
 
 Legend: `[ ]` not started · `[~]` in progress · `[x]` done · ⏵ runtime/hardware-only · ⬜ needs external asset.
 

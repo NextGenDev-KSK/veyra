@@ -36,7 +36,7 @@ gaps are called out so the remaining work is unambiguous.
 Parameter smoothing (5 ms) ✅.
 
 ## §5 APO
-EFX output ✅ · MFX/mic ✅ · seqlock shared params ✅ · analyzer SPSC ring ✅ · COM registration (INF + script) ✅ · **SIMD ⬜** (scalar; well within budget). Endpoint association is ⏵ (test-signing + admin on a real PC).
+EFX output ✅ · MFX/mic ✅ · seqlock shared params ✅ · analyzer SPSC ring ✅ · COM registration (INF + script) ✅ · **SIMD ⬜** (scalar; well within budget). Endpoint association (writing the FX PropertyStore keys) ✅ and verified on hardware. **APO *loading* into `audiodg.exe` requires a signed DLL** — verified 2026-07-01 on Win11 26200.8655 that an unsigned APO does not load, and that the `DisableProtectedAudioDG` dev override no longer un-protects `audiodg` on recent Win11 builds. The COM object, the FX keys, and the DLL's exports are all correct (the DLL loads via `LoadLibraryW`); the block is purely the audio engine's signature check. Audible processing on unsigned builds therefore runs via the **Audio Bridge** (§6), which is hardware-verified.
 
 ## §6 Service
 Shared-mem bootstrap ✅ · control pipe ✅ · canonical state (presets/per-app/per-device) ✅ · **per-app detection 🟡** (UI-side foreground watcher; audio-session signal + 800 ms rate-limit ⬜) · **game detection ✅** (`GameDetector` + TrackerService foreground poll auto-activates the tracker; anti-cheat-safe) · loopback capture ✅ (`AudioBridge` + `TrackerService`) · **Sound Tracker engine ✅** (`TrackerService` does WASAPI loopback → `SoundTracker` → `VeyraTracker` shared block, gated by Gamer Mode; live blips are ⏵) · updater 🟡 · crash aggregation ✅.

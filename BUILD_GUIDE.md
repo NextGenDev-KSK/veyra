@@ -5,9 +5,7 @@ and APO registration workflow.
 
 ## 1. Toolchain
 
-### Phase 0 (current) — minimal
-
-The no-op stubs link no third-party dependencies, so you only need:
+### Required
 
 | Tool | Notes |
 |---|---|
@@ -29,19 +27,19 @@ Binaries land in `build/windows-release/bin/`.
 > CI does the same on `windows-latest` using `ilammy/msvc-dev-cmd` (MSVC env)
 > and `lukka/get-cmake` (CMake + Ninja). See `.github/workflows/build.yml`.
 
-### Later phases — additional
+### Submodule dependencies
 
-| Phase | Adds |
+| Component | Submodule |
 |---|---|
-| 2 (APO) | **Windows Driver Kit (WDK)** matching your SDK — provides the APO base classes and `audioenginebaseapo.h`. |
-| 3 (DSP) | `spdlog`, optional `kissfft` submodules. |
-| 4 (UI) | `JUCE` submodule. |
-| 6 (Voice) | `rnnoise` submodule. |
+| APO base classes | `audioenginebaseapo.h` (Windows SDK, included via MSVC workload — no WDK needed) |
+| Logging | `spdlog` submodule |
+| UI | `JUCE` submodule |
+| Voice / ML denoiser | `rnnoise` submodule |
 
 Enable bundled deps with `-DVEYRA_FETCH_DEPS=ON` after initialising the
 relevant submodule (commands are documented in `.gitmodules`).
 
-## 2. APO registration (Phase 2+)
+## 2. APO registration (developer testing)
 
 The APO must be registered through a Windows audio driver INF plus a signed
 catalog (`.cat`). Three signing paths, in order of preference for an
@@ -62,16 +60,27 @@ With test-signing on, a self-signed test certificate can install the driver
 package for local APO testing. Turn it off (`bcdedit /set testsigning off`)
 when done.
 
-### Veyra APO developer registration (Phase 2)
+### Veyra APO developer registration
 
 The Veyra APO (`veyra-apo.dll`) implements the APO COM interfaces directly
 against the base Windows SDK — no WDK needed to build. Registering it for real
 runtime testing on your own machine:
 
 1. **Build** the binaries (`cmake --build --preset windows-release`).
-2. **Enable test-signing** and reboot (so an unsigned/test-signed DLL can load
-   into `audiodg.exe`):
+2. **Sign the DLL with a test certificate, enable test-signing, and reboot.**
+   `audiodg.exe` loads only *signed* APO DLLs — test-signing mode lets Windows
+   accept a *test-certificate-signed* binary, but an **unsigned** DLL never
+   loads regardless of the test-signing state. (Verified on Windows 11
+   26200.8655; the legacy `DisableProtectedAudioDG` registry override no longer
+   works on current builds either.)
    ```powershell
+   # Create + trust a local test cert, sign the DLL, enable test-signing:
+   $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=VeyraTest" `
+           -CertStoreLocation Cert:\LocalMachine\My
+   Export-Certificate -Cert $cert -FilePath "$env:TEMP\veyratest.cer"
+   Import-Certificate -FilePath "$env:TEMP\veyratest.cer" -CertStoreLocation Cert:\LocalMachine\Root
+   Import-Certificate -FilePath "$env:TEMP\veyratest.cer" -CertStoreLocation Cert:\LocalMachine\TrustedPublisher
+   signtool sign /fd SHA256 /sha1 $cert.Thumbprint build\windows-release\bin\veyra-apo.dll
    bcdedit /set testsigning on   # then REBOOT
    ```
 3. **Register the COM server** from an elevated prompt:
@@ -156,8 +165,8 @@ Output: `dist-setup/veyra-sounds-setup-{version}-x64.exe`
 The PowerShell scripts in `installer/driver/` (`register-apo.ps1`,
 `associate-apo.ps1`, `uninstall-apo.ps1`) are **developer tools** — for manual
 testing and CI on real hardware. They should not be mentioned in any user-facing
-documentation. The installer helper `installer/setup/apo-helper.ps1` is invoked
-silently by NSIS and is also an internal tool.
+documentation. The installer uses `VeyraSetupHelper.exe` (static CRT C++) for all
+audio operations at install time — no PowerShell is invoked by the end-user installer.
 
 ## 4. Packaging
 

@@ -6,6 +6,7 @@
 # hook or injection — so it stays anti-cheat safe.
 
 add_executable(veyra-overlay WIN32
-    main.cpp)
+    main.cpp
+    veyra-overlay.rc)
 
 target_link_libraries(veyra-overlay PRIVATE veyra::common gdiplus)

@@ -1,14 +1,17 @@
 ; =============================================================================
-;  veyra_apo.inf  -- TEMPLATE (Phase 2)
+;  veyra_apo.inf  -- TEMPLATE for production hardware-targeting driver package
 ;
 ;  An APO is associated with an audio endpoint through an audio device's
 ;  PropertyStore (the PKEY_FX_*_EffectClsid keys). That makes a production APO
 ;  package an *extension INF* that targets a specific audio device by hardware
-;  ID, signed and (ideally) submitted to the Microsoft Hardware Dev Center.
+;  ID, signed and submitted to the Microsoft Hardware Dev Center.
 ;
-;  This file is a commented starting point, NOT a drop-in installer. Replace the
-;  placeholders and sign it before use. For development, see BUILD_GUIDE.md for
+;  This file is a template, NOT a drop-in installer. Replace the hardware ID
+;  placeholder and sign it before use. For development, see BUILD_GUIDE.md for
 ;  the test-signing + regsvr32 path, which is simpler than a full driver package.
+;
+;  For the open-source release, VeyraSetupHelper.exe handles association via
+;  the endpoint PropertyStore directly (no INF required for dev/test-signing).
 ; =============================================================================
 
 [Version]

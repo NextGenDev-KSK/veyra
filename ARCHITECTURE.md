@@ -76,3 +76,15 @@ and cached.
   full access only to System and Administrators; read-only to Everyone.
 - **Data directory** — `C:\ProgramData\Veyra` (accessible by both LocalService and
   the interactive user). Not `%AppData%` which resolves to the service account's profile.
+
+## Service reliability
+
+- **SCM crash recovery** — `installService()` calls `ChangeServiceConfig2W(SERVICE_CONFIG_FAILURE_ACTIONS)` with three `SC_ACTION_RESTART` entries (5 s / 10 s / 60 s) and a 1-hour reset period. If the service exits unexpectedly, the SCM restarts it automatically without user intervention.
+- **IPC reconnect** — `ServiceClient` runs a background thread with exponential back-off (500 ms → 30 s cap). A crashed-and-restarted service is reconnected within the back-off window. The UI shows the amber LED during the gap; no user action needed.
+- **APO fault isolation** — The APO runs inside `audiodg.exe`. A UI or service crash does not affect the APO. The APO continues processing audio with the last parameters written to shared memory until the service restarts and republishes.
+
+## Device change behaviour
+
+- **APO path** — The APO is endpoint-specific. When the Windows default playback device changes, `audiodg.exe` naturally unloads and reloads APO instances per-endpoint. If the new endpoint has the APO associated, processing is seamless. If not, the user can re-associate via **Start → Veyra Sounds → Setup Audio Driver (Advanced)**.
+- **Audio Bridge path** — `AudioBridge::run()` loops with a 750 ms back-off. On device disconnect, `session()` returns false and the loop retries until the device reappears or the config changes. No user action required.
+- **Known limitation** — The service does not implement `IMMNotificationClient`. There is no proactive notification to the UI when a new endpoint is plugged in. The Devices screen reflects the current enumeration on demand. This matches the behaviour of FxSound and Equalizer APO; proactive hot-plug following is a post-1.0 item.

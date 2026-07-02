@@ -5,10 +5,15 @@
 [![platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey.svg)]()
 
 **Veyra Sounds** is a free, open-source, system-wide audio enhancer for Windows 10/11 (x64).
-It routes audio through a Windows Audio Processing Object (APO) — the same in-driver hook used
-by Dolby Atmos and DTS — giving you realtime EQ, dynamics, spatial audio, voice processing, a
-gamer Sound Tracker HUD, and a 30+ effect DSP chain at under 5 ms latency.
+It gives you realtime EQ, dynamics, spatial audio, voice processing, a gamer Sound Tracker HUD,
+and a 30+ effect DSP chain. Its primary design routes audio through a Windows Audio Processing
+Object (APO) — the same in-driver hook used by Dolby Atmos and DTS — at under 5 ms latency.
 Licensed under the **GNU GPLv3**.
+
+> **Note on audio output:** the APO path loads only on a **code-signed** build.
+> This open-source release is unsigned, so the identical DSP runs through the
+> built-in **Audio Bridge** instead (no signing required, and the only option for
+> Bluetooth). See [Known limitations](RELEASE_NOTES.md#known-limitations).
 
 Maintainer: **Krithik S** ([@NextGenDev-KSK](https://github.com/NextGenDev-KSK))
 
@@ -78,6 +83,10 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full data-flow diagram.
 
 Download `veyra-sounds-setup-x.y.z-x64.exe` from
 [Releases](https://github.com/NextGenDev-KSK/veyra/releases) and double-click it.
+
+> **Windows SmartScreen:** You may see a "Windows protected your PC" screen.
+> Click **More info → Run anyway**. This is normal for a new unsigned open-source
+> project. See [installer/SIGNING.md](installer/SIGNING.md) for the signing roadmap.
 
 The installer automatically:
 - Registers the APO COM server

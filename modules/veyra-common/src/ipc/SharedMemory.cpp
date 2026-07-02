@@ -82,8 +82,12 @@ bool SharedMemoryRegion::open(const std::wstring& name, size_t size)
 {
     close();
 
+    // Read-only: consumers (APO / UI / overlay) never write, and the DACL only
+    // grants them read. Requesting FILE_MAP_ALL_ACCESS here is denied for any
+    // opener that isn't System/Administrators — notably the APO inside
+    // audiodg.exe (LocalService) and the interactive-user UI.
     // Try the canonical name first (Global\ for cross-session objects).
-    mapping_ = OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, name.c_str());
+    mapping_ = OpenFileMappingW(FILE_MAP_READ, FALSE, name.c_str());
 
     if (!mapping_)
     {
@@ -91,13 +95,13 @@ bool SharedMemoryRegion::open(const std::wstring& name, size_t size)
         // back to Local\ (console mode). Try Local\ so both paths work.
         const std::wstring local = toLocalPrefix(name);
         if (local != name)
-            mapping_ = OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, local.c_str());
+            mapping_ = OpenFileMappingW(FILE_MAP_READ, FALSE, local.c_str());
     }
 
     if (!mapping_)
         return false;
 
-    view_ = MapViewOfFile(mapping_, FILE_MAP_ALL_ACCESS, 0, 0, size);
+    view_ = MapViewOfFile(mapping_, FILE_MAP_READ, 0, 0, size);
     if (!view_)
     {
         close();

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Installation & troubleshooting guide
+    url: https://github.com/NextGenDev-KSK/veyra/blob/main/TROUBLESHOOTING.md
+    about: Common problems (no audio effect, service not starting, Bluetooth) are covered here.
+  - name: Security vulnerability
+    url: https://github.com/NextGenDev-KSK/veyra/security/advisories/new
+    about: Please report security issues privately, not as public issues.

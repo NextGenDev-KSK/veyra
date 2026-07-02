@@ -1,0 +1,52 @@
+name: Bug report
+description: Something in Veyra Sounds doesn't work as documented
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Veyra version
+      placeholder: "1.0.0 (Settings → About, or the installer file name)"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 24H2 build 26100 — run `winver`"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install?
+      options:
+        - Installer (veyra-sounds-setup-*.exe)
+        - Portable ZIP
+        - Built from source
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: audio
+    attributes:
+      label: Audio setup (for audio bugs)
+      description: >
+        Output device (speakers / USB / Bluetooth), whether the Audio Bridge is
+        enabled (Devices screen), and whether the effect is audible on another
+        device. Note: on unsigned builds the APO path does not process audio —
+        see the Release Notes known limitations — so "no effect without the
+        Bridge" on Bluetooth is expected behavior, not a bug.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: >
+        Attach `%ProgramData%\Veyra\logs\veyra-service.log` (and
+        `install.log` for installer issues). Drag & drop the files here.

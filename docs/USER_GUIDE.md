@@ -10,29 +10,39 @@ and [BUILD_GUIDE.md](../BUILD_GUIDE.md); for the architecture see
 
 ## Getting sound through Veyra
 
-Veyra's primary audio path is the **APO** — a Windows Audio Processing Object
+Veyra's primary audio design is the **APO** — a Windows Audio Processing Object
 that loads directly into `audiodg.exe` alongside Dolby Atmos and DTS. Once
-installed and associated with your output endpoint, every app's audio passes
-through Veyra automatically at < 5 ms latency. No virtual cable, no rerouting,
-no change to your Windows default output device.
+associated with your output endpoint, every app's audio passes through Veyra
+automatically at < 5 ms latency. No virtual cable, no rerouting, no change to
+your Windows default output device.
+
+> **On this unsigned open-source release the APO does not load** — Windows
+> only loads code-signed APOs into `audiodg.exe` (see the
+> [Release Notes known limitations](../RELEASE_NOTES.md#known-limitations)).
+> Until a signed release ships, use the **Audio Bridge** below to hear the
+> effects. Both paths run the identical DSP chain.
 
 **Getting started:**
 1. Install Veyra using the [installer](https://github.com/NextGenDev-KSK/veyra/releases).
-   It picks your playback device and activates the APO automatically.
-2. Launch Veyra — the brand LED turns green and DSP is live.
-3. To change the device later: **Devices → Preferred Output**.
-4. To add a new device (e.g. new headphones): **Start → Veyra Sounds →
-   Setup Audio Driver (Advanced)**.
+   It picks your playback device and configures the APO association
+   automatically (active once a signed build is installed).
+2. Launch Veyra — the brand LED turns green when the app is connected to the
+   Veyra service.
+3. To hear the effects on this release: set up the **Audio Bridge** (below).
+4. To change the device later: **Devices → Preferred Output**.
 
 See [INSTALLATION.md](../INSTALLATION.md) for the full installation guide.
 
-**Audio Bridge (advanced / Bluetooth fallback):**  
-Bluetooth endpoints often reject the APO. For these, Devices → Audio Bridge
-provides a WASAPI loopback path: apps play into a virtual sink (e.g. VB-CABLE),
-Veyra processes the audio, and renders to your headphones. See
-[AUDIO_BRIDGE.md](AUDIO_BRIDGE.md) for setup. This adds ~30–80 ms latency and
-requires a virtual cable installation — use it only when the APO path does not
-work on your endpoint.
+**Audio Bridge (the working path on this release; required for Bluetooth):**  
+The Bridge provides a WASAPI loopback path: apps play into a source device,
+Veyra processes the audio in its service, and renders it to your headphones.
+Follow [AUDIO_BRIDGE.md](AUDIO_BRIDGE.md) for setup — in v1.0.0 the Bridge is
+configured in `%ProgramData%\Veyra\config.json` (the Devices screen only shows
+the Preferred Output picker; Bridge controls return post-1.0), and a virtual
+sink such as VB-CABLE gives the cleanest routing. It adds ~30–80 ms latency,
+fine for music and video; on a signed build the APO path is the better choice
+for gaming. Bluetooth A2DP endpoints never host custom APOs, so the Bridge is
+the permanent path for Bluetooth regardless of signing.
 
 The **service** (`veyra-service.exe`) holds the canonical config and drives the
 DSP; the **app** (`veyra.exe`) is the UI. The brand LED is green when connected.

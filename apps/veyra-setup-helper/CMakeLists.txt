@@ -13,7 +13,8 @@
 # No WDK required — only the standard Windows SDK.
 
 add_executable(veyra-setup-helper
-    main.cpp)
+    main.cpp
+    veyra-setup-helper.rc)
 
 # Static CRT so the helper has zero runtime dependencies at install time
 set_target_properties(veyra-setup-helper PROPERTIES
