@@ -144,6 +144,56 @@ static bool ServiceOp(SC_HANDLE scm, const wchar_t* svcName, DWORD desiredAccess
     return ok;
 }
 
+// Stop VeyraAudioService and wait for it to reach STOPPED so its EXE image
+// unlocks before the installer overwrites it on upgrade. A commanded stop does
+// not trigger the SCM failure-restart actions, so the service stays down.
+static int StopVeyraService() {
+    SC_HANDLE scm = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT);
+    if (!scm) {
+        Log(L"stop-service: OpenSCManager failed %lu", GetLastError());
+        return 1;
+    }
+
+    SC_HANDLE svc = OpenServiceW(scm, kServiceName, SERVICE_STOP | SERVICE_QUERY_STATUS);
+    if (!svc) {
+        const DWORD err = GetLastError();
+        CloseServiceHandle(scm);
+        if (err == ERROR_SERVICE_DOES_NOT_EXIST) {
+            Log(L"stop-service: '%s' not installed — nothing to stop.", kServiceName);
+            return 0; // fresh install: success
+        }
+        Log(L"stop-service: OpenService failed %lu", err);
+        return 1;
+    }
+
+    SERVICE_STATUS ss = {};
+    if (!ControlService(svc, SERVICE_CONTROL_STOP, &ss)) {
+        const DWORD err = GetLastError();
+        if (err == ERROR_SERVICE_NOT_ACTIVE) {
+            CloseServiceHandle(svc);
+            CloseServiceHandle(scm);
+            Log(L"stop-service: already stopped.");
+            return 0;
+        }
+        // Non-fatal: fall through and wait — it may already be stopping.
+        Log(L"stop-service: ControlService(STOP) returned %lu — waiting anyway.", err);
+    }
+
+    const bool stopped = WaitForServiceState(svc, SERVICE_STOPPED, 20000);
+    CloseServiceHandle(svc);
+    CloseServiceHandle(scm);
+
+    if (!stopped) {
+        Log(L"stop-service: TIMED OUT waiting for STOPPED.");
+        return 1;
+    }
+    // SERVICE_STOPPED is reported just before the process exits; give the image
+    // a brief moment to unlock so the subsequent file overwrite succeeds.
+    Sleep(500);
+    Log(L"stop-service: '%s' is STOPPED.", kServiceName);
+    return 0;
+}
+
 static bool RestartAudioService() {
     Log(L"Restarting Windows Audio...");
     SC_HANDLE scm = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT);
@@ -747,6 +797,7 @@ int wmain(int argc, wchar_t* argv[]) {
         Log(L"  --verify-com                   Exit 0 if COM CLSID registered + DLL present");
         Log(L"  --verify-association <guid>    Exit 0 if endpoint FxProperties has Veyra CLSID");
         Log(L"  --verify-service               Exit 0 if VeyraAudioService is RUNNING");
+        Log(L"  --stop-service                 Stop VeyraAudioService, wait for STOPPED");
         Log(L"  --restart-audio                Restart AudioSrv and AudioEndpointBuilder");
         LogClose();
         return 1;
@@ -759,6 +810,7 @@ int wmain(int argc, wchar_t* argv[]) {
     else if (wcscmp(action, L"--verify-com")          == 0) result = CmdVerifyCom();
     else if (wcscmp(action, L"--verify-association")  == 0) result = CmdVerifyAssociation(arg1);
     else if (wcscmp(action, L"--verify-service")      == 0) result = CmdVerifyService();
+    else if (wcscmp(action, L"--stop-service")        == 0) result = StopVeyraService();
     else if (wcscmp(action, L"--restart-audio")       == 0) result = RestartAudioService() ? 0 : 1;
     else { Log(L"Unknown action: %s", action); result = 1; }
 

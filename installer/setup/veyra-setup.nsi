@@ -261,14 +261,25 @@ Please ensure you are running Setup as Administrator and that$\r$\n\
     ${EndIf}
 
     ; ── Upgrade: stop running processes ──────────────────────────────────────
+    ; A running service holds veyra-service.exe open, so it must reach STOPPED
+    ; before the File extraction below — otherwise the new binary silently fails
+    ; to overwrite and the upgrade keeps the old service. A fixed Sleep raced and
+    ; did exactly that, so we use the freshly-staged helper's --stop-service,
+    ; which polls the SCM for STOPPED. The on-disk helper is the OLD version and
+    ; may not know the command, so extract the new one to the temp plugins dir.
     ${If} $IsUpgrade == "1"
         DetailPrint "Stopping existing installation..."
         ${AppendLog} "Stopping existing processes..."
         nsExec::ExecToLog '"$SYSDIR\taskkill.exe" /F /IM veyra.exe /IM veyra-overlay.exe'
         Pop $0
-        nsExec::ExecToLog '"$SYSDIR\sc.exe" stop ${SERVICE_NAME}'
+
+        InitPluginsDir
+        SetOutPath "$PLUGINSDIR"
+        File "staging\VeyraSetupHelper.exe"
+        SetOutPath "$INSTDIR"
+        nsExec::ExecToLog '"$PLUGINSDIR\VeyraSetupHelper.exe" --log "${LOG_FILE}" --stop-service'
         Pop $0
-        Sleep 2500
+        ${AppendLog} "stop-service exited: $0"
     ${EndIf}
 
     ; ── VC++ 2015-2022 x64 runtime ────────────────────────────────────────────
