@@ -104,6 +104,10 @@ Download `veyra-sounds-setup-x.y.z-x64.exe` from
 > Click **More info → Run anyway**. This is normal for a new unsigned open-source
 > project. See [installer/SIGNING.md](installer/SIGNING.md) for the signing roadmap.
 
+> **Code signing:** Free code signing for Veyra Sounds is provided by the
+> [**SignPath Foundation**](https://signpath.org). Signed Windows binaries are
+> rolled out as the certificate is provisioned.
+
 The installer automatically:
 - Registers the APO COM server
 - Installs and starts the Windows service

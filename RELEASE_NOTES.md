@@ -28,7 +28,19 @@ AutoEQ headphone correction profiles.
 |------|-------------|
 | `veyra-sounds-setup-1.0.0-x64.exe` | Windows installer (recommended) |
 | `veyra-portable-1.0.0-x64.zip` | Portable ZIP (no install required) |
+| `SHA256SUMS.txt` | Checksums for the files above |
 | Source code | Available on GitHub |
+
+---
+
+## Code signing
+
+Free code signing for Veyra Sounds is provided by the
+[**SignPath Foundation**](https://signpath.org), a non-profit that grants
+code-signing certificates to open-source projects. Signed Windows binaries are
+rolled out as the certificate is provisioned; until then the assets on this
+page are unsigned and Windows SmartScreen / Smart App Control may warn or block
+them (see "Known limitations").
 
 ---
 
