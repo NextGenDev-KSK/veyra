@@ -63,7 +63,7 @@ jobs:
           Write-Host "All shipped binaries present."
 
       - name: Upload binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: veyra-windows-x64
           path: dist/
@@ -77,7 +77,7 @@ jobs:
           pwsh installer/portable/make-portable.ps1 -BinDir dist -RepoRoot . -OutDir dist-portable -Version $ver
 
       - name: Upload portable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: veyra-portable-x64
           path: dist-portable/*.zip
