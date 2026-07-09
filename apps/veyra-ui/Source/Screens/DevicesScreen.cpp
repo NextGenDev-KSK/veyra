@@ -13,7 +13,7 @@ namespace veyra::ui {
 
 namespace {
 constexpr int kCardW = 244, kCardH = 132, kGapX = 16, kGapY = 16;
-constexpr int kLabelH = 22, kSectionGap = 10, kBridgeH = 150;
+constexpr int kLabelH = 22, kSectionGap = 10, kBridgeH = 240;
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -215,17 +215,38 @@ private:
 };
 
 // ---------------------------------------------------------------------------
-// Output device (APO / Method 1): the Preferred Output selector. The APO
-// processes the Windows default output system-wide, so there is no source/capture
-// and no Audio Bridge — picking a preferred device just keeps it as the default.
+// Audio routing card. The Audio Bridge is the audio path on unsigned builds:
+// apps play into a virtual sink (VB-CABLE or similar), the service loopback-
+// captures it, runs the DSP chain, and renders to the real output device. The
+// Preferred Output picker below it belongs to the signed-APO path and is only
+// active while the Bridge is off.
 // ---------------------------------------------------------------------------
 class DevicesScreen::BridgeCard : public GlassPanel {
 public:
     BridgeCard()
     {
+        enable_.setClickingTogglesState(true);
+        enable_.onClick = [this]
+        {
+            bridge_.enabled = enable_.getToggleState();
+            if (bridge_.enabled)
+                autoPickDevices();
+            selectIds();
+            emit();
+        };
+        addAndMakeVisible(enable_);
+
+        source_.setTextWhenNothingSelected("Windows default output");
+        source_.onChange = [this] { bridge_.sourceDeviceId = idForCombo(source_, true); emit(); };
+        addAndMakeVisible(source_);
+
+        target_.setTextWhenNothingSelected("Choose your headphones or speakers");
+        target_.onChange = [this] { bridge_.targetDeviceId = idForCombo(target_, false); emit(); };
+        addAndMakeVisible(target_);
+
         preferred_.setTextWhenNothingSelected("Windows Default");
+        preferred_.onChange = [this] { bridge_.preferredOutputId = idForCombo(preferred_, true); emit(); };
         addAndMakeVisible(preferred_);
-        preferred_.onChange = [this] { bridge_.preferredOutputId = idForPreferred(); emit(); };
 
         refresh_.setButtonText("Refresh");
         refresh_.onClick = [this] { refreshDevices(); };
@@ -239,12 +260,21 @@ public:
     void refreshDevices()
     {
         devices_ = listRenderEndpoints();
-        // Preferred Output: item 1 = "Windows Default (no preference)", devices 2..n+1.
-        preferred_.clear(juce::dontSendNotification);
-        preferred_.addItem("Windows Default (no preference)", 1);
-        for (int i = 0; i < (int) devices_.size(); ++i)
-            preferred_.addItem(devices_[(size_t) i].name + (devices_[(size_t) i].isDefault ? "  (current default)" : ""),
-                               i + 2);
+
+        auto fill = [this](juce::ComboBox& box, bool withDefaultItem, const char* defaultLabel)
+        {
+            box.clear(juce::dontSendNotification);
+            if (withDefaultItem)
+                box.addItem(defaultLabel, 1);
+            for (int i = 0; i < (int) devices_.size(); ++i)
+                box.addItem(devices_[(size_t) i].name
+                                + (devices_[(size_t) i].isDefault ? "  (current default)" : ""),
+                            i + 2);
+        };
+        fill(source_, true, "Windows default output");
+        fill(target_, false, nullptr);
+        fill(preferred_, true, "Windows Default (no preference)");
+
         selectIds();
         repaint();
     }
@@ -259,10 +289,14 @@ public:
     void resized() override
     {
         auto inner = getLocalBounds().reduced(kPad);
-        const int comboW = juce::jmin(360, getWidth() - kPad * 2 - 84 - 110);
-        preferred_.setBounds(rowCtl(inner.getX(), 1, comboW));
-        // Refresh sits to the right of the picker (never over the label/row).
-        refresh_.setBounds(inner.getX() + 84 + comboW + 16, rowCtl(inner.getX(), 1, comboW).getY(), 90, 28);
+        // Toggle sits after the heading text; Refresh is right-aligned in the title row.
+        enable_.setBounds(inner.getX() + 156, inner.getY() + 4, 36, 20);
+        refresh_.setBounds(inner.getRight() - 90, inner.getY(), 90, 28);
+
+        const int comboW = juce::jmin(360, getWidth() - kPad * 2 - 84 - 20);
+        source_.setBounds(rowCtl(inner.getX(), 1, comboW));
+        target_.setBounds(rowCtl(inner.getX(), 2, comboW));
+        preferred_.setBounds(rowCtl(inner.getX(), 3, comboW));
     }
 
 protected:
@@ -271,52 +305,154 @@ protected:
         auto c = getLocalBounds().reduced(kPad);
         g.setColour(palette_.textPrimary);
         g.setFont(fonts::display(20.0f));
-        g.drawText("OUTPUT DEVICE", c.removeFromTop(28), juce::Justification::centredLeft, false);
+        g.drawText("AUDIO BRIDGE", c.removeFromTop(28), juce::Justification::centredLeft, false);
+
+        // Live status line: client-side validation of the routing setup.
+        const auto st = status();
+        g.setColour(st.colour);
+        g.setFont(fonts::body(11.0f));
+        g.drawText(st.text, c.removeFromTop(16), juce::Justification::topLeft, true);
+
+        // Row labels.
+        const auto inner = getLocalBounds().reduced(kPad);
+        auto label = [&](int row, const char* text, bool dimmed)
+        {
+            g.setColour(dimmed ? palette_.textDisabled : palette_.textSecondary);
+            g.setFont(fonts::body(13.0f));
+            g.drawText(text, juce::Rectangle<int>(inner.getX(), rowY(row), 84, 28),
+                       juce::Justification::centredLeft, false);
+        };
+        label(1, "Capture", ! bridge_.enabled);
+        label(2, "Play to", ! bridge_.enabled);
+        label(3, "Preferred", bridge_.enabled);
 
         g.setColour(palette_.textTertiary);
-        g.setFont(fonts::body(11.0f));
-        g.drawText("Pick a Preferred Output; Veyra keeps it as the Windows default automatically.",
-                   c.removeFromTop(16), juce::Justification::topLeft, false);
-        g.drawText("APO builds process it system-wide; unsigned builds use the Audio Bridge (see the guide).",
-                   c.removeFromTop(16), juce::Justification::topLeft, false);
-
-        const int y = getLocalBounds().reduced(kPad).getY() + 28 + 40;
-        g.setColour(palette_.textSecondary);
-        g.setFont(fonts::body(13.0f));
-        g.drawText("Preferred", juce::Rectangle<int>(getLocalBounds().reduced(kPad).getX(), y, 84, 28),
-                   juce::Justification::centredLeft, false);
+        g.setFont(fonts::body(10.5f));
+        g.drawText("Preferred output is used by the signed APO path while the Bridge is off.",
+                   juce::Rectangle<int>(inner.getX(), rowY(3) + 30, inner.getWidth(), 14),
+                   juce::Justification::topLeft, true);
     }
 
 private:
-    juce::Rectangle<int> rowCtl(int x, int row, int w) const
+    struct Status { juce::String text; juce::Colour colour; };
+
+    static bool isVirtualSink(const OutputDevice& d)
     {
-        const int y = getLocalBounds().reduced(kPad).getY() + 28 + 40 + (row - 1) * 40;
-        return {x + 84, y, juce::jmax(120, w), 28};
+        const auto n = d.name.toLowerCase();
+        return n.contains("cable") || n.contains("vb-audio") || n.contains("voicemeeter")
+            || n.contains("virtual");
     }
 
-    // Preferred uses item 1 = no preference (empty), devices at id 2..n+1.
-    std::string idForPreferred() const
+    bool haveVirtualSink() const
     {
-        const int idx = preferred_.getSelectedId() - 2;
+        for (const auto& d : devices_)
+            if (isVirtualSink(d)) return true;
+        return false;
+    }
+
+    juce::String nameFor(const std::string& id) const
+    {
+        for (const auto& d : devices_)
+            if (d.id == id) return d.name;
+        return "unknown device";
+    }
+
+    std::string defaultDeviceId() const
+    {
+        for (const auto& d : devices_)
+            if (d.isDefault) return d.id;
+        return {};
+    }
+
+    Status status() const
+    {
+        if (! bridge_.enabled)
+            return {"Off. Turn this on to route audio through Veyra without a signed driver.",
+                    palette_.textTertiary};
+
+        if (bridge_.targetDeviceId.empty())
+            return {"Pick the device you actually listen on under Play to.", palette_.warning};
+
+        const auto resolvedSource =
+            bridge_.sourceDeviceId.empty() ? defaultDeviceId() : bridge_.sourceDeviceId;
+        if (resolvedSource == bridge_.targetDeviceId)
+            return {"Capture and Play to must be different devices, or the sound doubles up.",
+                    palette_.danger};
+
+        if (bridge_.sourceDeviceId.empty() && ! haveVirtualSink())
+            return {"Working, but for whole-system audio install the free VB-CABLE (vb-audio.com), then Refresh.",
+                    palette_.warning};
+
+        return {"Live: " + nameFor(resolvedSource) + "  to  " + nameFor(bridge_.targetDeviceId)
+                    + ". Veyra keeps the capture device set as the Windows default.",
+                palette_.success};
+    }
+
+    // First enable: point capture at a virtual cable when one exists, and playback
+    // at the device the user is listening on right now.
+    void autoPickDevices()
+    {
+        if (bridge_.sourceDeviceId.empty())
+            for (const auto& d : devices_)
+                if (isVirtualSink(d)) { bridge_.sourceDeviceId = d.id; break; }
+
+        if (bridge_.targetDeviceId.empty())
+        {
+            for (const auto& d : devices_)
+                if (d.isDefault && d.id != bridge_.sourceDeviceId && ! isVirtualSink(d))
+                    { bridge_.targetDeviceId = d.id; break; }
+            if (bridge_.targetDeviceId.empty())
+                for (const auto& d : devices_)
+                    if (d.id != bridge_.sourceDeviceId && ! isVirtualSink(d))
+                        { bridge_.targetDeviceId = d.id; break; }
+        }
+    }
+
+    int rowY(int row) const
+    {
+        return getLocalBounds().reduced(kPad).getY() + 28 + 16 + 8 + (row - 1) * 40;
+    }
+
+    juce::Rectangle<int> rowCtl(int x, int row, int w) const
+    {
+        return {x + 84, rowY(row), juce::jmax(120, w), 28};
+    }
+
+    // Combos with a default item map id 1 -> empty string; devices sit at 2..n+1.
+    std::string idForCombo(const juce::ComboBox& box, bool /*withDefaultItem*/) const
+    {
+        const int idx = box.getSelectedId() - 2;
         return (idx >= 0 && idx < (int) devices_.size()) ? devices_[(size_t) idx].id : std::string();
     }
 
     void selectIds()
     {
-        // Preferred: id 1 when no preference, else device index + 2.
-        if (bridge_.preferredOutputId.empty())
-            preferred_.setSelectedId(1, juce::dontSendNotification);
-        else
+        auto select = [this](juce::ComboBox& box, const std::string& id, bool hasDefaultItem)
         {
-            int sel = 1;
+            if (id.empty())
+            {
+                box.setSelectedId(hasDefaultItem ? 1 : 0, juce::dontSendNotification);
+                return;
+            }
+            int sel = hasDefaultItem ? 1 : 0;
             for (int i = 0; i < (int) devices_.size(); ++i)
-                if (devices_[(size_t) i].id == bridge_.preferredOutputId) { sel = i + 2; break; }
-            preferred_.setSelectedId(sel, juce::dontSendNotification);
-        }
+                if (devices_[(size_t) i].id == id) { sel = i + 2; break; }
+            box.setSelectedId(sel, juce::dontSendNotification);
+        };
+        enable_.setToggleState(bridge_.enabled, juce::dontSendNotification);
+        select(source_, bridge_.sourceDeviceId, true);
+        select(target_, bridge_.targetDeviceId, false);
+        select(preferred_, bridge_.preferredOutputId, true);
+
+        // The Bridge owns routing while it's on; Preferred belongs to the APO path.
+        source_.setEnabled(bridge_.enabled);
+        target_.setEnabled(bridge_.enabled);
+        preferred_.setEnabled(! bridge_.enabled);
     }
 
     void emit()
     {
+        selectIds();
         if (onBridgeChanged)
             onBridgeChanged(bridge_);
         repaint();
@@ -326,7 +462,8 @@ private:
 
     std::vector<OutputDevice> devices_;
     veyra::BridgeConfig       bridge_;
-    juce::ComboBox            preferred_;
+    ToggleSwitch              enable_;
+    juce::ComboBox            source_, target_, preferred_;
     juce::TextButton          refresh_;
 };
 

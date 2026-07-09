@@ -32,52 +32,43 @@ Apps must play into a virtual source endpoint; Veyra processes and renders to th
    - Future option: Veyra will ship its own signed virtual device (`drivers/veyra-vad/`).
 2. The Veyra service running.
 
-## Setup
+## Setup (v1.1.0 — all in the app)
 
-> **Note (v1.0.0):** the Devices screen currently exposes only the Preferred
-> Output picker — the Bridge source/target/enable controls are not in the UI
-> yet (planned post-1.0). For now the Bridge is configured in
-> `%ProgramData%\Veyra\config.json`, which the service picks up live.
+1. Install **VB-CABLE** from [vb-audio.com/Cable](https://vb-audio.com/Cable/)
+   and reboot when its installer asks.
+2. Open Veyra → **Devices** → turn **Audio Bridge** on. Veyra auto-detects the
+   cable and preselects **Capture** = `CABLE Input` and **Play to** = the device
+   you are listening on right now. Adjust the two pickers if you want different
+   routing.
+3. That's it. While the Bridge is on, Veyra automatically keeps the capture
+   device set as the Windows default output, so every app plays into the cable
+   and you hear the processed result on your real device. The status line on the
+   card tells you exactly what is happening (and turns amber/red if the routing
+   can't work).
+4. Play music and toggle any effect to confirm the DSP is live.
 
-1. Install the virtual sink and **set CABLE Input as the Windows default output**
-   (Settings → System → Sound → Output). Apps will now play into the cable; you
-   won't hear anything yet.
-2. Find your device IDs. Open `%ProgramData%\Veyra\config.json` and set
-   `"bridge": { "enabled": true }` (leave the IDs empty for now), then restart
-   the service (`services.msc` → Veyra Audio Service → Restart). The service
-   log (`%ProgramData%\Veyra\logs\veyra-service.log`) now lists every render
-   endpoint with its ID:
-   ```
-   AudioBridge: render endpoint "CABLE Input (VB-Audio Virtual Cable)" = {0.0.0.00000000}.{...}
-   AudioBridge: render endpoint "OnePlus Nord Buds 3 Pro" = {0.0.0.00000000}.{...}
-   ```
-3. Put the IDs into the `bridge` block — **source** is the virtual cable,
-   **target** is your headphones:
-   ```json
-   "bridge": {
-     "enabled": true,
-     "source_device_id": "{0.0.0.00000000}.{...cable...}",
-     "target_device_id": "{0.0.0.00000000}.{...headphones...}",
-     "preferred_output_id": ""
-   }
-   ```
-   Save the file — the service applies it live, no restart needed.
-4. Play music. You should hear it through the headphones with DSP applied.
+> **Capture and Play to must be different devices.** If they resolve to the same
+> endpoint the bridge would capture its own output (feedback), so the card shows
+> a red warning and the service refuses to start the session and idles.
 
-> **Do not leave both IDs empty with `enabled: true`** — both then resolve to
-> the same default endpoint and you will hear the original and the processed
-> audio doubled. Source and target must be different devices.
+### Manual setup (config.json, headless/advanced)
 
-> **Tip:** Set both CABLE Input and your headphones to the same sample rate
-> (48 kHz, 16-bit) in Windows Sound → Properties → Advanced to avoid silence
-> from format mismatch.
+The same settings live in `%ProgramData%\Veyra\config.json` under the `bridge`
+block (`enabled`, `source_device_id`, `target_device_id`); the service applies
+changes live. Device IDs are listed in
+`%ProgramData%\Veyra\logs\veyra-service.log` when the bridge starts:
+```
+AudioBridge: render endpoint "CABLE Input (VB-Audio Virtual Cable)" = {0.0.0.00000000}.{...}
+```
 
 ## Limitations
 
-- Source and target must share the same sample rate and be stereo 32-bit float
-  (shared-mode default). The service logs and idles if they don't match.
+- The capture source must be stereo 32-bit float (the Windows shared-mode
+  default). The service logs a warning and idles if it isn't. Differing sample
+  rates between capture and playback are fine — the playback side is opened
+  with Windows auto-conversion and resamples as needed.
 - Loopback adds ~30–80 ms latency — acceptable for music, may lag video lip-sync.
-- Audio Bridge is not active if Source or Output is not set.
+- Capture and playback must be two different endpoints (enforced by the service).
 
 ## Switching back to APO (signed builds)
 

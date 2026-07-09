@@ -414,22 +414,25 @@ void RootComponent::timerCallback()
                 client_.loadPreset(*uuid);
     }
 
-    // ~0.5 Hz: APO-first preferred-output auto-switch. Strictly opt-in — does
-    // nothing unless the user has chosen a Preferred Output Device. When that
-    // device is present and isn't already the Windows default, make it default so
-    // the system-wide APO processes it; if it's absent, leave the Windows default
-    // untouched (automatic fallback), and it's restored on reconnect on the next
-    // tick. [RUNTIME VERIFICATION REQUIRED — changes the system default device.]
+    // ~0.5 Hz default-device keeper. Strictly opt-in — does nothing unless the
+    // user has configured routing. While the Bridge is on, the capture device
+    // (the virtual sink apps play into) must stay the Windows default or the
+    // bridge captures nothing, so it wins over the APO-path Preferred Output.
+    // If the wanted device is absent, the Windows default is left untouched and
+    // restored on reconnect on a later tick. [RUNTIME VERIFICATION REQUIRED —
+    // changes the system default device.]
     if (++prefTick_ >= 120)
     {
         prefTick_ = 0;
-        const auto& pref = working_.bridge.preferredOutputId;
-        if (! pref.empty())
+        const auto& wanted = (working_.bridge.enabled && ! working_.bridge.sourceDeviceId.empty())
+                               ? working_.bridge.sourceDeviceId
+                               : working_.bridge.preferredOutputId;
+        if (! wanted.empty())
             for (const auto& d : listRenderEndpoints())
-                if (d.id == pref)
+                if (d.id == wanted)
                 {
                     if (! d.isDefault)
-                        setDefaultRenderEndpoint(pref);
+                        setDefaultRenderEndpoint(wanted);
                     break;
                 }
     }

@@ -15,8 +15,11 @@ Licensed under the **GNU GPLv3**.
 
 > **Note on audio output:** the APO path loads only on a **code-signed** build.
 > This open-source release is unsigned, so the identical DSP runs through the
-> built-in **Audio Bridge** instead (no signing required, and the only option for
-> Bluetooth). See [Known limitations](RELEASE_NOTES.md#known-limitations).
+> built-in **Audio Bridge** instead — one switch under **Devices → Audio Bridge**
+> plus the free [VB-CABLE](https://vb-audio.com/Cable/) virtual device (no signing
+> required, and the only option for Bluetooth anyway). Setting up a brand-new PC?
+> Follow [FRESH_INSTALL.md](FRESH_INSTALL.md). See
+> [Known limitations](RELEASE_NOTES.md#known-limitations).
 
 Maintainer: **Krithik S** ([@NextGenDev-KSK](https://github.com/NextGenDev-KSK))
 
@@ -102,18 +105,22 @@ Download `veyra-sounds-setup-x.y.z-x64.exe` from
 
 > **Windows SmartScreen:** You may see a "Windows protected your PC" screen.
 > Click **More info → Run anyway**. This is normal for a new unsigned open-source
-> project. See [installer/SIGNING.md](installer/SIGNING.md) for the signing roadmap.
+> project. If there is no "More info" link at all, Smart App Control is enforcing
+> on your machine — see [FRESH_INSTALL.md](FRESH_INSTALL.md).
 
-> **Code signing:** Free code signing for Veyra Sounds is provided by the
-> [**SignPath Foundation**](https://signpath.org). Signed Windows binaries are
-> rolled out as the certificate is provisioned.
+> **Code signing:** the current release is unsigned. Our SignPath Foundation
+> application was declined until the project has more public traction; we will
+> reapply as it grows. Status and roadmap: [installer/SIGNING.md](installer/SIGNING.md).
 
 The installer automatically:
 - Registers the APO COM server
 - Installs and starts the Windows service
 - Lets you pick your playback device (by friendly name — no GUIDs)
 - Associates the APO with that device and restarts Windows Audio
-- Falls back gracefully to Audio Bridge mode for Bluetooth headphones
+
+After installing, add the free [VB-CABLE](https://vb-audio.com/Cable/) virtual
+device and flip **Devices → Audio Bridge** on — Veyra auto-configures the rest.
+Full walkthrough: [FRESH_INSTALL.md](FRESH_INSTALL.md).
 
 **→ Full guide: [INSTALLATION.md](INSTALLATION.md)**
 

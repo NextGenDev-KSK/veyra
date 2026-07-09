@@ -10,6 +10,42 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.1.0] — 2026-07-09
+
+Bridge-first release: on unsigned builds the Audio Bridge is the official audio
+path, and it is now fully configurable from the app.
+
+### Added
+- **Audio Bridge controls in the Devices screen** — enable switch, Capture
+  picker, Play to picker, and a live status line that validates the routing in
+  plain language. Turning the Bridge on auto-detects a virtual cable (VB-CABLE,
+  Voicemeeter, and similar) for Capture and picks the current listening device
+  for Play to. The Preferred Output picker now applies only while the Bridge is
+  off (it belongs to the signed-APO path) and is disabled otherwise.
+- **`FRESH_INSTALL.md`** — step-by-step checklist from a freshly installed
+  Windows 11 machine to processed audio, including the Smart App Control
+  decision, SmartScreen, VB-CABLE setup, and a what-works table.
+
+### Changed
+- **Default-device keeper is Bridge-aware** — while the Bridge is enabled, the
+  UI keeps the *capture* device (the virtual sink apps play into) set as the
+  Windows default output instead of the APO-path Preferred Output, so the
+  routing survives Windows or apps changing the default.
+- **Docs rewritten Bridge-first** — README, `docs/AUDIO_BRIDGE.md` (UI workflow
+  replaces the config.json walkthrough, which moves to an advanced section),
+  and `RELEASE_NOTES.md`.
+- **`installer/SIGNING.md`** — honest signing status: SignPath Foundation
+  application declined pending public traction (2026-07); roadmap reordered to
+  Certum Open Source / Azure Trusted Signing / SignPath reapply.
+
+### Fixed
+- **`AudioBridge` same-endpoint guard** — if capture and playback resolve to
+  the same endpoint (e.g. both empty, or both pointing at the default device),
+  the service now logs a warning and idles instead of starting a session that
+  loops its own output back into its capture (doubled audio / echo build-up).
+
+---
+
 ## [1.0.0] — 2026-07-01
 
 **Audit Pass 5 — release-candidate pass (2026-07-02)**

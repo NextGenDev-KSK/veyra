@@ -48,9 +48,12 @@ whether the audio effects are reaching your device.
 Play any audio, go to **Home → EQ**, and move a band. On a signed build the APO
 applies the change with < 5 ms latency. On this unsigned open-source build the
 APO does not load (see the APO note in the [Release Notes](RELEASE_NOTES.md)); to
-hear the effects, enable the **Audio Bridge** — setup steps in
-[docs/AUDIO_BRIDGE.md](docs/AUDIO_BRIDGE.md). The Bridge is also the permanent
-path for Bluetooth headphones, which never host the APO.
+hear the effects, install the free [VB-CABLE](https://vb-audio.com/Cable/)
+virtual device and turn on **Devices → Audio Bridge** — Veyra auto-configures
+the routing and the card's status line confirms it is live. Full setup in
+[docs/AUDIO_BRIDGE.md](docs/AUDIO_BRIDGE.md), and [FRESH_INSTALL.md](FRESH_INSTALL.md)
+covers a brand-new PC end to end. The Bridge is also the permanent path for
+Bluetooth headphones, which never host the APO.
 
 ---
 
@@ -58,11 +61,11 @@ path for Bluetooth headphones, which never host the APO.
 
 Bluetooth endpoints sometimes reject the APO driver. If you hear no effect on Bluetooth headphones after setup:
 
-1. Open **Devices** in Veyra.
-2. Under **Audio Bridge (Bluetooth compatibility mode)**, enable the bridge
-   and select your Bluetooth headphones as the output.
-3. Install **VB-CABLE** (free) from <https://vb-audio.com/Cable/> if prompted,
-   and set it as your Windows default output device.
+1. Install **VB-CABLE** (free) from <https://vb-audio.com/Cable/> and reboot.
+2. Open **Devices** in Veyra and turn **Audio Bridge** on — Veyra picks the
+   cable as Capture automatically; set **Play to** to your Bluetooth headphones.
+3. While the Bridge is on, Veyra keeps the cable set as the Windows default
+   output for you.
 
 This adds ~30–80 ms latency, which is normal for Bluetooth.
 

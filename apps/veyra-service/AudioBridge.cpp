@@ -185,6 +185,24 @@ bool AudioBridge::session()
     if (!srcDev || !dstDev)
     { cleanup(); return false; }
 
+    // Same endpoint for capture and render would loop the bridge's own output
+    // back into its capture (echo build-up), so refuse and idle instead.
+    {
+        LPWSTR srcId = nullptr, dstId = nullptr;
+        const bool same = SUCCEEDED(srcDev->GetId(&srcId)) && SUCCEEDED(dstDev->GetId(&dstId))
+                       && srcId != nullptr && dstId != nullptr && wcscmp(srcId, dstId) == 0;
+        if (srcId) CoTaskMemFree(srcId);
+        if (dstId) CoTaskMemFree(dstId);
+        if (same)
+        {
+            if (log_)
+                log_->warn("AudioBridge: source and target resolve to the same endpoint; "
+                           "idling to avoid doubled/feedback audio. Pick two different devices.");
+            cleanup();
+            return false;
+        }
+    }
+
     if (FAILED(srcDev->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&srcClient))) ||
         FAILED(dstDev->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&dstClient))))
     { cleanup(); return false; }

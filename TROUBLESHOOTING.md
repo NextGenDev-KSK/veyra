@@ -88,29 +88,40 @@ If Windows plays a short burst of audio then stops, or Task Manager shows `audio
 > The APO is Veyra's primary design, but it only loads on a **signed** build. On this unsigned open-source release the APO does not load into `audiodg.exe`, so the **Audio Bridge is the working audio path** — and it is the *only* option for Bluetooth A2DP endpoints, which never host a custom APO regardless of signing. On a future signed build the APO becomes primary and the Bridge is needed only for Bluetooth. See the APO note in the [Release Notes](RELEASE_NOTES.md).
 
 **Symptom:** Audio Bridge is enabled and configured, but audio through the
-Bluetooth headphones is unchanged.
+headphones is unchanged.
+
+**Check 0 — Read the status line.**
+Devices → Audio Bridge shows a live status line that names most problems
+directly (no cable found, same device on both pickers, no Play to device).
+Start there.
 
 **Check 1 — Is the virtual cable set as the Windows default output?**
-Windows Sound Settings → Output must show `CABLE Input` (or equivalent) as the default.
-Apps play *into* the cable; the Bridge captures from `CABLE Output` and renders to the headphones.
+Windows Sound Settings → Output must show `CABLE Input` (or equivalent) as the
+default. Apps play *into* that render endpoint and the Bridge loopback-captures
+it. Veyra normally holds this default for you while the Bridge is on; if
+something else keeps stealing it, wait two seconds — Veyra reasserts it — or
+check for another audio manager fighting over the default.
 
-**Check 2 — Is the Bridge active?**
-Open `%ProgramData%\Veyra\config.json` and confirm the `bridge` block has
-`"enabled": true` with the correct `source_device_id` / `target_device_id`
-(setup steps in [docs/AUDIO_BRIDGE.md](docs/AUDIO_BRIDGE.md)). Then check
-`%ProgramData%\Veyra\logs\veyra-service.log` for `AudioBridge:` lines.
+**Check 2 — Is the Bridge running in the service?**
+Check `%ProgramData%\Veyra\logs\veyra-service.log` for `AudioBridge:` lines. The
+same settings are visible in `%ProgramData%\Veyra\config.json` under `bridge`
+(setup steps in [docs/AUDIO_BRIDGE.md](docs/AUDIO_BRIDGE.md)).
 
-**Check 3 — Source and Output must be different devices.**
-Source = `CABLE Output` (capture); Output = headphones. They cannot be the same device.
+**Check 3 — Capture and Play to must be different devices.**
+Capture = the virtual cable; Play to = your headphones. If both resolve to the
+same endpoint the service refuses the session (the log says so) instead of
+doubling your audio.
 
-**Fix A — Bridge fails to open the source device:**
+**Fix A — Bridge fails to open the capture device:**
 Common error: `AUDCLNT_E_DEVICE_IN_USE` — another app has exclusive mode. Close it or switch to shared mode.
 
-**Fix B — Sample rate mismatch:**
-Set CABLE Input and your headphones to the same rate (48 kHz, 16-bit) in Windows Sound → Properties → Advanced. The Bridge logs and idles on mismatch.
+**Fix B — Capture format not supported:**
+The capture source must be stereo 32-bit float (the Windows shared-mode
+default) — the log warns if it isn't. Differing sample rates between cable and
+headphones are fine; the playback side resamples automatically.
 
 **Fix C — Bridge runs but output volume is zero:**
-Check the Master Volume slider in Veyra and the system volume on the Output endpoint.
+Check the Master Volume slider in Veyra and the system volume on the Play to endpoint.
 
 ---
 

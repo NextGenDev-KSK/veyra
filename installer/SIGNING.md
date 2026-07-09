@@ -8,7 +8,14 @@ This means:
 - **VeyraSetup.exe** may trigger a Windows SmartScreen warning on first run. This is normal for any new open-source project that has not yet built up SmartScreen reputation. Users click **"More info → Run anyway"** to proceed.
 - **veyra-apo.dll** must be **signed** to load into `audiodg.exe` — either (a) signed with a local test certificate for dev builds (with test-signing mode enabled), or (b) a production-signed release for end users. An *unsigned* DLL never loads: test-signing mode alone does not admit unsigned binaries, and the legacy `DisableProtectedAudioDG` override no longer disables the protection on current Windows 11 (verified on build 26200.8655, 2026-07-01). See §3 below.
 
-**Signing is not a blocker for the open-source release.** The installer and application work correctly, and the **Audio Bridge** provides the working audio path without any signing (it runs the identical DSP chain in the service). The APO path activates on developer machines with a test-certificate-signed DLL, and for end users in a future signed release once the project qualifies for [SignPath Foundation](https://signpath.io/foundation) or another free signing solution.
+**Signing is not a blocker for the open-source release.** The installer and application work correctly, and the **Audio Bridge** provides the working audio path without any signing (it runs the identical DSP chain in the service). The APO path activates on developer machines with a test-certificate-signed DLL, and for end users once a production signing route lands.
+
+> **SignPath status (2026-07-09): applied and declined for now.** The SignPath
+> Foundation requires established external verification signals (GitHub stars,
+> forks, independent articles and discussions) that a young project does not yet
+> have. Their reply explicitly notes this is not a judgment on the project's
+> quality. We will reapply once the project has visible traction; until then the
+> realistic production routes are the paid ones in the roadmap below.
 
 Veyra ships three ways. Pick by audience:
 
@@ -76,14 +83,15 @@ used by Dolby Atmos and DTS. For development use **test-signing** (see
 For release, the package needs a WHQL/attestation signature via the Microsoft
 Hardware Dev Center.
 
-The **Audio Bridge** is an advanced fallback for Bluetooth endpoints that reject
-the APO; it is not the default path. Users on wired or USB-C audio will use the
-APO exclusively.
+On unsigned builds (all current releases) the **Audio Bridge** is the audio
+path for every endpoint, configured from **Devices → Audio Bridge** in the app.
+On future signed builds the APO becomes the default for wired/USB endpoints and
+the Bridge remains the Bluetooth path.
 
-### Production signing path (post-1.0 roadmap)
-1. **[SignPath Foundation](https://signpath.io/foundation)** — free code signing for open-source projects. Apply once the project is established.
-2. **EV / OV code-signing certificate** from a CA (DigiCert, Sectigo, GlobalSign — ~$300–500/year). Sign `veyra-apo.dll` and `VeyraSetup.exe` with `signtool.exe`. This is the fastest commercial path.
-3. **Microsoft Trusted Signing** (Azure) — cheapest trusted path for OSS; integrates with GitHub Actions.
-4. **WHQL/attestation signing** via the Windows Hardware Dev Center — free for verified accounts; strongest trust level; longest lead time.
+### Production signing roadmap (updated 2026-07-09)
+1. **[Certum Open Source Code Signing](https://shop.certum.eu/open-source-code-signing.html)** — OV certificate for open-source developers, ~€69/year plus a one-time smart card/reader. Cheapest certificate route; signs `VeyraSetup.exe` and `veyra-apo.dll` with `signtool.exe`.
+2. **Microsoft Trusted Signing** (Azure) — $9.99/month subscription with identity validation; integrates with GitHub Actions. Cheapest if the project lives longer than a year and wants CI signing.
+3. **[SignPath Foundation](https://signpath.io/foundation)** — free for established OSS projects. Applied 2026-07, declined pending public traction; reapply after the project earns stars/coverage.
+4. **EV certificate + WHQL/attestation** via the Windows Hardware Dev Center — needed only if we ever ship our own kernel driver (an FxSound-style virtual audio device); strongest trust, highest cost.
 
 > For development: turn test-signing off when done: `bcdedit /set testsigning off` + reboot.

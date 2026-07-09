@@ -34,15 +34,16 @@ your Windows default output device.
 See [INSTALLATION.md](../INSTALLATION.md) for the full installation guide.
 
 **Audio Bridge (the working path on this release; required for Bluetooth):**  
-The Bridge provides a WASAPI loopback path: apps play into a source device,
+The Bridge provides a WASAPI loopback path: apps play into a virtual device,
 Veyra processes the audio in its service, and renders it to your headphones.
-Follow [AUDIO_BRIDGE.md](AUDIO_BRIDGE.md) for setup — in v1.0.0 the Bridge is
-configured in `%ProgramData%\Veyra\config.json` (the Devices screen only shows
-the Preferred Output picker; Bridge controls return post-1.0), and a virtual
-sink such as VB-CABLE gives the cleanest routing. It adds ~30–80 ms latency,
-fine for music and video; on a signed build the APO path is the better choice
-for gaming. Bluetooth A2DP endpoints never host custom APOs, so the Bridge is
-the permanent path for Bluetooth regardless of signing.
+Since v1.1.0 it is configured entirely from **Devices → Audio Bridge**: one
+switch plus Capture and Play to pickers, with a status line that validates the
+routing. Install the free VB-CABLE virtual device first for the cleanest
+whole-system capture ([AUDIO_BRIDGE.md](AUDIO_BRIDGE.md) has the details). The
+Bridge adds ~30–80 ms latency, fine for music and video; on a signed build the
+APO path is the better choice for competitive gaming. Bluetooth A2DP endpoints
+never host custom APOs, so the Bridge is the permanent path for Bluetooth
+regardless of signing.
 
 The **service** (`veyra-service.exe`) holds the canonical config and drives the
 DSP; the **app** (`veyra.exe`) is the UI. The brand LED is green when connected.
@@ -80,10 +81,14 @@ rule applies automatically.
 ### Devices
 Output + input **device cards** showing each endpoint's name, form-factor badge,
 and status (the active output shows the current preset + volume; the active input
-shows its mic profile). Below the cards, the **Preferred Output** picker sets
-which endpoint the APO follows as the Windows default. The **Audio Bridge**
-(advanced Bluetooth fallback) is accessible from this screen for endpoints that
-reject the APO.
+shows its mic profile). Below the cards sits the **Audio Bridge** card: an on/off
+switch, a **Capture** picker (the virtual device apps play into — Veyra
+auto-detects VB-CABLE and similar), a **Play to** picker (your real headphones or
+speakers), and a status line that says in plain language whether the routing is
+live or what is wrong with it. While the Bridge is on, Veyra keeps the capture
+device set as the Windows default output automatically. The **Preferred Output**
+picker beneath it belongs to the signed-APO path and applies only while the
+Bridge is off.
 
 ### Sound Lab
 Seven calibration tools as a tab bar — Speaker Test, 7.1 Surround, Microphone,

@@ -1,9 +1,10 @@
 #pragma once
 
-// Devices screen: lists system output/input endpoints and provides the Preferred
-// Output Device selector for the APO path. The Audio Bridge (WASAPI loopback
-// compatibility mode for Bluetooth endpoints that reject APOs) is an advanced
-// secondary option, not the primary workflow.
+// Devices screen: lists system output/input endpoints and hosts the Audio Bridge
+// controls (enable + capture/playback pickers). On unsigned builds the Bridge is
+// the audio path: apps play into a virtual sink, the service loopback-captures
+// it, runs the DSP, and renders to the real device. The Preferred Output picker
+// serves the signed APO path and applies while the Bridge is off.
 
 #include "AudioDevices.h"
 #include "Theme/DesignTokens.h"
