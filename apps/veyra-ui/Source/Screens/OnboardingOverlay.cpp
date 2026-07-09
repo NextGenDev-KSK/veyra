@@ -6,22 +6,24 @@ namespace veyra::ui {
 
 namespace {
 struct Step { const char* title; const char* body; };
+// Plain ASCII only: these are const char* literals, and non-ASCII bytes render
+// as mojibake through juce::String(const char*).
 const Step kStepContent[] = {
     {"Welcome to Veyra Sounds",
-     "A free, system-wide audio enhancer. EQ, bass, spatial, loudness and more — "
+     "A free, system-wide audio enhancer. EQ, bass, spatial, loudness and more, "
      "all live, on whatever you're listening to."},
     {"Make it yours",
      "Pick a theme in Settings and dial in the glass. Tweak the 10-band EQ and the "
      "effect knobs on Home, or start from a preset."},
-    {"Works on your current device",
-     "Veyra loads into the Windows audio engine and processes everything on your chosen "
-     "output device — no virtual cable, no rerouting. "
-     "For Bluetooth headphones that need it, Devices → Audio Bridge is available as a fallback."},
+    {"Hear it on your device",
+     "Open Devices and switch on the Audio Bridge: Veyra captures what your apps play "
+     "and delivers the processed sound to your headphones or speakers. A free virtual "
+     "cable (VB-CABLE) makes the whole-system capture clean."},
     {"Quick keys",
      "Global hotkeys: Ctrl+Alt+M mute, Ctrl+Alt+Up/Down volume, "
      "Ctrl+Alt+Left/Right cycle presets, Ctrl+Alt+N mini mode."},
     {"Your setup",
-     "Detecting your devices…"}, // body replaced by setDetectedSetup()
+     "Detecting your devices..."}, // body replaced by setDetectedSetup()
 };
 } // namespace
 

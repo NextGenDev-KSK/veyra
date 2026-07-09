@@ -24,7 +24,7 @@ public:
         themes_ = builtInThemes();
 
         // Accent picker — only meaningful for the Custom theme, so hidden otherwise.
-        accentBtn_.setButtonText("Accent Colour…");
+        accentBtn_.setButtonText("Accent Colour...");
         accentBtn_.onClick = [this] { openAccentPicker(); };
         accentBtn_.setVisible(false);
         addAndMakeVisible(accentBtn_);
@@ -1106,7 +1106,7 @@ protected:
                    juce::Justification::centredLeft, false);
         g.setColour(palette_.textTertiary);
         g.setFont(fonts::body(11.0f));
-        g.drawText("Bypass all coloration — flat A/B", c.removeFromTop(16),
+        g.drawText("Bypass all coloration, flat A/B", c.removeFromTop(16),
                    juce::Justification::topLeft, false);
 
         c.removeFromTop(16);

@@ -18,7 +18,7 @@ struct ToolInfo { const char* title; const char* desc; };
 const ToolInfo kTool[] = {
     {"SPEAKER TEST",      "Confirm each channel plays from the correct direction."},
     {"7.1 SURROUND TEST", "Plays a positioned test tone (stereo virtualization on headphones)."},
-    {"MICROPHONE TEST",   "Speak — live level + a 10-band frequency-response spectrum."},
+    {"MICROPHONE TEST",   "Speak: live level plus a 10-band frequency-response spectrum."},
     {"FREQUENCY SWEEP",   "A 20 Hz to 20 kHz logarithmic sweep."},
     {"HEARING RANGE",     "Raise the frequency until you can no longer hear the tone."},
     {"POLARITY / PHASE",  "Compare in-phase against an inverted right channel."},
@@ -271,7 +271,7 @@ void SoundLabScreen::hpFinish()
         onPersonalized(bands);
     card_->setBig({});
     card_->setText("HEARING RANGE",
-                   bands.empty() ? "All bands even — no correction needed."
+                   bands.empty() ? "All bands even, no correction needed."
                                  : "Personalized EQ applied from your hearing profile.");
     resized();
     repaint();

@@ -132,7 +132,7 @@ RootComponent::RootComponent()
             "Output:  " + outName + (outType.isNotEmpty() ? " (" + outType + ")" : juce::String()) + "\n"
             + "Microphone:  " + inName + "\n\n"
             + "Recommended preset:  " + recName + "\n"
-            + "We'll apply it when you finish — change it anytime in Presets.");
+            + "We'll apply it when you finish. Change it anytime in Presets.");
     }
 
     onboarding_.onFinished = [this, recommended]

@@ -43,6 +43,13 @@ path, and it is now fully configurable from the app.
   the same endpoint (e.g. both empty, or both pointing at the default device),
   the service now logs a warning and idles instead of starting a session that
   loops its own output back into its capture (doubled audio / echo build-up).
+- **UI text mojibake** — em dashes, ellipses and arrows in `const char*` string
+  literals rendered as `â€"`-style garbage through `juce::String(const char*)`
+  (visible in the onboarding overlay, knob tooltips, Apps placeholders,
+  Settings and Sound Lab labels). All user-facing literals are ASCII now.
+- **Onboarding step 3 described the APO path** ("no virtual cable, no
+  rerouting"), which is wrong on unsigned builds; it now walks the user to
+  Devices → Audio Bridge instead.
 
 ---
 

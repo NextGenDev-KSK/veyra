@@ -72,22 +72,23 @@ HomeScreen::HomeScreen()
     }
 
     // Per-feature info hints (hover → what it is, what it does, shortcut).
+    // ASCII only: const char* literals go through juce::String(const char*).
     static const char* kKnobTips[kKnobs] = {
-        "Bass Boost — lifts low frequencies for a fuller low end (low shelf, up to +12 dB).",
-        "Treble — lifts highs for air and detail (high shelf, up to +12 dB).",
-        "Volume Gain — output pre-amp up to 300%. Hotkeys: Ctrl+Alt+Up / Ctrl+Alt+Down.",
-        "Stereo Width — widens or narrows the stereo image (mid/side), 0–200%.",
-        "Reverb — adds room ambience, mixed with the dry signal.",
-        "Compression — evens out loud and quiet parts for a steadier level.",
+        "Bass Boost: lifts low frequencies for a fuller low end (low shelf, up to +12 dB).",
+        "Treble: lifts highs for air and detail (high shelf, up to +12 dB).",
+        "Volume Gain: output pre-amp up to 300%. Hotkeys: Ctrl+Alt+Up / Ctrl+Alt+Down.",
+        "Stereo Width: widens or narrows the stereo image (mid/side), 0 to 200%.",
+        "Reverb: adds room ambience, mixed with the dry signal.",
+        "Compression: evens out loud and quiet parts for a steadier level.",
     };
     for (int i = 0; i < kKnobs; ++i)
     {
         knobInfo_[(size_t) i].setTooltip(kKnobTips[i]);
         addAndMakeVisible(knobInfo_[(size_t) i]);
     }
-    eqInfo_.setTooltip("Equalizer — 10-band graphic EQ, or switch to Parametric for draggable "
+    eqInfo_.setTooltip("Equalizer: 10-band graphic EQ, or switch to Parametric for draggable "
                        "bell / shelf / notch / HP / LP nodes (drag = freq+gain, wheel = Q).");
-    vizInfo_.setTooltip("Visualizer — live spectrum from your audio. Pick a mode (top-right) "
+    vizInfo_.setTooltip("Visualizer: live spectrum from your audio. Pick a mode (top-right) "
                         "or open fullscreen.");
     addAndMakeVisible(eqInfo_);
     addAndMakeVisible(vizInfo_);

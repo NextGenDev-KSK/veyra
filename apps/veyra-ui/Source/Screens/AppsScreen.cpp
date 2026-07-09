@@ -83,7 +83,7 @@ public:
 
         g.setColour(match_.isEmpty() ? palette_.textTertiary : palette_.textPrimary);
         g.setFont(fonts::body(13.0f));
-        g.drawText(match_.isEmpty() ? "Choose app…" : name_, r, juce::Justification::centredLeft, true);
+        g.drawText(match_.isEmpty() ? "Choose app..." : name_, r, juce::Justification::centredLeft, true);
     }
 
 private:
@@ -231,7 +231,7 @@ public:
     AppPickerPopup(std::vector<InstalledApp> apps, Palette p)
         : all_(std::move(apps)), palette_(std::move(p))
     {
-        search_.setTextToShowWhenEmpty("Search apps…", palette_.textTertiary);
+        search_.setTextToShowWhenEmpty("Search apps...", palette_.textTertiary);
         search_.setColour(juce::TextEditor::backgroundColourId, palette_.bgInput.withAlpha(0.6f));
         search_.setColour(juce::TextEditor::outlineColourId, palette_.strokeDefault);
         search_.setColour(juce::TextEditor::focusedOutlineColourId, palette_.strokeActive);
@@ -436,7 +436,7 @@ protected:
         {
             g.setColour(palette_.textTertiary);
             g.setFont(fonts::body(13.0f));
-            g.drawText("No rules yet — click \"+ Add App\".", c.removeFromTop(40),
+            g.drawText("No rules yet. Click \"+ Add App\".", c.removeFromTop(40),
                        juce::Justification::centredLeft, false);
         }
         g.setColour(palette_.textTertiary);
