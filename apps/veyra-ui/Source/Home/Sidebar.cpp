@@ -3,6 +3,8 @@
 #include "Graphics/Icons.h"
 #include "Theme/Fonts.h"
 
+#include "veyra/version.h"
+
 namespace veyra::ui {
 
 Sidebar::Sidebar()
@@ -81,10 +83,11 @@ void Sidebar::paint(juce::Graphics& g)
     g.setFont(fonts::mono(11.0f, true));
     g.drawText("MINI MODE", mini, juce::Justification::centred, false);
 
-    // Version.
+    // Version (single source of truth: VEYRA_VERSION via veyra/version.h).
     g.setColour(palette_.textTertiary);
     g.setFont(fonts::mono(11.0f));
-    g.drawText("v0.3.0", juce::Rectangle<int>(0, getHeight() - 22, getWidth(), 16),
+    g.drawText(juce::String("v") + veyra::kVersionString,
+               juce::Rectangle<int>(0, getHeight() - 22, getWidth(), 16),
                juce::Justification::centred, false);
 }
 

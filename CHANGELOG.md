@@ -50,6 +50,9 @@ path, and it is now fully configurable from the app.
 - **Onboarding step 3 described the APO path** ("no virtual cable, no
   rerouting"), which is wrong on unsigned builds; it now walks the user to
   Devices → Audio Bridge instead.
+- **Sidebar showed a stale hardcoded version ("v0.3.0")** — it now renders
+  `veyra::kVersionString`, the same single source of truth as the About and
+  Updates cards.
 
 ---
 
