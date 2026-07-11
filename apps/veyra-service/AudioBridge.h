@@ -1,21 +1,28 @@
 #pragma once
 
-// Advanced compatibility path for audio endpoints that reject the APO (primarily
-// Bluetooth). The APO path (veyra-apo.dll into audiodg.exe) is the primary
-// architecture; use the bridge only when the target endpoint cannot host an APO.
+// The audio path on unsigned builds (and the only path for Bluetooth): WASAPI-
+// loopback-capture a source endpoint (the virtual sink apps play into), run the
+// shared veyra::dsp::DspChain with the live config, and render the processed
+// audio to the target endpoint. On signed builds the APO path takes over for
+// wired endpoints and the bridge remains the Bluetooth route.
 //
-// When enabled, the bridge WASAPI-loopback-captures a source endpoint, runs the
-// shared veyra::dsp::DspChain with the live config, and renders the processed
-// audio to the target endpoint (e.g. Bluetooth headphones).
+// Latency: the render side is event-driven; when the source rate matches the
+// target's mix format the stream opens through IAudioClient3 at the engine's
+// minimum period (typically ~3 ms buffers), otherwise a 20 ms event-driven
+// stream with Windows auto-conversion. The session thread joins the Pro Audio
+// MMCSS class.
 //
-// v1 limitations (logged at runtime): source and target must share sample rate
-// and be stereo 32-bit float (shared-mode default); no resampling yet.
+// Sources: 32-bit float shared-mode mix in any common layout; mono is upmixed
+// and multichannel (5.1 / 7.1) is downmixed to stereo before the chain.
 
 #include <atomic>
 #include <mutex>
 #include <thread>
 
 #include "veyra/Config.h"
+
+// Forward-declare the Win32 handle so the header stays lean.
+using VeyraWinHandle = void*;
 
 namespace veyra {
 class Logger;
@@ -25,7 +32,7 @@ namespace veyra::service {
 
 class AudioBridge {
 public:
-    explicit AudioBridge(Logger* log = nullptr) : log_(log) {}
+    explicit AudioBridge(Logger* log = nullptr);
     ~AudioBridge();
 
     bool start();
@@ -34,6 +41,11 @@ public:
     // Apply config (enabled, device ids, and the live DSP params). Thread-safe.
     void setConfig(const Config& config);
 
+    // Wake the worker immediately (device arrival/removal, power resume) instead
+    // of waiting out the idle backoff. Safe from any thread, including COM
+    // notification callbacks.
+    void kick();
+
 private:
     void run();
     bool session(); // one capture/render session; false on error (caller backs off)
@@ -41,6 +53,7 @@ private:
     Logger*           log_;
     std::thread       thread_;
     std::atomic<bool> running_{false};
+    VeyraWinHandle    kickEvent_ = nullptr; // auto-reset; breaks the idle backoff
 
     std::mutex mutex_;
     Config     cfg_;

@@ -1,0 +1,103 @@
+name: release
+
+# One-click release build: compiles everything, runs the tests, builds the NSIS
+# installer + portable ZIP + SHA256SUMS, and uploads them to the GitHub release
+# for the given tag (creating a draft release if none exists).
+#
+# Manual dispatch only for now: local builds remain authoritative while
+# releases are unsigned, so a tag push must not race a second asset set. Run it
+# from the Actions tab with the tag (e.g. v1.3.0) when a release should be
+# CI-built instead.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build and upload assets for (e.g. v1.3.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build + attach release assets
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+          submodules: recursive
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Set up CMake + Ninja
+        uses: lukka/get-cmake@latest
+
+      - name: Configure
+        run: cmake --preset windows-release -DVEYRA_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build --preset windows-release
+
+      - name: Test
+        run: ctest --test-dir build/windows-release --output-on-failure
+
+      - name: Install NSIS
+        run: choco install nsis -y --no-progress
+
+      - name: Download VC++ redistributable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force installer/redist | Out-Null
+          Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" `
+                            -OutFile installer/redist/vc_redist.x64.exe
+
+      - name: Stage binaries
+        shell: pwsh
+        run: |
+          $root = "build/windows-release"
+          $expected = @("veyra.exe", "veyra-service.exe", "veyra-apo.dll",
+                        "veyra-overlay.exe", "VeyraSetupHelper.exe")
+          New-Item -ItemType Directory -Force dist | Out-Null
+          foreach ($f in $expected) {
+            $hit = Get-ChildItem -Path $root -Recurse -Filter $f -File | Select-Object -First 1
+            if (-not $hit) { Write-Error "Missing $f"; exit 1 }
+            Copy-Item $hit.FullName dist/
+          }
+
+      - name: Build installer + portable + checksums
+        shell: pwsh
+        run: |
+          $ver = "${{ github.event.inputs.tag }}".TrimStart("v")
+          $env:PATH += ";C:\Program Files (x86)\NSIS"
+          pwsh installer/setup/build-installer.ps1 -BinDir dist -Version $ver
+          pwsh installer/portable/make-portable.ps1 -BinDir dist -RepoRoot . -OutDir dist-portable -Version $ver
+          $files = @("dist-setup/veyra-sounds-setup-$ver-x64.exe",
+                     "dist-portable/veyra-portable-$ver-x64.zip")
+          $lines = foreach ($f in $files) {
+            $h = (Get-FileHash $f -Algorithm SHA256).Hash.ToLower()
+            "$h  $(Split-Path $f -Leaf)"
+          }
+          $lines -join "`n" | Out-File dist-setup/SHA256SUMS.txt -Encoding ascii
+
+      - name: Upload assets to the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.event.inputs.tag }}"
+          $ver = $tag.TrimStart("v")
+          gh release view $tag 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --draft --title "Veyra Sounds $tag" --notes-file RELEASE_NOTES.md
+          }
+          gh release upload $tag `
+            "dist-setup/veyra-sounds-setup-$ver-x64.exe" `
+            "dist-portable/veyra-portable-$ver-x64.zip" `
+            "dist-setup/SHA256SUMS.txt" --clobber

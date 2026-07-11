@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+PackageIdentifier: VeyraSounds.Veyra
+PackageVersion: 1.2.0
+InstallerType: nullsoft
+Scope: machine
+InstallModes:
+  - interactive
+  - silent
+UpgradeBehavior: install
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/NextGenDev-KSK/veyra/releases/download/v1.2.0/veyra-sounds-setup-1.2.0-x64.exe
+    InstallerSha256: 5AC7FF1952EDDBA852A400888636C7466AEF66EF58536A214D6C49DE1E49ED6D
+ManifestType: installer
+ManifestVersion: 1.6.0

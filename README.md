@@ -17,8 +17,10 @@ Licensed under the **GNU GPLv3**.
 > This open-source release is unsigned, so the identical DSP runs through the
 > built-in **Audio Bridge** instead — one switch under **Devices → Audio Bridge**
 > plus the free [VB-CABLE](https://vb-audio.com/Cable/) virtual device (no signing
-> required, and the only option for Bluetooth anyway). Setting up a brand-new PC?
-> Follow [FRESH_INSTALL.md](FRESH_INSTALL.md). See
+> required, and the only option for Bluetooth anyway). Since v1.2.0 the **Mic
+> Bridge** does the same for your microphone, so the RNNoise voice chain works
+> unsigned too. Setting up a brand-new PC? Follow
+> [FRESH_INSTALL.md](FRESH_INSTALL.md). See
 > [Known limitations](RELEASE_NOTES.md#known-limitations).
 
 Maintainer: **Krithik S** ([@NextGenDev-KSK](https://github.com/NextGenDev-KSK))

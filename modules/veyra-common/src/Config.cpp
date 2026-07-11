@@ -56,6 +56,7 @@ std::string Config::toJson() const
     j["loudness"]           = loudness;
     j["sharing"]            = sharing;
     j["bridge"]             = bridge;
+    j["mic_bridge"]         = micBridge;
     j["hotkeys"]            = hotkeys;
     return j.dump(2);
 }
@@ -124,6 +125,8 @@ std::optional<Config> Config::fromJson(const std::string& text)
         from_json(*it, c.sharing);
     if (const auto it = j.find("bridge"); it != j.end() && it->is_object())
         from_json(*it, c.bridge);
+    if (const auto it = j.find("mic_bridge"); it != j.end() && it->is_object())
+        from_json(*it, c.micBridge);
     if (const auto it = j.find("hotkeys"); it != j.end() && it->is_array())
         from_json(*it, c.hotkeys);
     return c;

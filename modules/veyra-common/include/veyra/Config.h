@@ -105,6 +105,18 @@ struct BridgeConfig {
     std::string preferredOutputId;
 };
 
+// Mic bridge (voice processing without a signed capture APO): the service
+// captures 'micDeviceId' (empty = default microphone), runs the VoiceChain
+// (RNNoise / gate / AGC / de-esser), and renders the cleaned voice into
+// 'targetDeviceId' — a virtual cable's render endpoint whose capture side apps
+// then use as their microphone. Must be a different cable from the one the
+// playback bridge captures.
+struct MicBridgeConfig {
+    bool        enabled = false;
+    std::string micDeviceId;    // capture endpoint (empty = default mic)
+    std::string targetDeviceId; // render endpoint of the mic's virtual cable
+};
+
 // One destination in Sound Sharing (multi-output). The service opens each
 // enabled route's endpoint, applies the per-output trim, and delays it by
 // delayMs so all routes stay in sync with the primary (the reference endpoint).
@@ -167,6 +179,7 @@ struct Config {
     LoudnessConfig    loudness;
     SharingConfig     sharing;
     BridgeConfig      bridge;
+    MicBridgeConfig   micBridge;
     HotkeysConfig     hotkeys = HotkeysConfig::defaults();
 
     // Serialise to / from pretty-printed JSON text.

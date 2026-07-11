@@ -86,9 +86,13 @@ switch, a **Capture** picker (the virtual device apps play into — Veyra
 auto-detects VB-CABLE and similar), a **Play to** picker (your real headphones or
 speakers), and a status line that says in plain language whether the routing is
 live or what is wrong with it. While the Bridge is on, Veyra keeps the capture
-device set as the Windows default output automatically. The **Preferred Output**
-picker beneath it belongs to the signed-APO path and applies only while the
-Bridge is off.
+device set as the Windows default output automatically. The **MIC BRIDGE**
+section (v1.2.0) routes your real microphone through the voice chain (RNNoise
+denoiser, compressor, de-esser, AGC) into a second virtual cable that apps use
+as their mic — its own switch, **Microphone** and **Sends to** pickers, and
+status line. A **Get VB-CABLE** button appears whenever routing needs a cable
+that isn't installed. The **Preferred Output** picker at the bottom belongs to
+the signed-APO path and applies only while the Bridge is off.
 
 ### Sound Lab
 Seven calibration tools as a tab bar — Speaker Test, 7.1 Surround, Microphone,

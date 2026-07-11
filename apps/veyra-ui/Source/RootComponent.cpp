@@ -77,7 +77,9 @@ RootComponent::RootComponent()
     placeholder_.attachBackdrop(&background_);
 
     devices_.onBridgeChanged = [this](const veyra::BridgeConfig& b) { working_.bridge = b; pushConfig(); };
+    devices_.onMicBridgeChanged = [this](const veyra::MicBridgeConfig& m) { working_.micBridge = m; pushConfig(); };
     devices_.setBridge(working_.bridge);
+    devices_.setMicBridge(working_.micBridge);
 
     // Apps: master per-app-switching toggle + rule push to service.
     apps_.onSwitchingChanged = [this](bool on) { working_.appSwitching = on; pushConfig(); };
@@ -554,6 +556,7 @@ void RootComponent::applyConfig(const veyra::Config& c)
     if (c.onboardingComplete)
         onboarding_.setVisible(false); // a saved profile already finished onboarding
     devices_.setBridge(c.bridge);
+    devices_.setMicBridge(c.micBridge);
     effects_.setConfig(c);
 
     // Appearance: opacity / background mode / reduce-motion.

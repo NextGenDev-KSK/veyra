@@ -61,14 +61,46 @@ changes live. Device IDs are listed in
 AudioBridge: render endpoint "CABLE Input (VB-Audio Virtual Cable)" = {0.0.0.00000000}.{...}
 ```
 
+## Mic Bridge (v1.2.0): the voice chain without a signed driver
+
+The same trick works in reverse for your microphone. The service captures the
+mic, runs the voice chain (RNNoise ML denoiser at 48 kHz, leveling compressor,
+de-esser, AGC, presence EQ), and renders the cleaned voice into a **second**
+virtual cable. Apps then select that cable's capture side as their microphone:
+
+```
+Real mic → VoiceChain (RNNoise…) → CABLE A Input   |   Discord mic = CABLE A Output
+```
+
+Setup: install a second cable (VB-Audio's "CABLE A" or similar — the base
+VB-CABLE is already carrying your playback), then **Devices → MIC BRIDGE → on**.
+Veyra picks your default microphone and a free cable automatically; the status
+line confirms the routing and tells you which device to select in your apps.
+The service refuses to send the mic into the cable the playback bridge
+captures (that would mix apps' audio into your voice), and the card explains
+the two-cable rule if you try.
+
+## Latency
+
+- The playback bridge streams event-driven on a Pro Audio priority thread. When
+  the source and target agree on the sample rate, the render stream opens at
+  the audio engine's minimum period (typically ~3 ms buffers); otherwise a
+  20 ms auto-converting stream is used. Expect roughly 10–30 ms end to end,
+  fine for music, film and casual gaming. The < 5 ms APO path still needs a
+  signed build.
+- The mic bridge adds a similar amount on the voice path — unnoticeable in
+  calls and streaming.
+
 ## Limitations
 
-- The capture source must be stereo 32-bit float (the Windows shared-mode
-  default). The service logs a warning and idles if it isn't. Differing sample
-  rates between capture and playback are fine — the playback side is opened
-  with Windows auto-conversion and resamples as needed.
-- Loopback adds ~30–80 ms latency — acceptable for music, may lag video lip-sync.
+- Sources must be 32-bit float (the Windows shared-mode default), 1–8
+  channels. Mono/quad/5.1/7.1 downmix to stereo automatically (LFE dropped,
+  centre and surrounds at -3 dB). The service logs a warning and idles on
+  anything else. Differing sample rates between capture and playback are fine —
+  the playback side resamples via Windows auto-conversion.
 - Capture and playback must be two different endpoints (enforced by the service).
+- Running the playback bridge and the mic bridge together needs two separate
+  virtual cables.
 
 ## Switching back to APO (signed builds)
 

@@ -4,6 +4,8 @@
 #include "AudioBridge.h"
 #include "ConfigManager.h"
 #include "ControlServer.h"
+#include "DeviceNotifier.h"
+#include "MicBridge.h"
 #include "MicPublisher.h"
 #include "PresetLibrary.h"
 #include "SleepTimerService.h"
@@ -24,6 +26,10 @@ public:
     bool start(); // load config + start the control server
     void stop();
 
+    // Suspend/resume (SERVICE_CONTROL_POWEREVENT): restart the audio sessions
+    // promptly instead of waiting out their backoff.
+    void onPowerEvent();
+
     Logger& log() { return log_; }
 
 private:
@@ -33,10 +39,12 @@ private:
     TrackerService    tracker_;
     SleepTimerService sleepTimer_;
     AudioBridge       bridge_;
+    MicBridge         micBridge_;
     ConfigManager     config_;
     PresetLibrary     presets_;
     ControlServer     control_;
     UpdaterClient     updater_;
+    DeviceNotifier    devices_;
 };
 
 } // namespace veyra::service

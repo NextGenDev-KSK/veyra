@@ -13,10 +13,12 @@ ServiceRuntime::ServiceRuntime(bool consoleLogging)
       tracker_(&log_),
       sleepTimer_(&log_),
       bridge_(&log_),
+      micBridge_(&log_),
       config_(paths::configFile(), &log_),
       presets_(paths::presetsDir(), &log_),
       control_(config_, presets_, paths::appDataDir() / "app_rules.json", &log_),
-      updater_(&log_)
+      updater_(&log_),
+      devices_([this] { bridge_.kick(); micBridge_.kick(); })
 {
 }
 
@@ -36,6 +38,8 @@ bool ServiceRuntime::start()
     tracker_.start();     // Gamer Mode loopback capture + Sound Tracker producer
     sleepTimer_.start();  // sleep-timer endpoint-volume fade
     bridge_.start();      // no-driver processing path (loopback -> DSP -> output)
+    micBridge_.start();   // no-driver mic path (mic -> VoiceChain -> cable)
+    devices_.start();     // endpoint add/remove/default-change -> kick the bridges
     config_.setOnChanged([this](const Config& c)
     {
         publisher_.publish(c);
@@ -43,6 +47,7 @@ bool ServiceRuntime::start()
         tracker_.setConfig(c.gamerMode);   // enable/sensitivity for the tracker
         sleepTimer_.setConfig(c.loudness); // sleep timer enable/duration
         bridge_.setConfig(c);              // bridge routing + live DSP params
+        micBridge_.setConfig(c);           // mic bridge routing + voice params
     });
 
     presets_.load();        // built-ins + user .vpreset files
@@ -64,12 +69,21 @@ bool ServiceRuntime::start()
 
 void ServiceRuntime::stop()
 {
+    devices_.stop();
     control_.stop();
     updater_.stop();
     tracker_.stop();
     sleepTimer_.stop(); // restores the endpoint volume if a fade was in progress
     bridge_.stop();
+    micBridge_.stop();
     log_.info("Veyra service stopped");
+}
+
+void ServiceRuntime::onPowerEvent()
+{
+    log_.info("Power event: kicking audio sessions");
+    bridge_.kick();
+    micBridge_.kick();
 }
 
 } // namespace veyra::service

@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+PackageIdentifier: VeyraSounds.Veyra
+PackageVersion: 1.2.0
+PackageLocale: en-US
+Publisher: Veyra Sounds
+PublisherUrl: https://github.com/NextGenDev-KSK
+PublisherSupportUrl: https://github.com/NextGenDev-KSK/veyra/issues
+PackageName: Veyra Sounds
+PackageUrl: https://github.com/NextGenDev-KSK/veyra
+License: GPL-3.0
+LicenseUrl: https://github.com/NextGenDev-KSK/veyra/blob/main/LICENSE
+ShortDescription: Free, open-source, system-wide audio enhancer for Windows.
+Description: >-
+  Veyra Sounds is a free, open-source, system-wide audio enhancer for
+  Windows 10/11. Realtime 10-band graphic and 16-band parametric EQ, spatial
+  HRTF virtualisation, compressor, reverb, bass enhancement and a true peak
+  limiter, plus a gamer Sound Tracker radar HUD, 27 built-in presets and 16
+  AutoEQ headphone profiles. The Audio Bridge routes any app's sound through
+  the DSP chain, and the Mic Bridge cleans your microphone with the RNNoise
+  machine-learning denoiser.
+Moniker: veyra
+Tags:
+  - audio
+  - equalizer
+  - dsp
+  - audio-enhancer
+  - open-source
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

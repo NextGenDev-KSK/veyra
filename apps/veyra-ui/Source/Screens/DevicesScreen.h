@@ -30,15 +30,17 @@ public:
     void resized() override;
     void paint(juce::Graphics& g) override; // title + section labels
 
-    void refreshDevices();                          // re-enumerate endpoints
-    void setBridge(const veyra::BridgeConfig& b);   // reflect state, no callback
+    void refreshDevices();                            // re-enumerate endpoints
+    void setBridge(const veyra::BridgeConfig& b);     // reflect state, no callback
+    void setMicBridge(const veyra::MicBridgeConfig&); // reflect state, no callback
 
     // Live state shown on the active output / input cards.
     void setActivePreset(juce::String name);
     void setMasterVolume(double gain);
     void setMicProfile(juce::String profile);
 
-    std::function<void(const veyra::BridgeConfig&)> onBridgeChanged;
+    std::function<void(const veyra::BridgeConfig&)>    onBridgeChanged;
+    std::function<void(const veyra::MicBridgeConfig&)> onMicBridgeChanged;
 
 private:
     class BridgeCard;

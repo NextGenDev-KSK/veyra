@@ -10,6 +10,49 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.0] — 2026-07-11
+
+The voice release: the microphone chain works without a signed driver, the
+playback bridge gets low-latency streaming, and the service self-heals across
+device changes and sleep/resume.
+
+### Added
+- **Mic Bridge** — the full voice chain (RNNoise ML denoiser at 48 kHz, noise
+  suppression fallback, leveling compressor, de-esser, AGC, presence EQ) now
+  runs unsigned: the service captures the microphone, processes it, and renders
+  the cleaned voice into a second virtual cable whose capture side apps select
+  as their mic. New `mic_bridge` config block (`enabled` / `mic_device_id` /
+  `target_device_id`) and a MIC BRIDGE section on the Devices card with its own
+  enable switch, Microphone / Sends to pickers, and status line. Guards refuse
+  routing the mic into the same cable the playback bridge captures.
+- **Device-change notifications** — the service registers an
+  `IMMNotificationClient`; device add/remove/default changes kick the bridges
+  to retry immediately instead of waiting out the idle backoff. Unplugging
+  headphones or installing a cable is picked up at once.
+- **Sleep/resume handling** — the service accepts
+  `SERVICE_CONTROL_POWEREVENT`; on resume both bridges restart their sessions
+  promptly.
+- **"Get VB-CABLE" button** on the Devices card, shown only when a bridge is
+  enabled and no virtual cable is present.
+
+### Changed
+- **Audio Bridge latency** — the render side is now event-driven and joins the
+  Pro Audio MMCSS class; when the source rate matches the target's mix format
+  the stream opens through `IAudioClient3` at the audio engine's minimum
+  period (typically ~3 ms buffers, down from a 100 ms polled buffer), with a
+  20 ms auto-converting event stream as the fallback. A bounded FIFO decouples
+  capture packets from render periods and silence-pads underruns instead of
+  glitching.
+- **Multichannel sources downmix** — mono, quad, 5.1 and 7.1 float32 sources
+  now fold to stereo (LFE dropped, centre/surrounds at -3 dB) instead of the
+  bridge idling on anything that wasn't already stereo.
+- Bridge config changes now kick the worker immediately (no 750 ms wait).
+
+### Tests
+- `mic_bridge` JSON round-trip + defaults coverage in `test_bridge_config.cpp`.
+
+---
+
 ## [1.1.0] — 2026-07-09
 
 Bridge-first release: on unsigned builds the Audio Bridge is the official audio

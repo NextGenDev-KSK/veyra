@@ -113,8 +113,18 @@ problem), then `%ProgramData%\Veyra\logs\veyra-service.log`, then
 |---|---|
 | All playback DSP (EQ, spatial, reverb, limiter, presets, AutoEQ) | ✅ via Audio Bridge |
 | Bluetooth headphones/earbuds | ✅ via Audio Bridge (the only path that ever works for A2DP) |
+| Microphone chain (RNNoise denoiser, compressor, de-esser, AGC) | ✅ via Mic Bridge (v1.2.0; needs a second virtual cable) |
 | Sound Tracker HUD, Gamer Mode, visualizers, hotkeys, themes | ✅ |
-| Latency | ~30–80 ms (Bridge). The < 5 ms APO path needs a signed build |
-| Microphone chain (RNNoise, AEC, gate) | ⏳ needs a signed build (runs in the mic APO) |
+| Latency | ~10–30 ms (event-driven Bridge). The < 5 ms APO path needs a signed build |
+
+### Optional step 7: clean microphone (Mic Bridge)
+
+1. Install a **second** virtual cable — VB-Audio's
+   [CABLE A](https://vb-audio.com/Cable/) (the base VB-CABLE already carries
+   your playback).
+2. Veyra → **Devices** → switch **MIC BRIDGE** on. Veyra picks your default
+   microphone and the free cable automatically.
+3. In Discord/OBS/your game, select that cable's output (e.g. `CABLE-A Output`)
+   as the microphone. Your voice arrives denoised and levelled.
 
 Signing status and roadmap: [installer/SIGNING.md](installer/SIGNING.md).

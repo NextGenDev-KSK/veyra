@@ -13,7 +13,7 @@ namespace veyra::ui {
 
 namespace {
 constexpr int kCardW = 244, kCardH = 132, kGapX = 16, kGapY = 16;
-constexpr int kLabelH = 22, kSectionGap = 10, kBridgeH = 240;
+constexpr int kLabelH = 22, kSectionGap = 10, kBridgeH = 364;
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -218,8 +218,10 @@ private:
 // Audio routing card. The Audio Bridge is the audio path on unsigned builds:
 // apps play into a virtual sink (VB-CABLE or similar), the service loopback-
 // captures it, runs the DSP chain, and renders to the real output device. The
-// Preferred Output picker below it belongs to the signed-APO path and is only
-// active while the Bridge is off.
+// Mic Bridge section below it does the same in reverse for the microphone
+// (mic -> voice chain -> a second cable that apps use as their mic). The
+// Preferred Output picker belongs to the signed-APO path and is only active
+// while the Bridge is off.
 // ---------------------------------------------------------------------------
 class DevicesScreen::BridgeCard : public GlassPanel {
 public:
@@ -248,32 +250,61 @@ public:
         preferred_.onChange = [this] { bridge_.preferredOutputId = idForCombo(preferred_, true); emit(); };
         addAndMakeVisible(preferred_);
 
+        micEnable_.setClickingTogglesState(true);
+        micEnable_.onClick = [this]
+        {
+            mic_.enabled = micEnable_.getToggleState();
+            if (mic_.enabled)
+                autoPickMicDevices();
+            selectIds();
+            emitMic();
+        };
+        addAndMakeVisible(micEnable_);
+
+        micSource_.setTextWhenNothingSelected("Default microphone");
+        micSource_.onChange = [this] { mic_.micDeviceId = idForMicCombo(); emitMic(); };
+        addAndMakeVisible(micSource_);
+
+        micTarget_.setTextWhenNothingSelected("Choose the mic's cable");
+        micTarget_.onChange = [this] { mic_.targetDeviceId = idForCombo(micTarget_, false); emitMic(); };
+        addAndMakeVisible(micTarget_);
+
         refresh_.setButtonText("Refresh");
         refresh_.onClick = [this] { refreshDevices(); };
         addAndMakeVisible(refresh_);
 
+        // Shown only while a bridge is on and no virtual cable exists.
+        cable_.setButtonText("Get VB-CABLE");
+        cable_.onClick = [] { juce::URL("https://vb-audio.com/Cable/").launchInDefaultBrowser(); };
+        addChildComponent(cable_);
+
         refreshDevices();
     }
 
-    std::function<void(const veyra::BridgeConfig&)> onBridgeChanged;
+    std::function<void(const veyra::BridgeConfig&)>    onBridgeChanged;
+    std::function<void(const veyra::MicBridgeConfig&)> onMicBridgeChanged;
 
     void refreshDevices()
     {
-        devices_ = listRenderEndpoints();
+        devices_        = listRenderEndpoints();
+        captureDevices_ = listCaptureEndpoints();
 
-        auto fill = [this](juce::ComboBox& box, bool withDefaultItem, const char* defaultLabel)
+        auto fill = [](juce::ComboBox& box, const std::vector<OutputDevice>& list,
+                       const char* defaultLabel)
         {
             box.clear(juce::dontSendNotification);
-            if (withDefaultItem)
+            if (defaultLabel != nullptr)
                 box.addItem(defaultLabel, 1);
-            for (int i = 0; i < (int) devices_.size(); ++i)
-                box.addItem(devices_[(size_t) i].name
-                                + (devices_[(size_t) i].isDefault ? "  (current default)" : ""),
+            for (int i = 0; i < (int) list.size(); ++i)
+                box.addItem(list[(size_t) i].name
+                                + (list[(size_t) i].isDefault ? "  (current default)" : ""),
                             i + 2);
         };
-        fill(source_, true, "Windows default output");
-        fill(target_, false, nullptr);
-        fill(preferred_, true, "Windows Default (no preference)");
+        fill(source_, devices_, "Windows default output");
+        fill(target_, devices_, nullptr);
+        fill(preferred_, devices_, "Windows Default (no preference)");
+        fill(micSource_, captureDevices_, "Default microphone");
+        fill(micTarget_, devices_, nullptr);
 
         selectIds();
         repaint();
@@ -286,50 +317,75 @@ public:
         repaint();
     }
 
+    void setMicBridge(const veyra::MicBridgeConfig& m)
+    {
+        mic_ = m;
+        selectIds();
+        repaint();
+    }
+
     void resized() override
     {
         auto inner = getLocalBounds().reduced(kPad);
-        // Toggle sits after the heading text; Refresh is right-aligned in the title row.
+        // Toggles sit after their heading text; Refresh + the VB-CABLE link are
+        // right-aligned in the title row.
         enable_.setBounds(inner.getX() + 156, inner.getY() + 4, 36, 20);
         refresh_.setBounds(inner.getRight() - 90, inner.getY(), 90, 28);
+        cable_.setBounds(inner.getRight() - 90 - 10 - 110, inner.getY(), 110, 28);
+        micEnable_.setBounds(inner.getX() + 156, micHeaderY() + 2, 36, 20);
 
         const int comboW = juce::jmin(360, getWidth() - kPad * 2 - 84 - 20);
-        source_.setBounds(rowCtl(inner.getX(), 1, comboW));
-        target_.setBounds(rowCtl(inner.getX(), 2, comboW));
-        preferred_.setBounds(rowCtl(inner.getX(), 3, comboW));
+        source_.setBounds(comboAt(rowsBaseY(), 0, comboW));
+        target_.setBounds(comboAt(rowsBaseY(), 1, comboW));
+        micSource_.setBounds(comboAt(micRowsBaseY(), 0, comboW));
+        micTarget_.setBounds(comboAt(micRowsBaseY(), 1, comboW));
+        preferred_.setBounds(comboAt(preferredY(), 0, comboW));
     }
 
 protected:
     void paintContent(juce::Graphics& g) override
     {
-        auto c = getLocalBounds().reduced(kPad);
-        g.setColour(palette_.textPrimary);
-        g.setFont(fonts::display(20.0f));
-        g.drawText("AUDIO BRIDGE", c.removeFromTop(28), juce::Justification::centredLeft, false);
-
-        // Live status line: client-side validation of the routing setup.
-        const auto st = status();
-        g.setColour(st.colour);
-        g.setFont(fonts::body(11.0f));
-        g.drawText(st.text, c.removeFromTop(16), juce::Justification::topLeft, true);
-
-        // Row labels.
         const auto inner = getLocalBounds().reduced(kPad);
-        auto label = [&](int row, const char* text, bool dimmed)
+
+        auto label = [&](int y, const char* text, bool dimmed)
         {
             g.setColour(dimmed ? palette_.textDisabled : palette_.textSecondary);
             g.setFont(fonts::body(13.0f));
-            g.drawText(text, juce::Rectangle<int>(inner.getX(), rowY(row), 84, 28),
+            g.drawText(text, juce::Rectangle<int>(inner.getX(), y, 84, 28),
                        juce::Justification::centredLeft, false);
         };
-        label(1, "Capture", ! bridge_.enabled);
-        label(2, "Play to", ! bridge_.enabled);
-        label(3, "Preferred", bridge_.enabled);
+        auto statusLine = [&](int y, const Status& st)
+        {
+            g.setColour(st.colour);
+            g.setFont(fonts::body(11.0f));
+            g.drawText(st.text, juce::Rectangle<int>(inner.getX(), y, inner.getWidth(), 16),
+                       juce::Justification::topLeft, true);
+        };
 
+        // Playback bridge section.
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::display(20.0f));
+        g.drawText("AUDIO BRIDGE", juce::Rectangle<int>(inner.getX(), inner.getY(), 300, 28),
+                   juce::Justification::centredLeft, false);
+        statusLine(inner.getY() + 28, status());
+        label(rowsBaseY(),      "Capture", ! bridge_.enabled);
+        label(rowsBaseY() + 40, "Play to", ! bridge_.enabled);
+
+        // Mic bridge section.
+        g.setColour(palette_.textPrimary);
+        g.setFont(fonts::display(15.0f));
+        g.drawText("MIC BRIDGE", juce::Rectangle<int>(inner.getX(), micHeaderY(), 300, 24),
+                   juce::Justification::centredLeft, false);
+        statusLine(micHeaderY() + 24, micStatus());
+        label(micRowsBaseY(),      "Microphone", ! mic_.enabled);
+        label(micRowsBaseY() + 40, "Sends to",   ! mic_.enabled);
+
+        // APO-path preferred output.
+        label(preferredY(), "Preferred", bridge_.enabled);
         g.setColour(palette_.textTertiary);
         g.setFont(fonts::body(10.5f));
         g.drawText("Preferred output is used by the signed APO path while the Bridge is off.",
-                   juce::Rectangle<int>(inner.getX(), rowY(3) + 30, inner.getWidth(), 14),
+                   juce::Rectangle<int>(inner.getX(), preferredY() + 30, inner.getWidth(), 14),
                    juce::Justification::topLeft, true);
     }
 
@@ -355,6 +411,14 @@ private:
         for (const auto& d : devices_)
             if (d.id == id) return d.name;
         return "unknown device";
+    }
+
+    juce::String micNameFor(const std::string& id) const
+    {
+        if (id.empty()) return "Default microphone";
+        for (const auto& d : captureDevices_)
+            if (d.id == id) return d.name;
+        return "unknown microphone";
     }
 
     std::string defaultDeviceId() const
@@ -388,6 +452,25 @@ private:
                 palette_.success};
     }
 
+    Status micStatus() const
+    {
+        if (! mic_.enabled)
+            return {"Off. Turn this on to denoise your mic without a signed driver.",
+                    palette_.textTertiary};
+
+        if (mic_.targetDeviceId.empty())
+            return {"Pick the cable that carries your clean mic under Sends to.", palette_.warning};
+
+        if (bridge_.enabled && ! bridge_.sourceDeviceId.empty()
+            && mic_.targetDeviceId == bridge_.sourceDeviceId)
+            return {"That cable already carries your playback. Use a second cable (e.g. CABLE A).",
+                    palette_.danger};
+
+        return {"Live: " + micNameFor(mic_.micDeviceId) + " into " + nameFor(mic_.targetDeviceId)
+                    + ". Pick that cable's output as the microphone in your apps.",
+                palette_.success};
+    }
+
     // First enable: point capture at a virtual cable when one exists, and playback
     // at the device the user is listening on right now.
     void autoPickDevices()
@@ -408,14 +491,28 @@ private:
         }
     }
 
-    int rowY(int row) const
+    // First enable of the mic bridge: default mic is right for almost everyone;
+    // for the cable, prefer a virtual sink the playback bridge is NOT using.
+    void autoPickMicDevices()
     {
-        return getLocalBounds().reduced(kPad).getY() + 28 + 16 + 8 + (row - 1) * 40;
+        if (! mic_.targetDeviceId.empty())
+            return;
+        for (const auto& d : devices_)
+            if (isVirtualSink(d) && d.id != bridge_.sourceDeviceId && d.id != bridge_.targetDeviceId)
+                { mic_.targetDeviceId = d.id; break; }
     }
 
-    juce::Rectangle<int> rowCtl(int x, int row, int w) const
+    // Vertical layout: title(28) + status(16) + gap(8) -> two bridge rows (40 each)
+    // -> gap(6) + mic header(24) + mic status(16) + gap(6) -> two mic rows
+    // -> gap(8) + preferred row + caption.
+    int rowsBaseY()    const { return getLocalBounds().reduced(kPad).getY() + 52; }
+    int micHeaderY()   const { return rowsBaseY() + 80 + 6; }
+    int micRowsBaseY() const { return micHeaderY() + 24 + 16 + 6; }
+    int preferredY()   const { return micRowsBaseY() + 80 + 8; }
+
+    juce::Rectangle<int> comboAt(int baseY, int row, int w) const
     {
-        return {x + 84, rowY(row), juce::jmax(120, w), 28};
+        return {getLocalBounds().reduced(kPad).getX() + 84, baseY + row * 40, juce::jmax(120, w), 28};
     }
 
     // Combos with a default item map id 1 -> empty string; devices sit at 2..n+1.
@@ -425,9 +522,17 @@ private:
         return (idx >= 0 && idx < (int) devices_.size()) ? devices_[(size_t) idx].id : std::string();
     }
 
+    std::string idForMicCombo() const
+    {
+        const int idx = micSource_.getSelectedId() - 2;
+        return (idx >= 0 && idx < (int) captureDevices_.size()) ? captureDevices_[(size_t) idx].id
+                                                                : std::string();
+    }
+
     void selectIds()
     {
-        auto select = [this](juce::ComboBox& box, const std::string& id, bool hasDefaultItem)
+        auto select = [](juce::ComboBox& box, const std::vector<OutputDevice>& list,
+                         const std::string& id, bool hasDefaultItem)
         {
             if (id.empty())
             {
@@ -435,19 +540,27 @@ private:
                 return;
             }
             int sel = hasDefaultItem ? 1 : 0;
-            for (int i = 0; i < (int) devices_.size(); ++i)
-                if (devices_[(size_t) i].id == id) { sel = i + 2; break; }
+            for (int i = 0; i < (int) list.size(); ++i)
+                if (list[(size_t) i].id == id) { sel = i + 2; break; }
             box.setSelectedId(sel, juce::dontSendNotification);
         };
         enable_.setToggleState(bridge_.enabled, juce::dontSendNotification);
-        select(source_, bridge_.sourceDeviceId, true);
-        select(target_, bridge_.targetDeviceId, false);
-        select(preferred_, bridge_.preferredOutputId, true);
+        select(source_, devices_, bridge_.sourceDeviceId, true);
+        select(target_, devices_, bridge_.targetDeviceId, false);
+        select(preferred_, devices_, bridge_.preferredOutputId, true);
+        micEnable_.setToggleState(mic_.enabled, juce::dontSendNotification);
+        select(micSource_, captureDevices_, mic_.micDeviceId, true);
+        select(micTarget_, devices_, mic_.targetDeviceId, false);
 
-        // The Bridge owns routing while it's on; Preferred belongs to the APO path.
+        // Each bridge owns its routing while on; Preferred belongs to the APO path.
         source_.setEnabled(bridge_.enabled);
         target_.setEnabled(bridge_.enabled);
         preferred_.setEnabled(! bridge_.enabled);
+        micSource_.setEnabled(mic_.enabled);
+        micTarget_.setEnabled(mic_.enabled);
+
+        // Offer the cable download when routing wants one and none exists.
+        cable_.setVisible((bridge_.enabled || mic_.enabled) && ! haveVirtualSink());
     }
 
     void emit()
@@ -458,13 +571,22 @@ private:
         repaint();
     }
 
+    void emitMic()
+    {
+        selectIds();
+        if (onMicBridgeChanged)
+            onMicBridgeChanged(mic_);
+        repaint();
+    }
+
     static constexpr int kPad = 24;
 
-    std::vector<OutputDevice> devices_;
+    std::vector<OutputDevice> devices_, captureDevices_;
     veyra::BridgeConfig       bridge_;
-    ToggleSwitch              enable_;
-    juce::ComboBox            source_, target_, preferred_;
-    juce::TextButton          refresh_;
+    veyra::MicBridgeConfig    mic_;
+    ToggleSwitch              enable_, micEnable_;
+    juce::ComboBox            source_, target_, preferred_, micSource_, micTarget_;
+    juce::TextButton          refresh_, cable_;
 };
 
 // ---------------------------------------------------------------------------
@@ -478,6 +600,7 @@ DevicesScreen::DevicesScreen()
 
     card_ = std::make_unique<BridgeCard>();
     card_->onBridgeChanged = [this](const veyra::BridgeConfig& b) { if (onBridgeChanged) onBridgeChanged(b); };
+    card_->onMicBridgeChanged = [this](const veyra::MicBridgeConfig& m) { if (onMicBridgeChanged) onMicBridgeChanged(m); };
     addAndMakeVisible(*card_);
 
     refreshDevices();
@@ -506,6 +629,7 @@ void DevicesScreen::refreshDevices()
     resized();
 }
 void DevicesScreen::setBridge(const veyra::BridgeConfig& b) { card_->setBridge(b); }
+void DevicesScreen::setMicBridge(const veyra::MicBridgeConfig& m) { card_->setMicBridge(m); }
 void DevicesScreen::setActivePreset(juce::String n) { grid_->setActivePreset(n); }
 void DevicesScreen::setMasterVolume(double g)       { grid_->setMasterVolume(g); }
 void DevicesScreen::setMicProfile(juce::String p)   { grid_->setMicProfile(p); }

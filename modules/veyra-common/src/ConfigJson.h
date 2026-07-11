@@ -226,6 +226,24 @@ inline void from_json(const nlohmann::json& j, BridgeConfig& b)
     b.preferredOutputId = j.value("preferred_output_id", b.preferredOutputId);
 }
 
+inline void to_json(nlohmann::json& j, const MicBridgeConfig& m)
+{
+    j = nlohmann::json{
+        {"enabled",          m.enabled},
+        {"mic_device_id",    m.micDeviceId},
+        {"target_device_id", m.targetDeviceId},
+    };
+}
+
+inline void from_json(const nlohmann::json& j, MicBridgeConfig& m)
+{
+    if (! j.is_object())
+        return;
+    m.enabled        = j.value("enabled", m.enabled);
+    m.micDeviceId    = j.value("mic_device_id", m.micDeviceId);
+    m.targetDeviceId = j.value("target_device_id", m.targetDeviceId);
+}
+
 inline void to_json(nlohmann::json& j, const HotkeysConfig& h)
 {
     j = nlohmann::json::array();
