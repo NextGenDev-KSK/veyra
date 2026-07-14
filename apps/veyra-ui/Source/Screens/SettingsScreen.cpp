@@ -6,6 +6,10 @@
 #include "Graphics/GlassBackground.h"
 #include "Theme/Fonts.h"
 
+#include "veyra/ThemeTokens.h"
+
+#include <array>
+
 #include "veyra/Paths.h"
 #include "veyra/version.h"
 
@@ -15,19 +19,177 @@
 namespace veyra::ui {
 
 // ---------------------------------------------------------------------------
-// AppearanceCard: the glass card holding the theme grid + appearance controls.
+// AppearanceCard: the theme gallery (one swatch card per theme, drawn in that
+// palette's own colours, radio semantics), the Custom anchor editor, theme
+// import/export, and the appearance controls. Themes are data — the card only
+// ever reads palettes through the engine.
 // ---------------------------------------------------------------------------
-class SettingsScreen::AppearanceCard : public GlassPanel, public juce::ChangeListener {
+
+namespace {
+
+// One 104x64 gallery card, painted entirely in ITS theme's colours. A real
+// juce::Button so the gallery is keyboard-focusable with radio semantics.
+class ThemeSwatch : public juce::Button {
+public:
+    ThemeSwatch(const juce::String& id, const juce::String& name)
+        : juce::Button(name), id_(id), tokens_(veyra::theme::themeTokens(id.toStdString()))
+    {
+        setRadioGroupId(0x54484d45); // 'THME' — radio-button accessibility role
+        setClickingTogglesState(true);
+        setTitle(name);
+    }
+
+    const juce::String& themeId() const { return id_; }
+
+    // Custom's swatch follows the user's anchors live.
+    void setTokens(const veyra::theme::ThemeTokens& t) { tokens_ = t; repaint(); }
+
+    void setChrome(juce::Colour activeBorder, juce::Colour hoverBorder)
+    {
+        activeBorder_ = activeBorder;
+        hoverBorder_  = hoverBorder;
+        repaint();
+    }
+
+    void paintButton(juce::Graphics& g, bool highlighted, bool) override
+    {
+        auto col = [](veyra::theme::Argb a) { return juce::Colour((juce::uint32) a); };
+        const auto b = getLocalBounds().toFloat();
+
+        g.setColour(col(tokens_.surfacePanel));
+        g.fillRoundedRectangle(b, 8.0f);
+
+        auto inner = b.reduced(8.0f);
+
+        // Raised-surface bar.
+        auto bar = inner.removeFromTop(12.0f);
+        g.setColour(col(tokens_.surfaceRaised));
+        g.fillRoundedRectangle(bar, 3.0f);
+
+        // Accent (12 px) + success and danger (8 px) dots.
+        inner.removeFromTop(5.0f);
+        auto dots = inner.removeFromTop(12.0f);
+        g.setColour(col(tokens_.accent));
+        g.fillEllipse(dots.getX(), dots.getY(), 12.0f, 12.0f);
+        g.setColour(col(tokens_.success));
+        g.fillEllipse(dots.getX() + 17.0f, dots.getY() + 2.0f, 8.0f, 8.0f);
+        g.setColour(col(tokens_.danger));
+        g.fillEllipse(dots.getX() + 30.0f, dots.getY() + 2.0f, 8.0f, 8.0f);
+
+        // Theme name in the palette's own primary text colour.
+        g.setColour(col(tokens_.textPrimary));
+        g.setFont(fonts::body(10.5f, getToggleState()));
+        g.drawText(getName(), inner.toNearestInt(), juce::Justification::bottomLeft, true);
+
+        // Active = 2 px accentBright ring; hover/focus = strong border.
+        if (getToggleState())
+        {
+            g.setColour(activeBorder_.isTransparent() ? col(tokens_.accentBright) : activeBorder_);
+            g.drawRoundedRectangle(b.reduced(1.0f), 8.0f, 2.0f);
+        }
+        else if (highlighted || hasKeyboardFocus(false))
+        {
+            g.setColour(hoverBorder_);
+            g.drawRoundedRectangle(b.reduced(0.5f), 8.0f, 1.0f);
+        }
+    }
+
+private:
+    juce::String              id_;
+    veyra::theme::ThemeTokens tokens_;
+    juce::Colour              activeBorder_{0x00000000}, hoverBorder_{0x40FFFFFF};
+};
+
+// A small colour chip that opens the native colour picker; one per Custom anchor.
+class ColorChip : public juce::Button, private juce::ChangeListener {
+public:
+    ColorChip() : juce::Button("colour") { onClick = [this] { open(); }; }
+
+    std::function<void(juce::Colour)> onColour;
+
+    void setColour(juce::Colour c) { colour_ = c; repaint(); }
+
+    void paintButton(juce::Graphics& g, bool highlighted, bool) override
+    {
+        const auto b = getLocalBounds().toFloat();
+        g.setColour(colour_);
+        g.fillRoundedRectangle(b, 5.0f);
+        g.setColour(highlighted || hasKeyboardFocus(false) ? juce::Colours::white.withAlpha(0.7f)
+                                                           : juce::Colours::white.withAlpha(0.25f));
+        g.drawRoundedRectangle(b.reduced(0.5f), 5.0f, 1.0f);
+    }
+
+private:
+    void open()
+    {
+        auto sel = std::make_unique<juce::ColourSelector>(
+            juce::ColourSelector::showColourAtTop | juce::ColourSelector::showColourspace
+            | juce::ColourSelector::showSliders);
+        sel->setCurrentColour(colour_, juce::dontSendNotification);
+        sel->setSize(260, 300);
+        sel->addChangeListener(this);
+        juce::CallOutBox::launchAsynchronously(std::move(sel), getScreenBounds(), nullptr);
+    }
+
+    void changeListenerCallback(juce::ChangeBroadcaster* src) override
+    {
+        if (auto* cs = dynamic_cast<juce::ColourSelector*>(src))
+        {
+            colour_ = cs->getCurrentColour();
+            repaint();
+            if (onColour)
+                onColour(colour_);
+        }
+    }
+
+    juce::Colour colour_;
+};
+
+} // namespace
+
+class SettingsScreen::AppearanceCard : public GlassPanel {
 public:
     AppearanceCard()
     {
-        themes_ = builtInThemes();
+        // Gallery: one focusable radio card per theme (Custom included, last).
+        for (const auto& t : builtInThemes())
+        {
+            auto sw = std::make_unique<ThemeSwatch>(t.id, t.name);
+            sw->onClick = [this, id = t.id]
+            {
+                current_ = id;
+                syncSwatches();
+                updateEditorVisibility();
+                if (onThemeSelected)
+                    onThemeSelected(id);
+            };
+            addAndMakeVisible(*sw);
+            swatches_.push_back(std::move(sw));
+        }
 
-        // Accent picker — only meaningful for the Custom theme, so hidden otherwise.
-        accentBtn_.setButtonText("Accent Colour...");
-        accentBtn_.onClick = [this] { openAccentPicker(); };
-        accentBtn_.setVisible(false);
-        addAndMakeVisible(accentBtn_);
+        // Custom anchor editor rows (visible only while Custom is selected).
+        static const char* kAnchorLabels[kAnchorCount] = {
+            "Accent", "Background", "Success", "Warning", "Error",
+            "Meter (normal)", "Meter (hot)", "Meter (peak)"};
+        for (int i = 0; i < kAnchorCount; ++i)
+        {
+            anchorChips_[(size_t) i] = std::make_unique<ColorChip>();
+            anchorChips_[(size_t) i]->setTitle(juce::String(kAnchorLabels[i]));
+            anchorChips_[(size_t) i]->onColour = [this, i](juce::Colour c)
+            {
+                setAnchorValue(i, (veyra::theme::Argb) c.getARGB());
+                emitAnchors();
+            };
+            addChildComponent(*anchorChips_[(size_t) i]);
+        }
+
+        importBtn_.setButtonText("Import theme...");
+        importBtn_.onClick = [this] { importTheme(); };
+        addAndMakeVisible(importBtn_);
+
+        exportBtn_.setButtonText("Export theme...");
+        exportBtn_.onClick = [this] { exportTheme(); };
+        addAndMakeVisible(exportBtn_);
 
         bgMode_.setItems({"Ambient", "Solid", "Image"});
         bgMode_.setSelectedIndex(0, false);
@@ -47,6 +209,9 @@ public:
 
         reduceMotion_.onClick = [this] { if (onReduceMotion) onReduceMotion(reduceMotion_.getToggleState()); };
         addAndMakeVisible(reduceMotion_);
+
+        syncChips();
+        updateEditorVisibility();
     }
 
     std::function<void(const juce::String&)> onThemeSelected;
@@ -54,29 +219,68 @@ public:
     std::function<void(int)>                 onBackgroundMode;
     std::function<void(juce::String)>        onBackgroundImage;
     std::function<void(bool)>                onReduceMotion;
-    std::function<void(juce::Colour)>        onCustomAccent;
+    std::function<void(const std::string&)>  onCustomAnchors; // anchors as JSON
 
-    void setCustomAccent(juce::Colour c) { customAccent_ = c; }
-
-    void openAccentPicker()
+    void setCustomAnchors(const std::string& anchorsJson)
     {
-        auto sel = std::make_unique<juce::ColourSelector>(
-            juce::ColourSelector::showColourAtTop | juce::ColourSelector::showColourspace
-            | juce::ColourSelector::showSliders);
-        sel->setName("accent");
-        sel->setCurrentColour(customAccent_, juce::dontSendNotification);
-        sel->setSize(260, 300);
-        sel->addChangeListener(this);
-        juce::CallOutBox::launchAsynchronously(std::move(sel), accentBtn_.getScreenBounds(), nullptr);
+        anchors_ = veyra::theme::anchorsFromJson(anchorsJson);
+        syncChips();
     }
 
-    void changeListenerCallback(juce::ChangeBroadcaster* src) override
+    void importTheme()
     {
-        if (auto* cs = dynamic_cast<juce::ColourSelector*>(src))
-        {
-            customAccent_ = cs->getCurrentColour();
-            if (onCustomAccent) onCustomAccent(customAccent_);
-        }
+        chooser_ = std::make_unique<juce::FileChooser>("Import theme", juce::File(), "*.json");
+        chooser_->launchAsync(
+            juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+            [this](const juce::FileChooser& fc)
+            {
+                const auto f = fc.getResult();
+                if (! f.existsAsFile())
+                    return;
+                // The engine enforces the 64 KB cap; read at most that + 1 byte
+                // so an oversized file is rejected rather than truncated to valid.
+                juce::MemoryBlock raw;
+                f.loadFileAsData(raw);
+                const std::string text((const char*) raw.getData(),
+                                       juce::jmin(raw.getSize(), veyra::theme::kThemeFileMaxBytes + 1));
+                const auto imported = veyra::theme::importThemeFile(text);
+                if (! imported)
+                    return;
+
+                anchors_ = imported->custom;
+                syncChips();
+                emitAnchors();
+
+                juce::String id(imported->themeName);
+                bool known = false;
+                for (const auto& t : builtInThemes())
+                    if (t.id == id) { known = true; break; }
+                if (! known)
+                    id = veyra::theme::kCustomThemeId;
+                setCurrentTheme(id);
+                if (onThemeSelected)
+                    onThemeSelected(id);
+            });
+    }
+
+    void exportTheme()
+    {
+        chooser_ = std::make_unique<juce::FileChooser>("Export theme",
+                                                       juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
+                                                           .getChildFile("veyra-theme.json"),
+                                                       "*.json");
+        chooser_->launchAsync(
+            juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
+            [this](const juce::FileChooser& fc)
+            {
+                const auto f = fc.getResult();
+                if (f == juce::File())
+                    return;
+                veyra::theme::ThemeFile out;
+                out.themeName = current_.toStdString();
+                out.custom    = anchors_;
+                f.replaceWithText(juce::String(veyra::theme::exportThemeFile(out)));
+            });
     }
 
     void pickImage()
@@ -98,12 +302,14 @@ public:
         GlassPanel::setPalette(p);
         bgMode_.setPalette(p);
         reduceMotion_.setPalette(p);
+        syncSwatches(); // active/hover chrome follows the app palette
     }
 
     void setCurrentTheme(const juce::String& id)
     {
         current_ = id;
-        accentBtn_.setVisible(id == "custom");
+        syncSwatches();
+        updateEditorVisibility();
         resized();
         repaint();
     }
@@ -119,34 +325,17 @@ public:
     void resized() override
     {
         const Layout l = layout();
+        for (int i = 0; i < (int) swatches_.size(); ++i)
+            swatches_[(size_t) i]->setBounds(cellBounds(i, l.grid));
+        for (int i = 0; i < kAnchorCount; ++i)
+            anchorChips_[(size_t) i]->setBounds(l.editor.getX() + 130,
+                                                l.editor.getY() + i * kAnchorRowH + 2,
+                                                46, kAnchorRowH - 6);
+        importBtn_.setBounds(l.grid.getRight() - 260, l.grid.getY() - 28, 124, 22);
+        exportBtn_.setBounds(l.grid.getRight() - 128, l.grid.getY() - 28, 124, 22);
         opacity_.setBounds(l.opacityCtl);
         bgMode_.setBounds(l.bgCtl);
         reduceMotion_.setBounds(l.reduceCtl);
-        // Accent picker sits at the right of the THEME section header (custom only).
-        accentBtn_.setBounds(l.grid.getRight() - 140, l.grid.getY() - 26, 140, 22);
-    }
-
-    void mouseMove(const juce::MouseEvent& e) override
-    {
-        const int h = hitTest(e.getPosition());
-        if (h != hover_) { hover_ = h; repaint(); }
-    }
-
-    void mouseExit(const juce::MouseEvent&) override
-    {
-        if (hover_ != -1) { hover_ = -1; repaint(); }
-    }
-
-    void mouseDown(const juce::MouseEvent& e) override
-    {
-        const int h = hitTest(e.getPosition());
-        if (h >= 0)
-        {
-            current_ = themes_[(size_t) h].id;
-            repaint();
-            if (onThemeSelected)
-                onThemeSelected(current_);
-        }
     }
 
 protected:
@@ -156,60 +345,37 @@ protected:
         auto content = getLocalBounds().reduced(kPad);
 
         // Card title.
-        g.setColour(palette_.textPrimary);
+        g.setColour(palette_.textTitle);
         g.setFont(fonts::display(20.0f));
         g.drawText("APPEARANCE", content.removeFromTop(28), juce::Justification::centredLeft, false);
 
-        // "Theme" section label.
+        // "Theme" section label (the swatch buttons paint themselves).
         g.setColour(palette_.textSecondary);
         g.setFont(fonts::body(12.0f, true));
         g.drawText("THEME", juce::Rectangle<int>(l.grid.getX(), l.grid.getY() - 22, 200, 16),
                    juce::Justification::centredLeft, false);
 
-        // Theme preview cells.
-        for (int i = 0; i < (int) themes_.size(); ++i)
+        // Custom anchor editor: row labels + derivation note (Custom only).
+        if (editorVisible_)
         {
-            const auto cb = cellBounds(i, l.grid).toFloat();
-            const Palette tp = paletteForTheme(themes_[(size_t) i].id);
-            const bool selected = themes_[(size_t) i].id == current_;
-            const bool hover = (i == hover_);
-
-            // Mini "app" preview: canvas fill + a few accent bars.
-            g.setColour(tp.bgApp);
-            g.fillRoundedRectangle(cb, 10.0f);
-
-            auto inner = cb.reduced(8.0f);
-            auto preview = inner.removeFromTop(inner.getHeight() - 18.0f);
-            g.setColour(tp.bgGlass);
-            g.fillRoundedRectangle(preview, 6.0f);
-
-            const float bx = preview.getX() + 6.0f;
-            const float bb = preview.getBottom() - 6.0f;
-            const float bh[] = {10.0f, 18.0f, 13.0f, 22.0f, 8.0f};
-            for (int b = 0; b < 5; ++b)
+            static const char* kAnchorLabels[kAnchorCount] = {
+                "Accent", "Background", "Success", "Warning", "Error",
+                "Meter (normal)", "Meter (hot)", "Meter (peak)"};
+            g.setFont(fonts::body(12.0f));
+            for (int i = 0; i < kAnchorCount; ++i)
             {
-                g.setColour(b % 2 ? tp.accentSecondary : tp.accentPrimary);
-                g.fillRoundedRectangle(bx + b * 7.0f, bb - bh[b], 4.0f, bh[b], 2.0f);
+                g.setColour(palette_.textSecondary);
+                g.drawText(kAnchorLabels[i],
+                           juce::Rectangle<int>(l.editor.getX(), l.editor.getY() + i * kAnchorRowH,
+                                                124, kAnchorRowH),
+                           juce::Justification::centredLeft, false);
             }
-
-            // Name (in the theme's own text colour so contrast is visible).
-            g.setColour(tp.textPrimary);
-            g.setFont(fonts::body(11.0f, selected));
-            g.drawText(themes_[(size_t) i].name, inner.toNearestInt(),
-                       juce::Justification::centredLeft, false);
-
-            // Selection ring / hover stroke.
-            if (selected)
-            {
-                juce::DropShadow(palette_.accentGlow, 10, {}).drawForRectangle(g, cb.toNearestInt());
-                g.setColour(palette_.accentPrimary);
-                g.drawRoundedRectangle(cb.reduced(1.0f), 10.0f, 2.0f);
-            }
-            else
-            {
-                g.setColour(hover ? palette_.strokeHover : palette_.strokeDefault);
-                g.drawRoundedRectangle(cb.reduced(0.5f), 10.0f, 1.0f);
-            }
+            g.setColour(palette_.textTertiary);
+            g.setFont(fonts::body(10.5f));
+            g.drawText("Surfaces, borders, and hover states derive from these anchors automatically.",
+                       juce::Rectangle<int>(l.editor.getX(), l.editor.getBottom() + 2,
+                                            l.editor.getWidth(), 14),
+                       juce::Justification::topLeft, true);
         }
 
         // Control rows: label on the left, control on the right.
@@ -224,6 +390,10 @@ protected:
         };
         rowLabel(l.opacityRow, "UI Opacity", "Glass translucency across panels");
         rowLabel(l.bgRow, "Background", "Ambient blobs, solid fill, or an image");
+
+        // Divider, then the Reduce Motion row beneath it.
+        g.setColour(palette_.strokeDefault);
+        g.fillRect(l.divider);
         rowLabel(l.reduceRow, "Reduce Motion", "Freeze the visualizer and transitions");
 
         // Opacity percentage readout.
@@ -238,10 +408,18 @@ protected:
 private:
     struct Layout {
         juce::Rectangle<int> grid;
+        juce::Rectangle<int> editor;
         juce::Rectangle<int> opacityRow, opacityCtl;
         juce::Rectangle<int> bgRow, bgCtl;
+        juce::Rectangle<int> divider;
         juce::Rectangle<int> reduceRow, reduceCtl;
     };
+
+    int gridColumns() const
+    {
+        const int w = getLocalBounds().reduced(kPad).getWidth();
+        return juce::jmax(1, (w + kGap) / (kSwatchW + kGap));
+    }
 
     Layout layout() const
     {
@@ -249,8 +427,21 @@ private:
         Layout l;
         content.removeFromTop(28);     // title
         content.removeFromTop(22 + 6); // "THEME" label + gap
-        l.grid = content.removeFromTop(kRows * kCellH + (kRows - 1) * kGap);
-        content.removeFromTop(20);     // divider gap
+
+        const int cols = gridColumns();
+        const int rows = ((int) swatches_.size() + cols - 1) / juce::jmax(1, cols);
+        l.grid = content.removeFromTop(rows * kSwatchH + (rows - 1) * kGap);
+        content.removeFromTop(14);
+
+        if (editorVisible_)
+        {
+            l.editor = content.removeFromTop(kAnchorCount * kAnchorRowH);
+            content.removeFromTop(20); // note line + gap
+        }
+        else
+        {
+            l.editor = {};
+        }
 
         const int ctlW = juce::jmin(300, content.getWidth() / 2);
         auto take = [&](juce::Rectangle<int>& ctl, int ctlH) -> juce::Rectangle<int>
@@ -262,6 +453,8 @@ private:
         };
         l.opacityRow = take(l.opacityCtl, 20);
         l.bgRow      = take(l.bgCtl, 34);
+        l.divider    = content.removeFromTop(1);
+        content.removeFromTop(12);
         l.reduceRow  = take(l.reduceCtl, 20);
         // Reduce-motion uses a compact toggle pinned to the right edge.
         l.reduceCtl = juce::Rectangle<int>(l.reduceRow.getRight() - 44, l.reduceRow.getCentreY() - 10, 44, 20);
@@ -270,35 +463,91 @@ private:
 
     juce::Rectangle<int> cellBounds(int i, juce::Rectangle<int> grid) const
     {
-        const int col = i % kCols, row = i / kCols;
-        const int cw = (grid.getWidth() - kGap * (kCols - 1)) / kCols;
-        return {grid.getX() + col * (cw + kGap), grid.getY() + row * (kCellH + kGap), cw, kCellH};
+        const int cols = gridColumns();
+        const int c = i % cols, r = i / cols;
+        return {grid.getX() + c * (kSwatchW + kGap), grid.getY() + r * (kSwatchH + kGap),
+                kSwatchW, kSwatchH};
     }
 
-    int hitTest(juce::Point<int> p) const
+    void syncSwatches()
     {
-        const auto grid = layout().grid;
-        for (int i = 0; i < (int) themes_.size(); ++i)
-            if (cellBounds(i, grid).contains(p))
-                return i;
-        return -1;
+        for (auto& sw : swatches_)
+        {
+            sw->setToggleState(sw->themeId() == current_, juce::dontSendNotification);
+            sw->setChrome(palette_.accentPrimaryHover, palette_.strokeHover);
+            if (sw->themeId() == veyra::theme::kCustomThemeId)
+                sw->setTokens(veyra::theme::deriveCustom(anchors_));
+        }
+    }
+
+    void updateEditorVisibility()
+    {
+        editorVisible_ = (current_ == veyra::theme::kCustomThemeId);
+        for (auto& chip : anchorChips_)
+            chip->setVisible(editorVisible_);
+        resized();
+        repaint();
+    }
+
+    // Chips always show the EFFECTIVE colour (anchor if set, else derived).
+    void syncChips()
+    {
+        const auto t = veyra::theme::deriveCustom(anchors_);
+        const veyra::theme::Argb effective[kAnchorCount] = {
+            anchors_.accent.value_or(t.accent),
+            anchors_.background.value_or(t.surfaceApp),
+            anchors_.success.value_or(t.success),
+            anchors_.warning.value_or(t.warning),
+            anchors_.danger.value_or(t.danger),
+            anchors_.meterLow.value_or(t.meterLow),
+            anchors_.meterMid.value_or(t.meterMid),
+            anchors_.meterHigh.value_or(t.meterHigh),
+        };
+        for (int i = 0; i < kAnchorCount; ++i)
+            anchorChips_[(size_t) i]->setColour(juce::Colour((juce::uint32) effective[i]));
+        syncSwatches();
+    }
+
+    void setAnchorValue(int index, veyra::theme::Argb value)
+    {
+        switch (index)
+        {
+        case 0: anchors_.accent = value; break;
+        case 1: anchors_.background = value; break;
+        case 2: anchors_.success = value; break;
+        case 3: anchors_.warning = value; break;
+        case 4: anchors_.danger = value; break;
+        case 5: anchors_.meterLow = value; break;
+        case 6: anchors_.meterMid = value; break;
+        case 7: anchors_.meterHigh = value; break;
+        default: break;
+        }
+        syncChips();
+    }
+
+    void emitAnchors()
+    {
+        if (onCustomAnchors)
+            onCustomAnchors(veyra::theme::anchorsToJson(anchors_));
     }
 
     static constexpr int kPad = 28;
-    static constexpr int kCols = 4;
-    static constexpr int kRows = 3; // ceil(11 / 4)
-    static constexpr int kCellH = 70;
+    static constexpr int kSwatchW = 104;
+    static constexpr int kSwatchH = 64;
     static constexpr int kGap = 12;
+    static constexpr int kAnchorCount = 8;
+    static constexpr int kAnchorRowH = 26;
 
-    std::vector<ThemeInfo> themes_;
+    std::vector<std::unique_ptr<ThemeSwatch>>            swatches_;
+    std::array<std::unique_ptr<ColorChip>, kAnchorCount> anchorChips_;
+    veyra::theme::CustomAnchors                          anchors_;
+    bool                                                 editorVisible_ = false;
     SegmentedControl       bgMode_;
     ToggleSwitch           reduceMotion_;
     juce::Slider           opacity_;
-    juce::TextButton       accentBtn_;
-    juce::Colour           customAccent_{0xff5b3fe4};
-    juce::String           current_{"midnight"};
+    juce::TextButton       importBtn_, exportBtn_;
+    juce::String           current_{veyra::theme::kDefaultThemeId};
     std::unique_ptr<juce::FileChooser> chooser_;
-    int                    hover_ = -1;
 };
 
 // ---------------------------------------------------------------------------
@@ -1334,7 +1583,7 @@ SettingsScreen::SettingsScreen()
     appearance_->onBackgroundMode = [this](int i) { if (onBackgroundMode) onBackgroundMode(i); };
     appearance_->onBackgroundImage = [this](juce::String p) { if (onBackgroundImage) onBackgroundImage(p); };
     appearance_->onReduceMotion   = [this](bool b) { if (onReduceMotion) onReduceMotion(b); };
-    appearance_->onCustomAccent   = [this](juce::Colour c) { if (onCustomAccent) onCustomAccent(c); };
+    appearance_->onCustomAnchors  = [this](const std::string& j) { if (onCustomAnchors) onCustomAnchors(j); };
     addAndMakeVisible(*appearance_);
 
     audioEngine_ = std::make_unique<AudioEngineCard>();
@@ -1504,7 +1753,7 @@ void SettingsScreen::attachBackdrop(GlassBackground* b)
 }
 
 void SettingsScreen::setCurrentTheme(const juce::String& id) { appearance_->setCurrentTheme(id); }
-void SettingsScreen::setCustomAccent(juce::Colour c) { appearance_->setCustomAccent(c); }
+void SettingsScreen::setCustomAnchors(const std::string& j) { appearance_->setCustomAnchors(j); }
 void SettingsScreen::setAppearance(double opacity, int backgroundMode, bool reduceMotion)
 {
     appearance_->setAppearance(opacity, backgroundMode, reduceMotion);

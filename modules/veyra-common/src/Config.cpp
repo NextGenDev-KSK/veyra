@@ -27,6 +27,7 @@ std::string Config::toJson() const
     j["appearance"]         = {
         {"theme",           theme},
         {"custom_accent",   customAccent},
+        {"custom_theme",    customTheme},
         {"ui_opacity",      uiOpacity},
         {"background_mode", backgroundMode},
         {"background_image", backgroundImagePath},
@@ -94,6 +95,7 @@ std::optional<Config> Config::fromJson(const std::string& text)
     {
         c.theme          = it->value("theme", c.theme);
         c.customAccent   = it->value("custom_accent", c.customAccent);
+        c.customTheme    = it->value("custom_theme", c.customTheme);
         c.uiOpacity      = it->value("ui_opacity", c.uiOpacity);
         c.backgroundMode = it->value("background_mode", c.backgroundMode);
         c.backgroundImagePath = it->value("background_image", c.backgroundImagePath);

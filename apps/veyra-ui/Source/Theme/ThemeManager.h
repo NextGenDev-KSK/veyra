@@ -1,11 +1,13 @@
 #pragma once
 
-// Holds the active theme palette and notifies listeners on change. Theme
-// switching is a token swap on the same component tree; the 400 ms cross-fade is
-// applied by the view layer (RootComponent) when it repaints on change.
+// Holds the active theme palette and notifies listeners on change. A theme is
+// data: switching swaps the palette object on the same component tree and the
+// view layer repaints on the change message — live, no restart.
 
 #include "Theme/DesignTokens.h"
 #include "VeyraGui.h"
+
+#include "veyra/ThemeTokens.h"
 
 namespace veyra::ui {
 
@@ -22,11 +24,11 @@ public:
         sendChangeMessage();
     }
 
-    // Custom-theme accent (applied only while the Custom theme is active).
-    void setCustomAccent(juce::Colour c)
+    // Custom-theme anchors (applied live while the Custom theme is active).
+    void setCustomAnchors(const veyra::theme::CustomAnchors& anchors)
     {
-        customAccent_ = c;
-        if (currentId_ == "custom")
+        anchors_ = anchors;
+        if (currentId_ == veyra::theme::kCustomThemeId)
         {
             rebuild();
             sendChangeMessage();
@@ -35,17 +37,19 @@ public:
 
     const juce::String& currentId() const noexcept { return currentId_; }
     const Palette& palette() const noexcept { return palette_; }
+    const veyra::theme::CustomAnchors& customAnchors() const noexcept { return anchors_; }
 
 private:
     void rebuild()
     {
-        palette_ = (currentId_ == "custom") ? customPalette(customAccent_)
-                                            : paletteForTheme(currentId_);
+        palette_ = (currentId_ == veyra::theme::kCustomThemeId)
+                       ? paletteFromTokens(veyra::theme::deriveCustom(anchors_))
+                       : paletteForTheme(currentId_);
     }
 
-    juce::String currentId_{"midnight"};
-    juce::Colour customAccent_{0xff5b3fe4}; // default accent until the user picks one
-    Palette palette_;
+    juce::String                currentId_{veyra::theme::kDefaultThemeId};
+    veyra::theme::CustomAnchors anchors_;
+    Palette                     palette_;
 };
 
 } // namespace veyra::ui

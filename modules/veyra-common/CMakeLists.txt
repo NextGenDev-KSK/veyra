@@ -20,6 +20,7 @@ add_library(veyra-common STATIC
     src/Hotkeys.cpp
     src/GameDetector.cpp
     src/AutoEq.cpp
+    src/ThemeTokens.cpp
     src/ipc/PipeIo.cpp
     src/ipc/PipeServer.cpp
     src/ipc/PipeClient.cpp

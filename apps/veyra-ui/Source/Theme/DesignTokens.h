@@ -1,12 +1,14 @@
 #pragma once
 
-// Semantic colour tokens (from reference/design/design-tokens.json), expressed
-// as a Palette. Midnight is the canonical base; the other built-in themes are
-// overrides on top of it. Hard-coded (rather than parsed at runtime) so the
-// theme path has no I/O or JSON dependency; runtime/custom themes can layer on
-// later.
+// The view-side palette. Themes are DATA: every palette is produced from a
+// veyra::theme::ThemeTokens (see modules/veyra-common/include/veyra/ThemeTokens.h,
+// where the canonical curated values live). This header only adapts those
+// tokens to the juce::Colour fields the components consume — no palette values
+// are defined here, and no component may hardcode a colour.
 
 #include "VeyraGui.h"
+
+#include "veyra/ThemeTokens.h"
 
 #include <vector>
 
@@ -16,16 +18,21 @@ struct Palette {
     bool dark = true;
 
     juce::Colour bgApp, bgCanvas, bgGlass, bgGlassHover, bgGlassActive,
-                 bgGlassElevated, bgModalScrim, bgInput;
+                 bgGlassElevated, bgModalScrim, bgInput, bgNav;
 
     juce::Colour strokeDefault, strokeHover, strokeActive, strokeFocus, strokeLightLeak;
 
-    juce::Colour textPrimary, textSecondary, textTertiary, textDisabled, textOnAccent;
+    juce::Colour textPrimary, textSecondary, textTertiary, textDisabled, textOnAccent,
+                 textTitle;
 
     juce::Colour accentPrimary, accentPrimaryHover, accentPrimaryActive,
-                 accentGlow, accentGlowStrong, accentSecondary, accentSecondaryDim;
+                 accentGlow, accentGlowStrong, accentWash,
+                 accentSecondary, accentSecondaryDim;
 
     juce::Colour success, successBg, warning, warningBg, danger, dangerBg, info, infoBg;
+
+    // Audio meter scale (never reused for chrome).
+    juce::Colour meterLow, meterMid, meterHigh, meterTrack;
 };
 
 struct ThemeInfo {
@@ -33,13 +40,13 @@ struct ThemeInfo {
     juce::String name;
 };
 
-// The 11 built-in themes, in display order.
+// All themes in gallery order (Violet default first, Custom last).
 const std::vector<ThemeInfo>& builtInThemes();
 
-// Palette for a theme id (falls back to Midnight for unknown ids).
-Palette paletteForTheme(const juce::String& id);
+// Adapt an engine palette to the view-side Palette.
+Palette paletteFromTokens(const veyra::theme::ThemeTokens& tokens);
 
-// The Custom theme: Midnight base with a user-chosen accent applied.
-Palette customPalette(juce::Colour accent);
+// Palette for a curated theme id (legacy/unknown ids fall back to Violet).
+Palette paletteForTheme(const juce::String& id);
 
 } // namespace veyra::ui

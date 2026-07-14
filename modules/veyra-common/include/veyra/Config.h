@@ -156,8 +156,9 @@ struct Config {
     bool        masterEnabled      = true;
     double      masterVolumeGain   = 1.0;
     std::string activePresetUuid;
-    std::string theme              = "midnight";
-    unsigned int customAccent      = 0;     // Custom-theme accent (ARGB); 0 = theme default
+    std::string theme              = "violet"; // default theme (purple)
+    unsigned int customAccent      = 0;     // legacy (pre-1.3) Custom accent; migrated into customTheme
+    std::string customTheme;                // Custom-theme anchors as JSON (see veyra/ThemeTokens.h)
     double      uiOpacity          = 0.85;  // glass translucency 0.3..1
     int         backgroundMode     = 0;     // 0 ambient, 1 solid, 2 image
     std::string backgroundImagePath;        // user image for backgroundMode == 2

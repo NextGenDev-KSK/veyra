@@ -103,18 +103,19 @@ void VisualizerCard::paintContent(juce::Graphics& g)
 
     auto drawMeter = [&](float x, float level, float peak, const char* cap)
     {
-        g.setColour(juce::Colour(60, 62, 80).withAlpha(0.4f));
+        // Audio meter scale: the dedicated meter tokens, never chrome colours.
+        g.setColour(palette_.meterTrack);
         g.fillRoundedRectangle(x, my, mw, mh, 4.0f);
 
-        juce::ColourGradient grad(palette_.accentSecondary, 0, my + mh, palette_.danger, 0, my, false);
-        grad.addColour(0.4, palette_.accentSecondary);
-        grad.addColour(0.8, palette_.warning);
+        juce::ColourGradient grad(palette_.meterLow, 0, my + mh, palette_.meterHigh, 0, my, false);
+        grad.addColour(0.4, palette_.meterLow);
+        grad.addColour(0.8, palette_.meterMid);
         g.setGradientFill(grad);
         const float fh = mh * level;
         g.fillRoundedRectangle(x, my + mh - fh, mw, fh, 4.0f);
 
         const float py = my + mh * (1.0f - peak); // peak-hold tick
-        g.setColour(juce::Colours::white);
+        g.setColour(palette_.textPrimary);
         g.fillRect(x, py, mw, 2.0f);
 
         g.setColour(palette_.textTertiary);
@@ -130,9 +131,9 @@ void VisualizerCard::paintContent(juce::Graphics& g)
     auto clipBox = juce::Rectangle<float>((float) vuCol.getX(), (float) vuCol.getY(), 64.0f, 14.0f);
     if (clip_)
     {
-        g.setColour(palette_.danger);
+        g.setColour(palette_.meterHigh);
         g.fillRoundedRectangle(clipBox, 4.0f);
-        g.setColour(juce::Colours::white);
+        g.setColour(palette_.textOnAccent);
         g.setFont(fonts::mono(9.0f, true));
         g.drawText("CLIP", clipBox, juce::Justification::centred, false);
     }

@@ -34,7 +34,7 @@ public:
     std::function<void(int)>                 onBackgroundMode;  // 0 blobs, 1 solid, 2 image
     std::function<void(juce::String)>        onBackgroundImage; // chosen image path (mode 2)
     std::function<void(bool)>                onReduceMotion;
-    std::function<void(juce::Colour)>        onCustomAccent;    // Custom-theme accent
+    std::function<void(const std::string&)>  onCustomAnchors;   // Custom-theme anchors (JSON)
 
     // Microphone (voice chain) interactions.
     std::function<void(const veyra::VoiceConfig&)> onMicChanged;
@@ -71,7 +71,7 @@ public:
 
     // Reflect current state without firing callbacks.
     void setCurrentTheme(const juce::String& id);
-    void setCustomAccent(juce::Colour c);
+    void setCustomAnchors(const std::string& anchorsJson);
     void setAppearance(double opacity, int backgroundMode, bool reduceMotion);
     void setMicConfig(const veyra::VoiceConfig& voice);
     void setSpatialConfig(const veyra::SpatialConfig& spatial);

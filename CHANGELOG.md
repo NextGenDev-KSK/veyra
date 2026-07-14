@@ -8,6 +8,40 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **New theming engine (data-driven port).** A theme is now pure data: 14
+  curated palettes (default **Violet**, plus Light, Blue, Midnight, OLED Black,
+  Graphite, Nord, Dracula, Catppuccin Mocha, Tokyo Night, Solarized Dark,
+  One Dark, GitHub Dark, High Contrast) + Custom, defined once in
+  `veyra::theme::ThemeTokens` (veyra-common) with the full token set: surface
+  ramp (app/panel/raised/sunken/nav), borders (+derived borderGlow), accent
+  family (+derived accentWash), semantics, a dedicated audio-meter scale
+  (low/mid/high/track), five text roles including per-palette `textOnAccent`
+  (pale community accents carry dark text), and a theme-independent scrim.
+- **Custom theme anchors** — accent, background, success/warning/danger and
+  optional meter overrides derive the full palette (surface ramp, borders,
+  accent family, `textOnAccent` by contrast). Settings → Appearance shows the
+  anchor rows only while Custom is selected.
+- **Theme gallery** — one 104x64 swatch card per theme painted in that
+  palette's own colours (accent/success/danger dots, raised bar, name in its
+  textPrimary), keyboard-focusable with radio-button semantics; active card
+  rings in accentBright.
+- **Theme import/export** as JSON (`themeName` + `custom` anchors) with a
+  64 KB import cap.
+- **Motion tokens** — fast 120 ms / med 180 ms / slow 240 ms, all 0 while
+  Reduce Motion is on (`veyra::theme::motion` + `ui::motion`). Audio meters
+  are never animated.
+- Per-theme engine tests: token completeness for every palette, canonical
+  value checks, WCAG contrast gates (textPrimary/panel >= 4.5, textOnAccent/
+  accent >= 3.0), Custom derivation, import cap, settings round-trip.
+
+### Changed
+- `Config.theme` default is `violet`; legacy ids (pure-black, daylight, mono,
+  ocean) migrate to their closest new theme, and a legacy `custom_accent`
+  migrates into the new `custom_theme` anchors once.
+- VU meters and the CLIP badge draw from the meter tokens instead of
+  accent/semantic chrome colours (and the meter track is no longer hardcoded).
+
 ---
 
 ## [1.2.0] — 2026-07-11

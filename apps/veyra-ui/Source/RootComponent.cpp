@@ -1,6 +1,7 @@
 #include "RootComponent.h"
 
 #include "AudioDevices.h"
+#include "Theme/Motion.h"
 
 #include "veyra/CrashReport.h"
 #include "veyra/Paths.h"
@@ -233,16 +234,17 @@ RootComponent::RootComponent()
         working_.theme = id.toStdString();
         pushConfig();
     };
-    settings_.onCustomAccent = [this](juce::Colour c)
+    settings_.onCustomAnchors = [this](const std::string& anchorsJson)
     {
-        working_.customAccent = c.getARGB();
-        themeManager_.setCustomAccent(c); // applies live if the Custom theme is active
+        working_.customTheme = anchorsJson;
+        themeManager_.setCustomAnchors(veyra::theme::anchorsFromJson(anchorsJson));
         applyPalette();
         pushConfig();
     };
     settings_.onReduceMotion   = [this](bool b)
     {
         working_.reduceMotion = b;
+        motion::setReducedMotion(b);
         home_.setReduceMotion(b);
         pushConfig();
     };
@@ -564,19 +566,42 @@ void RootComponent::applyConfig(const veyra::Config& c)
     background_.setOpacity((float) c.uiOpacity);
     background_.setImagePath(juce::String(c.backgroundImagePath));
     background_.setBackgroundMode(c.backgroundMode);
+    motion::setReducedMotion(c.reduceMotion);
     home_.setReduceMotion(c.reduceMotion);
 
-    // Custom-theme accent must be set before the theme is applied so the rebuild
-    // uses it (and it survives restart via Config.customAccent).
-    if (c.customAccent != 0)
+    // Custom-theme anchors must be set before the theme is applied so the
+    // rebuild uses them. A pre-1.3 config carries only customAccent — migrate
+    // it into an anchors set once.
     {
-        const juce::Colour accent(c.customAccent);
-        themeManager_.setCustomAccent(accent);
-        settings_.setCustomAccent(accent);
+        std::string anchorsJson = c.customTheme;
+        if (anchorsJson.empty() && c.customAccent != 0)
+        {
+            veyra::theme::CustomAnchors legacy;
+            legacy.accent = (veyra::theme::Argb) c.customAccent;
+            anchorsJson = veyra::theme::anchorsToJson(legacy);
+            working_.customTheme = anchorsJson; // persisted on the next push
+        }
+        themeManager_.setCustomAnchors(veyra::theme::anchorsFromJson(anchorsJson));
+        settings_.setCustomAnchors(anchorsJson);
     }
 
-    const juce::String themeId(c.theme);
-    if (themeId.isNotEmpty() && themeId != themeManager_.currentId())
+    // Legacy pre-port theme ids map onto their closest new theme so an
+    // upgraded install lands on a real gallery card instead of a fallback.
+    juce::String themeId(c.theme);
+    if (themeId == "pure-black") themeId = "oled-black";
+    else if (themeId == "daylight") themeId = "light";
+    else if (themeId == "mono") themeId = "graphite";
+    else if (themeId == "ocean") themeId = "blue";
+    else
+    {
+        bool known = false;
+        for (const auto& t : builtInThemes())
+            if (t.id == themeId) { known = true; break; }
+        if (! known)
+            themeId = veyra::theme::kDefaultThemeId;
+    }
+    working_.theme = themeId.toStdString();
+    if (themeId != themeManager_.currentId())
     {
         themeManager_.setTheme(themeId); // -> applyPalette via listener
         settings_.setCurrentTheme(themeId);
